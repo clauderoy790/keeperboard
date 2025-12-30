@@ -21,6 +21,13 @@ public class PlayerNameUpdate
     public string player_name;
 }
 
+[Serializable]
+public class TestPayload
+{
+    public string test;
+    public string timestamp;
+}
+
 #endregion
 
 #region Response Wrappers

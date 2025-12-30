@@ -28,6 +28,7 @@ public class KeeperBoardTester : MonoBehaviour
     [SerializeField] private Button testDogApiButton;
     [SerializeField] private Button testAllButton;
     [SerializeField] private Button testCustomUrlButton;
+    [SerializeField] private Button testPostPutButton;
 
     // Public API endpoints for testing
     private const string HTTPBIN_URL = "https://httpbin.org/get";
@@ -81,6 +82,9 @@ public class KeeperBoardTester : MonoBehaviour
         if (testCustomUrlButton != null)
             testCustomUrlButton.onClick.AddListener(() => StartCoroutine(TestCustomUrl()));
 
+        if (testPostPutButton != null)
+            testPostPutButton.onClick.AddListener(() => StartCoroutine(TestPostAndPut()));
+
         Log("=== CSP Test Tool ===");
         Log($"KeeperBoard API: {keeperBoardApiUrl}");
         Log("\nUse buttons to test various APIs.");
@@ -92,7 +96,7 @@ public class KeeperBoardTester : MonoBehaviour
     {
         results.Clear();
         Log($"Testing {name}...");
-        Log($"URL: {url}\n");
+        Log($"[GET] URL: {url}\n");
 
         using var request = UnityWebRequest.Get(url);
         request.timeout = 10;
@@ -151,6 +155,67 @@ public class KeeperBoardTester : MonoBehaviour
 
         if (failCount > 0)
             Log($"\n{failCount}/5 public APIs blocked by CSP");
+    }
+
+    private IEnumerator TestPostAndPut()
+    {
+        results.Clear();
+        passCount = 0;
+        failCount = 0;
+
+        Log("=== Testing POST & PUT ===\n");
+
+        // Test POST
+        var postBody = "{\"msg\":\"test\"}";
+        using (var postRequest = new UnityWebRequest("https://httpbin.org/post", "POST"))
+        {
+            postRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(postBody));
+            postRequest.downloadHandler = new DownloadHandlerBuffer();
+            postRequest.SetRequestHeader("Content-Type", "application/json");
+            postRequest.timeout = 10;
+            yield return postRequest.SendWebRequest();
+
+            if (postRequest.result == UnityWebRequest.Result.Success)
+            {
+                passCount++;
+                Log($"[PASS] POST 200 OK");
+                Log($"URL: https://httpbin.org/post");
+                Log($"Sent: {postBody}");
+            }
+            else
+            {
+                failCount++;
+                Log($"[FAIL] POST: {postRequest.error}");
+                Log($"URL: https://httpbin.org/post");
+            }
+        }
+
+        // Test PUT
+        var putBody = "{\"id\":1,\"update\":true}";
+        using (var putRequest = new UnityWebRequest("https://httpbin.org/put", "PUT"))
+        {
+            putRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(putBody));
+            putRequest.downloadHandler = new DownloadHandlerBuffer();
+            putRequest.SetRequestHeader("Content-Type", "application/json");
+            putRequest.timeout = 10;
+            yield return putRequest.SendWebRequest();
+
+            if (putRequest.result == UnityWebRequest.Result.Success)
+            {
+                passCount++;
+                Log($"[PASS] PUT 200 OK");
+                Log($"URL: https://httpbin.org/put");
+                Log($"Sent: {putBody}");
+            }
+            else
+            {
+                failCount++;
+                Log($"[FAIL] PUT: {putRequest.error}");
+                Log($"URL: https://httpbin.org/put");
+            }
+        }
+
+        Log($"\n{passCount}/2 passed");
     }
 
     private IEnumerator TestAndCount(string name, string url)
