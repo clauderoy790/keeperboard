@@ -1,0 +1,18 @@
+# Health check
+  curl http://localhost:3000/api/v1/health
+
+  # Submit a score
+  curl -X POST http://localhost:3000/api/v1/scores \
+    -H "Content-Type: application/json" \
+    -d '{"player_guid": "test-123", "player_name": "TestPlayer", "score": 100}'
+
+  # Get leaderboard
+  curl http://localhost:3000/api/v1/leaderboard
+
+  # Get player score
+  curl http://localhost:3000/api/v1/player/test-123
+
+  # Update player name
+  curl -X PUT http://localhost:3000/api/v1/player/test-123 \
+    -H "Content-Type: application/json" \
+    -d '{"player_name": "NewName"}'
