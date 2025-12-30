@@ -14,43 +14,65 @@ Phase 1 (Setup)
     ▼
 Phase 2 (Database)
     │
+    ▼
+Phase 3 (API Skeleton) ← VALIDATION START
+    │
+    ▼
+Phase 4 (Unity Test Harness)
+    │
+    ▼
+Phase 5 (Deploy & Validate on Unity Play) ← CSP TEST
+    │
+    │ If validation passes, continue:
+    │
     ├─────────────────────────────────────────┐
     ▼                                         ▼
-Phase 3 (Auth)                           Phase 8 (Unity Package)
+Phase 6 (Auth)                           Phase 11 (Unity Package)
     │                                         │
     ▼                                         ▼
-Phase 4 (Dashboard Layout)               Phase 9 (Unity UPM)
+Phase 7 (Dashboard Layout)               Phase 12 (Unity UPM)
     │
     ├──────────────┬──────────────┐
     ▼              ▼              ▼
-Phase 5       Phase 6         Phase 7
-(Games)      (Leaderboards)  (Public API)
+Phase 8       Phase 9         Phase 10
+(Games)      (Leaderboards)  (Full Public API)
     │              │              │
     └──────┬───────┴──────────────┘
            │
            ▼
-    Phase 10 (Scores UI)
+    Phase 13 (Scores UI)
            │
            ▼
-    Phase 11 (Import - Manual)
+    Phase 14 (Import - Manual)
            │
            ▼
-    Phase 12 (Import - UGS)
+    Phase 15 (Import - UGS)
            │
            ▼
-    Phase 13 (Integration Test)
+    Phase 16 (Integration Test)
            │
            ▼
-    Phase 14 (Polish & Deploy)
+    Phase 17 (Polish & Deploy)
 ```
+
+### Validation-First Approach
+
+**Phases 3-5 are designed to validate that KeeperBoard will work on Unity Play BEFORE building the full system.**
+
+- Phase 3: Minimal API endpoints (no auth, hardcoded leaderboard)
+- Phase 4: Unity test project that calls all endpoints
+- Phase 5: Deploy to Vercel, build to WebGL, test on Unity Play
+
+**If Phase 5 fails (CSP blocks Vercel)** → Stop and investigate alternatives
+**If Phase 5 passes** → Continue with full build (Phases 6+)
 
 ### Parallel Opportunities
 
-**Parallel Group A (after Phase 2):**
-- Phase 3 (Auth) + Phase 8 (Unity Package core)
+**Parallel Group A (after Phase 5 validation):**
+- Phase 6 (Auth) + Phase 11 (Unity Package)
 
-**Parallel Group B (after Phase 4):**
-- Phase 5 (Games) + Phase 6 (Leaderboards) + Phase 7 (Public API)
+**Parallel Group B (after Phase 7):**
+- Phase 8 (Games) + Phase 9 (Leaderboards) + Phase 10 (Full API)
 
 ---
 
@@ -85,14 +107,10 @@ Phase 5       Phase 6         Phase 7
    │   │   └── register/page.tsx
    │   ├── (dashboard)/
    │   │   ├── layout.tsx
-   │   │   ├── page.tsx                    # Dashboard home
+   │   │   ├── page.tsx
    │   │   └── games/
-   │   │       ├── page.tsx                # Games list
    │   │       └── [gameId]/
-   │   │           ├── page.tsx            # Game detail
-   │   │           ├── leaderboards/
-   │   │           │   └── [leaderboardId]/page.tsx
-   │   │           └── import/page.tsx
+   │   │           └── page.tsx
    │   ├── api/
    │   │   └── v1/
    │   │       ├── scores/route.ts
@@ -101,18 +119,18 @@ Phase 5       Phase 6         Phase 7
    │   │       ├── claim/route.ts
    │   │       └── health/route.ts
    │   ├── layout.tsx
-   │   └── page.tsx                        # Landing/redirect
+   │   └── page.tsx
    ├── components/
-   │   ├── ui/                             # Reusable UI
-   │   ├── dashboard/                      # Dashboard components
-   │   └── forms/                          # Form components
+   │   ├── ui/
+   │   ├── dashboard/
+   │   └── forms/
    ├── lib/
    │   ├── supabase/
    │   │   ├── client.ts
    │   │   ├── server.ts
-   │   │   └── admin.ts                    # Service role client
+   │   │   └── admin.ts
    │   ├── api/
-   │   │   └── auth.ts                     # API key validation
+   │   │   └── auth.ts
    │   └── utils/
    │       └── api-response.ts
    └── types/
@@ -128,30 +146,7 @@ Phase 5       Phase 6         Phase 7
    SUPABASE_SERVICE_ROLE_KEY=
    ```
 
-   `.env.example`:
-   ```
-   # Supabase
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-   ```
-
-5. **Configure Tailwind**
-
-   Add to `tailwind.config.ts`:
-   ```typescript
-   theme: {
-     extend: {
-       colors: {
-         'kb-primary': '#6366f1',    // Indigo
-         'kb-secondary': '#8b5cf6',  // Purple
-         'kb-accent': '#f59e0b',     // Amber
-       },
-     },
-   },
-   ```
-
-6. **Create API response utility**
+5. **Create API response utility**
 
    `src/lib/utils/api-response.ts`:
    ```typescript
@@ -164,24 +159,17 @@ Phase 5       Phase 6         Phase 7
    }
    ```
 
-7. **Update .gitignore**
-   ```
-   .env.local
-   .env.*.local
-   ```
-
 ### Files Created
 - `package.json`
 - `tailwind.config.ts`
 - `.env.local`, `.env.example`
-- Folder structure (empty files ok)
+- Folder structure
 - `src/lib/utils/api-response.ts`
 
 ### Manual Testing Checklist
 - [ ] `npm run dev` starts without errors
 - [ ] Visit http://localhost:3000 - page loads
 - [ ] All folders exist as specified
-- [ ] `.env.local` exists with placeholders
 - [ ] `npm run build` completes without errors
 
 ### AI Prompt
@@ -197,12 +185,9 @@ Create a new Next.js 14+ project called "keeperboard" with:
 Install dependencies:
 - @supabase/supabase-js, @supabase/ssr
 
-Create the folder structure as specified in the plan (see Files Created section).
-
-Create:
+Create the folder structure as specified. Create:
 1. Environment files (.env.local, .env.example) with Supabase placeholders
 2. API response utility at src/lib/utils/api-response.ts
-3. Tailwind config with custom colors (kb-primary: indigo, kb-secondary: purple, kb-accent: amber)
 
 DO NOT implement any actual functionality yet - just structure and configuration.
 ```
@@ -228,7 +213,7 @@ DO NOT implement any actual functionality yet - just structure and configuration
 
 2. **Run schema SQL**
 
-   In Supabase SQL Editor, run the complete schema from `2_keeperboard.md`:
+   In Supabase SQL Editor, run the complete schema from `keeperboard.md`:
    - `users` table with auto-create trigger
    - `games` table
    - `api_keys` table
@@ -237,8 +222,6 @@ DO NOT implement any actual functionality yet - just structure and configuration
    - All indexes
 
 3. **Run RLS policies SQL**
-
-   Run all RLS policies from `2_keeperboard.md`.
 
 4. **Generate TypeScript types**
    ```bash
@@ -249,7 +232,7 @@ DO NOT implement any actual functionality yet - just structure and configuration
 
    `src/lib/supabase/client.ts` - Browser client
    `src/lib/supabase/server.ts` - Server client
-   `src/lib/supabase/admin.ts` - Service role client (for API routes)
+   `src/lib/supabase/admin.ts` - Service role client
 
 6. **Update .env.local** with real credentials
 
@@ -262,9 +245,8 @@ DO NOT implement any actual functionality yet - just structure and configuration
 
 ### Manual Testing Checklist
 - [ ] Supabase dashboard shows all 5 tables
-- [ ] Each table has RLS enabled (lock icon)
-- [ ] Test query in SQL Editor: `SELECT * FROM users;` returns empty
-- [ ] TypeScript types file generated with table types
+- [ ] Each table has RLS enabled
+- [ ] TypeScript types file generated
 - [ ] Import Supabase client in a test file - no errors
 
 ### AI Prompt
@@ -289,66 +271,524 @@ I have a Supabase project created. I need to:
    - src/lib/supabase/server.ts (server client for server components)
    - src/lib/supabase/admin.ts (service role client for API routes, bypasses RLS)
 
-Follow the exact schema from the main plan document.
-Generate TypeScript types using: npx supabase gen types typescript --project-id PROJECT_ID
-
-Reference: See 2_keeperboard.md Database Schema section for exact SQL.
+Reference: See keeperboard.md Database Schema section for exact SQL.
 ```
 
 ---
 
-## Phase 3: Authentication System
+## Phase 3: API Skeleton (Validation)
+
+**Goal:** Create minimal working API endpoints to validate the approach before building the full system.
+
+**Prerequisites:** Phase 2 completed
+
+**Estimated AI Complexity:** Simple
+
+**PURPOSE:** This phase creates a bare-minimum API to test if Unity Play allows connections to Vercel. No authentication, no dashboard - just working endpoints.
+
+### Steps
+
+1. **Create a test leaderboard manually**
+
+   In Supabase SQL Editor:
+   ```sql
+   -- Create a test game (no user, just for testing)
+   INSERT INTO games (id, user_id, name, slug)
+   VALUES (
+     '00000000-0000-0000-0000-000000000001',
+     '00000000-0000-0000-0000-000000000000',  -- Fake user ID
+     'Test Game',
+     'test-game'
+   );
+
+   -- Create a test leaderboard
+   INSERT INTO leaderboards (id, game_id, name, slug, sort_order)
+   VALUES (
+     '00000000-0000-0000-0000-000000000002',
+     '00000000-0000-0000-0000-000000000001',
+     'High Scores',
+     'high-scores',
+     'desc'
+   );
+   ```
+
+2. **Temporarily disable RLS for testing**
+
+   In Supabase SQL Editor:
+   ```sql
+   -- Temporarily disable RLS for skeleton testing
+   ALTER TABLE scores DISABLE ROW LEVEL SECURITY;
+   ALTER TABLE leaderboards DISABLE ROW LEVEL SECURITY;
+   ```
+
+3. **Create health endpoint**
+
+   `src/app/api/v1/health/route.ts`:
+   ```typescript
+   import { successResponse } from '@/lib/utils/api-response';
+
+   export async function GET() {
+     return successResponse({
+       service: 'keeperboard',
+       version: '0.1.0-skeleton',
+       timestamp: new Date().toISOString()
+     });
+   }
+   ```
+
+4. **Create scores endpoint (simplified)**
+
+   `src/app/api/v1/scores/route.ts`:
+   - POST: Submit score (no API key auth yet)
+   - Uses hardcoded leaderboard ID for testing
+   - Upsert logic (only update if higher)
+
+5. **Create leaderboard endpoint (simplified)**
+
+   `src/app/api/v1/leaderboard/route.ts`:
+   - GET: Fetch top scores
+   - Uses hardcoded leaderboard ID
+   - Returns sorted results with rank
+
+6. **Create player endpoint (simplified)**
+
+   `src/app/api/v1/player/[guid]/route.ts`:
+   - GET: Fetch player's score and rank
+   - PUT: Update player name
+
+### Files Created
+- `src/app/api/v1/health/route.ts`
+- `src/app/api/v1/scores/route.ts`
+- `src/app/api/v1/leaderboard/route.ts`
+- `src/app/api/v1/player/[guid]/route.ts`
+
+### Manual Testing Checklist
+
+Test locally with curl:
+
+```bash
+# Health check
+curl http://localhost:3000/api/v1/health
+
+# Submit a score
+curl -X POST http://localhost:3000/api/v1/scores \
+  -H "Content-Type: application/json" \
+  -d '{"player_guid": "test-123", "player_name": "TestPlayer", "score": 100}'
+
+# Get leaderboard
+curl http://localhost:3000/api/v1/leaderboard
+
+# Get player score
+curl http://localhost:3000/api/v1/player/test-123
+
+# Update player name
+curl -X PUT http://localhost:3000/api/v1/player/test-123 \
+  -H "Content-Type: application/json" \
+  -d '{"player_name": "NewName"}'
+```
+
+- [ ] Health returns success
+- [ ] Submit score creates entry in database
+- [ ] Submit higher score updates entry
+- [ ] Submit lower score does NOT update
+- [ ] Leaderboard returns sorted scores
+- [ ] Player endpoint returns score and rank
+
+### AI Prompt
+
+```markdown
+# Task: KeeperBoard Phase 3 - API Skeleton (Validation)
+
+Create minimal API endpoints to validate the system works. NO authentication, NO dashboard - just bare endpoints for testing.
+
+Use hardcoded leaderboard ID: '00000000-0000-0000-0000-000000000002'
+
+1. GET /api/v1/health
+   - Return: { success: true, data: { service: 'keeperboard', version: '0.1.0-skeleton', timestamp: ISO string } }
+
+2. POST /api/v1/scores
+   - Body: { player_guid: string, player_name: string, score: number }
+   - Upsert to scores table (only update if new score > existing)
+   - Return: { success: true, data: { id, player_guid, player_name, score, rank, is_new_high_score } }
+   - Calculate rank by counting scores higher than this one
+
+3. GET /api/v1/leaderboard
+   - Query params: limit (default 10), offset (default 0)
+   - Return: { success: true, data: { entries: [{rank, player_name, score, player_guid}], total_count } }
+   - Sort by score DESC
+
+4. GET /api/v1/player/[guid]
+   - Return player's score and current rank
+   - 404 if not found
+
+5. PUT /api/v1/player/[guid]
+   - Body: { player_name: string }
+   - Update player name
+   - Return updated data with rank
+
+Use the admin Supabase client (service role) for all operations.
+Use the api-response utility for consistent responses.
+
+This is SKELETON code - no auth, no validation beyond basics. Just make it work.
+```
+
+---
+
+## Phase 4: Unity Test Harness
+
+**Goal:** Create a minimal Unity project that tests all API endpoints and displays results.
+
+**Prerequisites:** Phase 3 completed
+
+**Estimated AI Complexity:** Simple
+
+**PURPOSE:** A throwaway Unity project solely for validating KeeperBoard works. Not your actual game.
+
+### Steps
+
+1. **Create new Unity project**
+
+   - Unity 2021.3+ (LTS)
+   - 2D or 3D template (doesn't matter)
+   - Name: `keeperboard-test-harness`
+
+2. **Create test script**
+
+   `Assets/Scripts/KeeperBoardTester.cs`:
+   ```csharp
+   using UnityEngine;
+   using UnityEngine.Networking;
+   using UnityEngine.UI;
+   using TMPro;
+   using System;
+   using System.Collections;
+   using System.Text;
+
+   public class KeeperBoardTester : MonoBehaviour
+   {
+       [Header("Configuration")]
+       [SerializeField] private string apiUrl = "http://localhost:3000/api/v1";
+       [SerializeField] private string testPlayerGuid = "unity-test-" + Guid.NewGuid().ToString().Substring(0, 8);
+
+       [Header("UI References")]
+       [SerializeField] private TextMeshProUGUI resultsText;
+       [SerializeField] private Button runTestsButton;
+
+       private StringBuilder results = new StringBuilder();
+
+       private void Start()
+       {
+           runTestsButton.onClick.AddListener(() => StartCoroutine(RunAllTests()));
+           Log("Ready. Click 'Run Tests' to start.");
+           Log($"API URL: {apiUrl}");
+           Log($"Test Player GUID: {testPlayerGuid}");
+       }
+
+       private IEnumerator RunAllTests()
+       {
+           results.Clear();
+           Log("=== Starting KeeperBoard API Tests ===\n");
+
+           yield return TestHealth();
+           yield return TestSubmitScore(100);
+           yield return TestGetLeaderboard();
+           yield return TestGetPlayer();
+           yield return TestSubmitScore(50);  // Lower score - should NOT update
+           yield return TestSubmitScore(200); // Higher score - should update
+           yield return TestUpdatePlayerName();
+           yield return TestGetLeaderboard(); // Final check
+
+           Log("\n=== Tests Complete ===");
+       }
+
+       // ... test methods
+   }
+   ```
+
+3. **Create simple UI**
+
+   - Canvas with:
+     - Title text: "KeeperBoard Test Harness"
+     - API URL input field
+     - "Run Tests" button
+     - Scrollable results text area (monospace font)
+
+4. **Implement test methods**
+
+   Each test:
+   - Makes the API call
+   - Logs the request
+   - Logs the response (success/fail + data)
+   - Shows clear PASS/FAIL
+
+5. **Configure for WebGL**
+
+   - Player Settings → WebGL
+   - Disable compression (for easier debugging)
+   - Set memory size appropriately
+
+### Files Created (in Unity project)
+- `Assets/Scripts/KeeperBoardTester.cs`
+- `Assets/Scripts/SimpleWebRequest.cs` (helper for async)
+- `Assets/Scenes/TestScene.unity`
+- UI prefabs
+
+### Manual Testing Checklist
+
+**Local Testing:**
+- [ ] Run KeeperBoard locally (`npm run dev`)
+- [ ] Play Unity scene in Editor
+- [ ] Click "Run Tests"
+- [ ] All tests show PASS
+- [ ] Score appears in Supabase
+
+**Build Test:**
+- [ ] Build to WebGL
+- [ ] Host locally (e.g., `npx serve build`)
+- [ ] Open in browser
+- [ ] Tests still pass
+
+### AI Prompt
+
+```markdown
+# Task: KeeperBoard Phase 4 - Unity Test Harness
+
+Create a minimal Unity project for testing KeeperBoard API endpoints.
+
+1. Project Setup:
+   - Unity 2021.3+ compatible
+   - Single scene with UI
+
+2. KeeperBoardTester.cs:
+   - Configurable API URL field (default: http://localhost:3000/api/v1)
+   - Auto-generated test player GUID
+   - "Run Tests" button
+   - Scrollable results display
+
+3. Tests to run (in order):
+   a. GET /health → Expect success
+   b. POST /scores (score: 100) → Expect success, rank returned
+   c. GET /leaderboard → Expect to see our score
+   d. GET /player/{guid} → Expect our score and rank
+   e. POST /scores (score: 50) → Should NOT update (lower)
+   f. POST /scores (score: 200) → Should update (higher)
+   g. PUT /player/{guid} (new name) → Should update name
+   h. GET /leaderboard → Final verification
+
+4. UI Layout:
+   - Title: "KeeperBoard Test Harness"
+   - Input field: API URL
+   - Button: "Run Tests"
+   - Scroll view: Results log (monospace, selectable)
+
+5. Results format:
+   ```
+   [TEST] Health Check
+   [REQUEST] GET /health
+   [RESPONSE] 200 OK
+   {"success":true,"data":{"service":"keeperboard"...}}
+   [RESULT] ✓ PASS
+
+   [TEST] Submit Score (100)
+   ...
+   ```
+
+6. WebGL Compatible:
+   - Use UnityWebRequest (not HttpClient)
+   - No threading
+   - Handle CORS (server should allow *)
+
+Make it ugly but functional. This is a test tool, not a product.
+```
+
+---
+
+## Phase 5: Deploy & Validate on Unity Play
+
+**Goal:** Deploy skeleton API to Vercel, upload Unity test build to Unity Play, verify no CSP issues.
+
+**Prerequisites:** Phase 4 completed
+
+**Estimated AI Complexity:** Simple (mostly manual steps)
+
+**PURPOSE:** This is THE critical test. If this passes, we know KeeperBoard will work.
+
+### Steps
+
+1. **Deploy KeeperBoard to Vercel**
+
+   ```bash
+   # In keeperboard directory
+   npm install -g vercel
+   vercel login
+   vercel
+   ```
+
+   - Follow prompts
+   - Note the deployment URL (e.g., `https://keeperboard-xxx.vercel.app`)
+
+2. **Add environment variables in Vercel**
+
+   - Go to Vercel dashboard → Project → Settings → Environment Variables
+   - Add:
+     - `NEXT_PUBLIC_SUPABASE_URL`
+     - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+     - `SUPABASE_SERVICE_ROLE_KEY`
+
+3. **Verify deployment**
+
+   ```bash
+   curl https://your-keeperboard.vercel.app/api/v1/health
+   ```
+
+4. **Update Unity test harness**
+
+   - Change API URL to Vercel URL
+   - Test in Editor first
+
+5. **Build Unity for WebGL**
+
+   - File → Build Settings → WebGL
+   - Build
+
+6. **Upload to Unity Play**
+
+   - Go to play.unity.com
+   - Upload WebGL build
+   - Note the game URL
+
+7. **THE TEST**
+
+   - Open your game on Unity Play
+   - Open browser dev tools (Console tab)
+   - Click "Run Tests"
+   - **Watch for CSP errors**
+
+### Expected Outcomes
+
+**SUCCESS (proceed to Phase 6+):**
+```
+[TEST] Health Check
+[RESULT] ✓ PASS
+[TEST] Submit Score
+[RESULT] ✓ PASS
+...
+```
+
+**FAILURE (CSP blocks Vercel):**
+```
+Access to fetch at 'https://keeperboard-xxx.vercel.app/api/v1/health'
+from origin 'https://play.unity.com' has been blocked by CORS policy...
+```
+
+or
+
+```
+Refused to connect to 'https://keeperboard-xxx.vercel.app/api/v1/health'
+because it violates the Content Security Policy directive...
+```
+
+### Manual Testing Checklist
+
+- [ ] Vercel deployment successful
+- [ ] Health check works from local machine
+- [ ] Health check works from Unity Editor
+- [ ] WebGL build completes
+- [ ] Unity Play upload successful
+- [ ] **Tests pass on Unity Play (no CSP errors)**
+
+### If Validation Fails
+
+If CSP blocks Vercel:
+
+1. **Check error type** - Is it CORS or CSP?
+   - CORS: We can fix with headers
+   - CSP: Unity Play's restriction, harder to fix
+
+2. **Try custom domain** - Sometimes CSP allows specific domains
+
+3. **Contact Unity** - The forum post might get a response
+
+4. **Alternative hosting** - Try Cloudflare Workers, AWS Lambda, etc.
+
+### AI Prompt
+
+```markdown
+# Task: KeeperBoard Phase 5 - Deploy & Validate
+
+This is mostly manual steps, but document the process:
+
+1. Vercel Deployment:
+   - Commands to deploy
+   - Environment variables needed
+   - How to verify deployment
+
+2. Unity Build:
+   - WebGL build settings
+   - Compression settings
+   - Memory size
+
+3. Unity Play Upload:
+   - How to upload
+   - What URL format to expect
+
+4. Validation Steps:
+   - What to look for in browser console
+   - How to identify CSP vs CORS errors
+   - Success criteria
+
+5. Troubleshooting:
+   - Common issues and fixes
+   - Alternative approaches if CSP blocks
+
+Create a checklist document for these manual steps.
+```
+
+---
+
+## Phase 6: Authentication System
 
 **Goal:** Implement login/register with email and OAuth providers.
 
-**Prerequisites:** Phase 2 completed
+**Prerequisites:** Phase 5 PASSED (validation successful)
 
 **Estimated AI Complexity:** Medium
 
 ### Steps
 
-1. **Create auth middleware**
+1. **Re-enable RLS**
+   ```sql
+   ALTER TABLE scores ENABLE ROW LEVEL SECURITY;
+   ALTER TABLE leaderboards ENABLE ROW LEVEL SECURITY;
+   ```
+
+2. **Create auth middleware**
 
    `src/middleware.ts`:
    - Protect dashboard routes
    - Redirect unauthenticated to login
    - Redirect authenticated from login to dashboard
 
-2. **Create auth hooks**
+3. **Create auth hooks**
 
-   `src/lib/hooks/useAuth.ts`:
-   - Get current user
-   - Get user profile
-   - Sign out function
+   `src/lib/hooks/useAuth.ts`
 
-3. **Create login page**
+4. **Create login page**
 
    `src/app/(auth)/login/page.tsx`:
    - Email/password form
    - Google OAuth button
    - GitHub OAuth button
-   - Link to register
-   - Error handling
 
-4. **Create register page**
+5. **Create register page**
 
-   `src/app/(auth)/register/page.tsx`:
-   - Email/password form
-   - Google OAuth button
-   - GitHub OAuth button
-   - Link to login
-   - Success message (check email)
+   `src/app/(auth)/register/page.tsx`
 
-5. **Create auth callback route**
+6. **Create auth callback route**
 
-   `src/app/auth/callback/route.ts`:
-   - Handle OAuth callbacks
-   - Exchange code for session
+   `src/app/auth/callback/route.ts`
 
-6. **Configure OAuth in Supabase** (manual)
-   - Enable Google provider (requires Google Cloud Console setup)
-   - Enable GitHub provider (requires GitHub OAuth App setup)
-   - Add redirect URLs
+7. **Configure OAuth in Supabase** (manual)
 
 ### Files Created
 - `src/middleware.ts`
@@ -360,9 +800,7 @@ Reference: See 2_keeperboard.md Database Schema section for exact SQL.
 
 ### Manual Testing Checklist
 - [ ] Visit /dashboard when logged out → redirects to /login
-- [ ] Login page renders with email form and OAuth buttons
-- [ ] Register with new email → success message appears
-- [ ] Check email for verification link (Supabase sends it)
+- [ ] Register with new email → success message
 - [ ] Login with verified account → redirects to dashboard
 - [ ] OAuth login works (if configured)
 - [ ] Logout → redirects to login
@@ -370,90 +808,49 @@ Reference: See 2_keeperboard.md Database Schema section for exact SQL.
 ### AI Prompt
 
 ```markdown
-# Task: KeeperBoard Phase 3 - Authentication System
+# Task: KeeperBoard Phase 6 - Authentication System
 
 Implement Supabase Auth for the dashboard with:
 
 1. Middleware (src/middleware.ts):
    - Protect all /dashboard/* routes
    - Redirect unauthenticated users to /login
-   - Redirect authenticated users from /login to /dashboard
+   - Allow /api/v1/* without auth (public API)
 
 2. Auth hook (src/lib/hooks/useAuth.ts):
    - useAuth() hook returning { user, profile, loading, signOut }
-   - Fetch profile from users table
 
 3. Login page (src/app/(auth)/login/page.tsx):
    - Email/password form
    - Google OAuth button
    - GitHub OAuth button
-   - Error message display
-   - Link to register page
    - Clean Tailwind styling
 
 4. Register page (src/app/(auth)/register/page.tsx):
-   - Email/password form
-   - OAuth buttons
-   - Success message after registration
-   - Link to login page
+   - Same as login but for registration
 
-5. OAuth callback route (src/app/auth/callback/route.ts):
-   - Handle code exchange
-   - Redirect to dashboard
+5. OAuth callback route (src/app/auth/callback/route.ts)
 
-Use @supabase/ssr patterns for auth. Make forms accessible and styled with Tailwind.
+Use @supabase/ssr patterns for auth.
 ```
 
 ---
 
-## Phase 4: Dashboard Layout & Home
+## Phase 7: Dashboard Layout & Home
 
 **Goal:** Create the dashboard shell with navigation and home page.
 
-**Prerequisites:** Phase 3 completed
+**Prerequisites:** Phase 6 completed
 
 **Estimated AI Complexity:** Medium
 
 ### Steps
 
-1. **Create dashboard layout**
-
-   `src/app/(dashboard)/layout.tsx`:
-   - Sidebar navigation
-   - Header with user info
-   - Main content area
-   - Responsive design
-
-2. **Create navigation component**
-
-   `src/components/dashboard/Sidebar.tsx`:
-   - Logo/brand
-   - Navigation links (Dashboard, Games)
-   - User section at bottom
-   - Logout button
-
-3. **Create header component**
-
-   `src/components/dashboard/Header.tsx`:
-   - Page title
-   - User avatar/dropdown
-   - Mobile menu toggle
-
-4. **Create dashboard home page**
-
-   `src/app/(dashboard)/page.tsx`:
-   - Welcome message
-   - Quick stats (games count, total scores)
-   - Recent activity (optional)
-   - "Create Game" CTA
-
-5. **Create reusable UI components**
-
-   `src/components/ui/`:
-   - Button.tsx
-   - Input.tsx
-   - Card.tsx
-   - Badge.tsx
+1. Create dashboard layout with sidebar
+2. Create navigation component
+3. Create header component
+4. Create dashboard home page
+5. Create reusable UI components
 
 ### Files Created
 - `src/app/(dashboard)/layout.tsx`
@@ -463,21 +860,17 @@ Use @supabase/ssr patterns for auth. Make forms accessible and styled with Tailw
 - `src/components/ui/Button.tsx`
 - `src/components/ui/Input.tsx`
 - `src/components/ui/Card.tsx`
-- `src/components/ui/Badge.tsx`
 
 ### Manual Testing Checklist
 - [ ] Dashboard has sidebar and header
-- [ ] Navigation links highlight active page
-- [ ] User name displays in header/sidebar
+- [ ] Navigation works
 - [ ] Logout button works
-- [ ] Responsive on mobile (sidebar collapses)
-- [ ] Dashboard home shows welcome message
-- [ ] UI components render correctly
+- [ ] Responsive on mobile
 
 ### AI Prompt
 
 ```markdown
-# Task: KeeperBoard Phase 4 - Dashboard Layout & Home
+# Task: KeeperBoard Phase 7 - Dashboard Layout & Home
 
 Create the dashboard shell with:
 
@@ -485,518 +878,85 @@ Create the dashboard shell with:
    - Left sidebar (collapsible on mobile)
    - Top header
    - Main content area
-   - Auth check (redirect if not logged in)
 
-2. Sidebar component (src/components/dashboard/Sidebar.tsx):
-   - KeeperBoard logo/text
-   - Nav links: Dashboard (home icon), Games (gamepad icon)
-   - User section at bottom with email and logout
+2. Sidebar component:
+   - KeeperBoard logo
+   - Nav links: Dashboard, Games
+   - User section with logout
 
-3. Header component (src/components/dashboard/Header.tsx):
-   - Dynamic page title
-   - User avatar dropdown
-   - Mobile menu button
+3. Header component:
+   - Page title
+   - User avatar
 
-4. Dashboard home (src/app/(dashboard)/page.tsx):
-   - "Welcome back, {name}" heading
-   - Stats cards: Total Games, Total Scores
-   - "Create Your First Game" CTA button
+4. Dashboard home:
+   - Welcome message
+   - Stats cards
+   - Create Game CTA
 
-5. Reusable UI components in src/components/ui/:
-   - Button (variants: primary, secondary, ghost, danger)
-   - Input (with label, error state)
-   - Card (with header, content sections)
-   - Badge (for status indicators)
+5. UI components: Button, Input, Card, Badge
 
-Style with Tailwind. Use the kb-primary color for brand elements.
-Make it clean and professional looking.
+Style with Tailwind. Clean and professional.
 ```
 
 ---
 
-## Phase 5: Games Management
+## Phase 8: Games Management
 
 **Goal:** CRUD operations for games and API key management.
 
-**Prerequisites:** Phase 4 completed
+**Prerequisites:** Phase 7 completed
 
 **Estimated AI Complexity:** Medium
 
 ### Steps
 
-1. **Create games list page**
-
-   `src/app/(dashboard)/games/page.tsx`:
-   - List user's games
-   - Create game button
-   - Empty state if no games
-
-2. **Create game form component**
-
-   `src/components/forms/GameForm.tsx`:
-   - Name input
-   - Description textarea
-   - Slug auto-generation
-   - Submit handling
-
-3. **Create game modal/dialog**
-
-   `src/components/dashboard/CreateGameModal.tsx`:
-   - Modal wrapper
-   - GameForm inside
-   - Success/error handling
-
-4. **Create game detail page**
-
-   `src/app/(dashboard)/games/[gameId]/page.tsx`:
-   - Game info card
-   - API keys section
-   - Leaderboards list
-   - Delete game button
-
-5. **Create API keys component**
-
-   `src/components/dashboard/ApiKeysCard.tsx`:
-   - Show dev key (generate if missing)
-   - Show prod key (generate if missing)
-   - Copy to clipboard
-   - Regenerate button (with confirm)
-
-6. **Create API routes for games**
-
-   `src/app/api/games/route.ts` - GET (list), POST (create)
-   `src/app/api/games/[gameId]/route.ts` - GET, PUT, DELETE
-   `src/app/api/games/[gameId]/api-keys/route.ts` - POST (generate), DELETE (revoke)
+1. Create games list page
+2. Create game form component
+3. Create game detail page
+4. Create API keys component
+5. Create API routes for games
 
 ### Files Created
 - `src/app/(dashboard)/games/page.tsx`
 - `src/app/(dashboard)/games/[gameId]/page.tsx`
 - `src/components/forms/GameForm.tsx`
-- `src/components/dashboard/CreateGameModal.tsx`
 - `src/components/dashboard/ApiKeysCard.tsx`
 - `src/app/api/games/route.ts`
 - `src/app/api/games/[gameId]/route.ts`
 - `src/app/api/games/[gameId]/api-keys/route.ts`
 
 ### Manual Testing Checklist
-- [ ] Games page shows empty state initially
 - [ ] Create game → appears in list
-- [ ] Click game → opens detail page
-- [ ] Generate dev API key → key displays (only once!)
-- [ ] Copy key to clipboard works
-- [ ] Generate prod API key works
-- [ ] Delete game → removed from list (with confirmation)
-- [ ] API keys are hashed in database (check Supabase)
+- [ ] Generate API keys → keys display
+- [ ] Copy key works
+- [ ] Delete game works
 
 ### AI Prompt
 
 ```markdown
-# Task: KeeperBoard Phase 5 - Games Management
+# Task: KeeperBoard Phase 8 - Games Management
 
 Implement games CRUD with API key management:
 
-1. Games list page (src/app/(dashboard)/games/page.tsx):
-   - Fetch and display user's games
-   - "Create Game" button opens modal
-   - Empty state: "No games yet. Create your first game!"
+1. Games list page with create button
+2. Game form (name, description, slug)
+3. Game detail page with API keys section
+4. API Keys card:
+   - Generate dev/prod keys
+   - Copy to clipboard
+   - Keys shown only once (stored hashed)
 
-2. Game form (src/components/forms/GameForm.tsx):
-   - Name (required)
-   - Description (optional)
-   - Slug (auto-generated from name, editable)
-   - Validation
+5. API routes for games and keys
 
-3. Create game modal (src/components/dashboard/CreateGameModal.tsx):
-   - Dialog component
-   - Contains GameForm
-   - Close on success
-
-4. Game detail page (src/app/(dashboard)/games/[gameId]/page.tsx):
-   - Game name/description display
-   - Edit button (opens modal)
-   - API Keys card
-   - Leaderboards section (list, create button)
-   - Danger zone: Delete game
-
-5. API Keys card (src/components/dashboard/ApiKeysCard.tsx):
-   - Dev key row: "Generate" if none, "Copy" + "Regenerate" if exists
-   - Prod key row: same
-   - IMPORTANT: Full key shown ONLY on generation (stored hashed)
-   - Copy button with toast feedback
-
-6. API routes:
-   - POST /api/games - create game
-   - GET /api/games - list user's games
-   - GET/PUT/DELETE /api/games/[gameId]
-   - POST /api/games/[gameId]/api-keys - generate key (body: {environment: 'dev'|'prod'})
-   - DELETE /api/games/[gameId]/api-keys/[keyId] - revoke key
-
-Key generation format: kb_{env}_{random48chars}
-Hash keys with SHA-256 before storing. Only store prefix for identification.
+Key format: kb_{env}_{random48chars}
+Hash with SHA-256 before storing.
 ```
 
 ---
 
-## Phase 6: Leaderboards Management
+## Phase 9: Leaderboards Management
 
 **Goal:** CRUD for leaderboards within a game.
-
-**Prerequisites:** Phase 5 completed
-
-**Estimated AI Complexity:** Simple
-
-### Steps
-
-1. **Create leaderboard list component**
-
-   `src/components/dashboard/LeaderboardsList.tsx`:
-   - List leaderboards for a game
-   - Create button
-   - Click to view scores
-
-2. **Create leaderboard form**
-
-   `src/components/forms/LeaderboardForm.tsx`:
-   - Name input
-   - Slug input
-   - Sort order select (desc/asc)
-
-3. **Create leaderboard detail page**
-
-   `src/app/(dashboard)/games/[gameId]/leaderboards/[leaderboardId]/page.tsx`:
-   - Leaderboard info
-   - Scores table
-   - Settings
-
-4. **Create API routes**
-
-   `src/app/api/games/[gameId]/leaderboards/route.ts` - GET, POST
-   `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/route.ts` - GET, PUT, DELETE
-
-### Files Created
-- `src/components/dashboard/LeaderboardsList.tsx`
-- `src/components/forms/LeaderboardForm.tsx`
-- `src/app/(dashboard)/games/[gameId]/leaderboards/[leaderboardId]/page.tsx`
-- `src/app/api/games/[gameId]/leaderboards/route.ts`
-- `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/route.ts`
-
-### Manual Testing Checklist
-- [ ] Game detail page shows leaderboards section
-- [ ] Create leaderboard → appears in list
-- [ ] Default leaderboard created with game (optional)
-- [ ] Click leaderboard → opens detail page
-- [ ] Edit leaderboard name/settings works
-- [ ] Delete leaderboard works (with confirmation)
-
-### AI Prompt
-
-```markdown
-# Task: KeeperBoard Phase 6 - Leaderboards Management
-
-Implement leaderboards CRUD within games:
-
-1. Leaderboards list (src/components/dashboard/LeaderboardsList.tsx):
-   - Display leaderboards for the game
-   - "Create Leaderboard" button
-   - Each item clickable to view scores
-   - Show score count per leaderboard
-
-2. Leaderboard form (src/components/forms/LeaderboardForm.tsx):
-   - Name input
-   - Slug input (auto-generated)
-   - Sort order: "Highest First" (desc) or "Lowest First" (asc)
-
-3. Leaderboard detail page:
-   - Breadcrumb: Games > {game} > {leaderboard}
-   - Leaderboard settings card
-   - Scores table (implement in Phase 10)
-   - Delete button
-
-4. API routes:
-   - GET/POST /api/games/[gameId]/leaderboards
-   - GET/PUT/DELETE /api/games/[gameId]/leaderboards/[leaderboardId]
-
-All routes must verify the game belongs to the authenticated user.
-```
-
----
-
-## Phase 7: Public API
-
-**Goal:** Implement the game-facing API endpoints.
-
-**Prerequisites:** Phase 2 completed (can run parallel with 3-6)
-
-**Estimated AI Complexity:** Medium
-
-### Steps
-
-1. **Create API key validation middleware**
-
-   `src/lib/api/auth.ts`:
-   - Extract API key from header
-   - Hash and look up in database
-   - Return leaderboard ID or error
-
-2. **Create scores endpoint**
-
-   `src/app/api/v1/scores/route.ts`:
-   - POST: Submit score (upsert if higher)
-   - Validate API key
-   - Return rank after submission
-
-3. **Create leaderboard endpoint**
-
-   `src/app/api/v1/leaderboard/route.ts`:
-   - GET: Fetch top scores
-   - Query params: limit, offset
-   - Include total count
-
-4. **Create player endpoint**
-
-   `src/app/api/v1/player/[guid]/route.ts`:
-   - GET: Fetch player's score and rank
-   - PUT: Update player name
-
-5. **Create claim endpoint**
-
-   `src/app/api/v1/claim/route.ts`:
-   - POST: Claim migrated score by name match
-
-6. **Create health endpoint**
-
-   `src/app/api/v1/health/route.ts`:
-   - GET: Return service status
-
-### Files Created
-- `src/lib/api/auth.ts`
-- `src/app/api/v1/scores/route.ts`
-- `src/app/api/v1/leaderboard/route.ts`
-- `src/app/api/v1/player/[guid]/route.ts`
-- `src/app/api/v1/claim/route.ts`
-- `src/app/api/v1/health/route.ts`
-
-### Manual Testing Checklist
-
-Test with curl or Postman:
-
-- [ ] `GET /api/v1/health` → returns success
-- [ ] `POST /api/v1/scores` without API key → 401 error
-- [ ] `POST /api/v1/scores` with valid key → creates score
-- [ ] Submit same player with lower score → score NOT updated
-- [ ] Submit same player with higher score → score updated
-- [ ] `GET /api/v1/leaderboard` → returns sorted scores
-- [ ] `GET /api/v1/leaderboard?limit=5` → returns 5 scores
-- [ ] `GET /api/v1/player/{guid}` → returns player's score and rank
-- [ ] `PUT /api/v1/player/{guid}` → updates player name
-
-### AI Prompt
-
-```markdown
-# Task: KeeperBoard Phase 7 - Public API
-
-Implement the game-facing REST API:
-
-1. API key validation (src/lib/api/auth.ts):
-   - Extract key from X-API-Key header
-   - Hash the key (SHA-256)
-   - Look up in api_keys table
-   - Return { gameId, leaderboardId, environment } or error
-   - Update last_used_at timestamp
-
-2. POST /api/v1/scores:
-   - Validate API key
-   - Body: { player_guid, player_name, score, metadata? }
-   - Upsert: only update if new score > existing score
-   - Return: { id, player_guid, player_name, score, rank, is_new_high_score }
-
-3. GET /api/v1/leaderboard:
-   - Validate API key
-   - Query params: limit (default 10, max 100), offset (default 0)
-   - Return: { entries: [...], total_count }
-   - Each entry: { rank, player_name, score, player_guid }
-
-4. GET /api/v1/player/[guid]:
-   - Return player's score and current rank
-   - 404 if player not found
-
-5. PUT /api/v1/player/[guid]:
-   - Body: { player_name }
-   - Update player's name
-   - Return updated player data
-
-6. POST /api/v1/claim:
-   - Body: { player_guid, player_name }
-   - Find migrated score matching player_name with null player_guid
-   - If found: set player_guid, return score data
-   - If not found: 404
-   - If already claimed: 409
-
-7. GET /api/v1/health:
-   - No auth required
-   - Return: { success: true, service: 'keeperboard', version: '1.0.0' }
-
-Use the admin Supabase client (service role) for all database operations.
-Standard error response format: { success: false, error: 'message', code: 'CODE' }
-```
-
----
-
-## Phase 8: Unity Package - Core
-
-**Goal:** Create the Unity C# client library.
-
-**Prerequisites:** Phase 2 completed (API schema known)
-
-**Estimated AI Complexity:** Medium
-
-### Steps
-
-1. **Create new Unity package structure**
-
-   Separate repository: `keeperboard-unity/`
-   ```
-   ├── package.json
-   ├── README.md
-   ├── LICENSE (MIT)
-   ├── Runtime/
-   │   ├── KeeperBoard.asmdef
-   │   ├── KeeperBoardClient.cs
-   │   ├── KeeperBoardConfig.cs
-   │   ├── KeeperBoardTypes.cs
-   │   ├── PlayerIdentity.cs
-   │   └── Internal/
-   │       └── WebRequestAwaiter.cs
-   └── Editor/
-       ├── KeeperBoard.Editor.asmdef
-       └── KeeperBoardConfigEditor.cs
-   ```
-
-2. **Create configuration ScriptableObject**
-
-   `Runtime/KeeperBoardConfig.cs`:
-   - API URL
-   - Dev/prod API keys
-   - Settings (retries, timeouts)
-
-3. **Create main client class**
-
-   `Runtime/KeeperBoardClient.cs`:
-   - SubmitScore()
-   - GetTopScores()
-   - GetPlayerScore()
-   - UpdatePlayerName()
-   - ClaimMigratedScore()
-
-4. **Create data types**
-
-   `Runtime/KeeperBoardTypes.cs`:
-   - LeaderboardEntry
-   - ScoreSubmitResult
-   - ApiResponse<T>
-
-5. **Create player identity helper**
-
-   `Runtime/PlayerIdentity.cs`:
-   - GUID generation/persistence
-   - Name storage
-
-6. **Create async helpers**
-
-   `Runtime/Internal/WebRequestAwaiter.cs`:
-   - Enable await on UnityWebRequest
-
-### Files Created
-- All files in keeperboard-unity/ structure
-
-### Manual Testing Checklist
-
-In a test Unity project:
-- [ ] Import package via git URL
-- [ ] Create KeeperBoardConfig asset
-- [ ] Configure with test API key
-- [ ] Call SubmitScore() → score appears in dashboard
-- [ ] Call GetTopScores() → returns data
-- [ ] Call GetPlayerScore() → returns player data
-- [ ] PlayerIdentity.Guid persists across play sessions
-
-### AI Prompt
-
-```markdown
-# Task: KeeperBoard Phase 8 - Unity Package Core
-
-Create a Unity package for KeeperBoard integration.
-
-Repository structure:
-```
-keeperboard-unity/
-├── package.json (UPM manifest)
-├── README.md (installation + usage docs)
-├── LICENSE (MIT)
-├── Runtime/
-│   ├── KeeperBoard.asmdef
-│   ├── KeeperBoardClient.cs
-│   ├── KeeperBoardConfig.cs
-│   ├── KeeperBoardTypes.cs
-│   ├── PlayerIdentity.cs
-│   └── Internal/
-│       └── WebRequestAwaiter.cs
-└── Editor/
-    ├── KeeperBoard.Editor.asmdef
-    └── KeeperBoardConfigEditor.cs
-```
-
-1. package.json:
-   - Name: "com.keeperboard.client"
-   - Version: "1.0.0"
-   - Unity: "2021.3" minimum
-
-2. KeeperBoardConfig (ScriptableObject):
-   - apiUrl (default: "https://keeperboard.vercel.app/api/v1")
-   - devApiKey, prodApiKey
-   - useProductionInEditor toggle
-   - maxRetries, retryDelaySeconds
-   - Property: ActiveApiKey (selects based on build type)
-
-3. KeeperBoardClient:
-   - Constructor takes KeeperBoardConfig
-   - async Task<ApiResponse<ScoreResult>> SubmitScore(int score)
-   - async Task<ApiResponse<LeaderboardResult>> GetTopScores(int limit = 10)
-   - async Task<ApiResponse<PlayerResult>> GetPlayerScore()
-   - async Task<ApiResponse<PlayerResult>> UpdatePlayerName(string name)
-   - async Task<ApiResponse<ClaimResult>> ClaimMigratedScore(string name)
-   - Uses PlayerIdentity for GUID
-
-4. KeeperBoardTypes:
-   - LeaderboardEntry { rank, player_name, score, player_guid }
-   - ScoreResult { id, rank, score, is_new_high_score }
-   - LeaderboardResult { entries, total_count }
-   - PlayerResult { player_guid, player_name, score, rank }
-   - ClaimResult { claimed, score, rank }
-   - ApiResponse<T> { success, data, error, code }
-
-5. PlayerIdentity (static class):
-   - Guid property (generates and persists to PlayerPrefs)
-   - Name property (get/set to PlayerPrefs)
-   - HasConfirmedName property
-
-6. WebRequestAwaiter:
-   - Extension method GetAwaiter for UnityWebRequestAsyncOperation
-   - Enables: await request.SendWebRequest()
-
-7. Editor script:
-   - Custom inspector for KeeperBoardConfig
-   - Test buttons: "Test Connection", "Submit Test Score"
-
-Make all async methods use UnityWebRequest. Handle errors gracefully.
-Support WebGL builds (no threads).
-```
-
----
-
-## Phase 9: Unity Package - UPM Setup
-
-**Goal:** Configure package for UPM distribution and create samples.
 
 **Prerequisites:** Phase 8 completed
 
@@ -1004,113 +964,174 @@ Support WebGL builds (no threads).
 
 ### Steps
 
-1. **Finalize package.json**
-
-   Ensure all metadata correct for UPM.
-
-2. **Create samples**
-
-   `Samples~/BasicUsage/`:
-   - Example scene
-   - Example script showing all API calls
-   - Example UI for leaderboard display
-
-3. **Create documentation**
-
-   `Documentation~/`:
-   - SETUP.md - Installation guide
-   - USAGE.md - API reference
-   - MIGRATION.md - UGS migration guide
-
-4. **Create GitHub repository**
-   - Push package
-   - Add release tag
+1. Create leaderboard list component
+2. Create leaderboard form
+3. Create leaderboard detail page
+4. Create API routes
 
 ### Files Created
-- `Samples~/BasicUsage/ExampleLeaderboard.cs`
-- `Samples~/BasicUsage/ExampleScene.unity`
-- `Documentation~/SETUP.md`
-- `Documentation~/USAGE.md`
+- `src/components/dashboard/LeaderboardsList.tsx`
+- `src/components/forms/LeaderboardForm.tsx`
+- `src/app/(dashboard)/games/[gameId]/leaderboards/[leaderboardId]/page.tsx`
+- `src/app/api/games/[gameId]/leaderboards/route.ts`
 
 ### Manual Testing Checklist
-- [ ] Package installs via: `https://github.com/[user]/keeperboard-unity.git`
-- [ ] Samples import correctly
-- [ ] Sample scene runs and shows leaderboard
-- [ ] Documentation is accessible in Package Manager
+- [ ] Create leaderboard works
+- [ ] Edit leaderboard works
+- [ ] Delete leaderboard works
 
 ### AI Prompt
 
 ```markdown
-# Task: KeeperBoard Phase 9 - Unity UPM Setup
+# Task: KeeperBoard Phase 9 - Leaderboards Management
 
-Finalize the Unity package for distribution:
+Implement leaderboards CRUD:
 
-1. Update package.json with complete metadata:
-   - name, version, displayName, description
-   - author, repository
-   - keywords: ["leaderboard", "score", "multiplayer"]
-   - samples array pointing to Samples~
+1. Leaderboards list within game page
+2. Leaderboard form (name, slug, sort order)
+3. Leaderboard detail page
+4. API routes for CRUD
 
-2. Create sample (Samples~/BasicUsage/):
-   - ExampleLeaderboard.cs: Full example showing:
-     - Initialize on Start
-     - Submit score on button click
-     - Display top 10 scores in UI
-     - Show current player rank
-   - ExampleScene.unity: Simple scene with:
-     - Score input field
-     - Submit button
-     - Leaderboard display (using Unity UI)
-     - Player name input + save button
-
-3. Create documentation (Documentation~/):
-   - SETUP.md: Step-by-step installation via UPM git URL
-   - USAGE.md: API reference with code examples
-   - MIGRATION.md: How to migrate from UGS
-
-4. Update README.md with:
-   - Installation instructions
-   - Quick start code example
-   - Link to documentation
-   - License
-
-Package should be installable via Unity Package Manager using git URL.
+Sort order options: "Highest First" (desc), "Lowest First" (asc)
 ```
 
 ---
 
-## Phase 10: Scores Management UI
+## Phase 10: Full Public API
 
-**Goal:** View, search, and manage scores in dashboard.
+**Goal:** Add API key authentication and complete the public API.
 
-**Prerequisites:** Phase 6 completed
+**Prerequisites:** Phase 9 completed
 
 **Estimated AI Complexity:** Medium
 
 ### Steps
 
-1. **Create scores table component**
+1. Create API key validation middleware
+2. Update all /api/v1/* routes to require API key
+3. Add claim endpoint
+4. Add proper error handling
 
-   `src/components/dashboard/ScoresTable.tsx`:
-   - Paginated table
-   - Columns: Rank, Name, Score, GUID, Date
-   - Delete button per row
-   - Search/filter
+### Files Created/Modified
+- `src/lib/api/auth.ts` (API key validation)
+- Update all `/api/v1/*` routes
 
-2. **Create score edit modal**
+### Manual Testing Checklist
+- [ ] API calls without key → 401
+- [ ] API calls with valid key → success
+- [ ] API calls with invalid key → 401
+- [ ] Claim endpoint works
 
-   `src/components/dashboard/EditScoreModal.tsx`:
-   - Edit player name
-   - Edit score
-   - View metadata
+### AI Prompt
 
-3. **Update leaderboard detail page**
+```markdown
+# Task: KeeperBoard Phase 10 - Full Public API
 
-   Add ScoresTable to the page.
+Add API key authentication to public endpoints:
 
-4. **Create API routes for scores management**
+1. API key validation (src/lib/api/auth.ts):
+   - Extract from X-API-Key header
+   - Hash and lookup in api_keys table
+   - Return game/leaderboard info or error
+   - Update last_used_at
 
-   `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/scores/route.ts`
+2. Update all /api/v1/* routes:
+   - Require API key (except /health)
+   - Use leaderboard from API key lookup
+   - Remove hardcoded IDs
+
+3. Add POST /api/v1/claim:
+   - Claim migrated score by name match
+
+Maintain backward compatibility with existing responses.
+```
+
+---
+
+## Phase 11: Unity Package - Core
+
+**Goal:** Create the proper Unity package for distribution.
+
+**Prerequisites:** Phase 5 completed (can run parallel with 6-10)
+
+**Estimated AI Complexity:** Medium
+
+### Steps
+
+1. Create Unity package structure in separate repo
+2. Create KeeperBoardConfig ScriptableObject
+3. Create KeeperBoardClient
+4. Create data types
+5. Create PlayerIdentity helper
+
+### Files Created
+- All files in `keeperboard-unity/` repository
+
+### Manual Testing Checklist
+- [ ] Package imports without errors
+- [ ] Config asset can be created
+- [ ] API calls work
+
+### AI Prompt
+
+```markdown
+# Task: KeeperBoard Phase 11 - Unity Package Core
+
+Create a Unity package for KeeperBoard integration:
+
+1. package.json for UPM
+2. KeeperBoardConfig ScriptableObject
+3. KeeperBoardClient with all API methods
+4. KeeperBoardTypes for data models
+5. PlayerIdentity for GUID management
+6. WebRequestAwaiter for async support
+
+Make it WebGL compatible. Use UnityWebRequest.
+```
+
+---
+
+## Phase 12: Unity Package - UPM Setup
+
+**Goal:** Configure package for distribution and create samples.
+
+**Prerequisites:** Phase 11 completed
+
+**Estimated AI Complexity:** Simple
+
+### Steps
+
+1. Finalize package.json
+2. Create samples
+3. Create documentation
+4. Push to GitHub
+
+### Files Created
+- `Samples~/BasicUsage/*`
+- `Documentation~/*`
+- Updated README
+
+### Manual Testing Checklist
+- [ ] Package installs via git URL
+- [ ] Samples work
+- [ ] Documentation is accessible
+
+---
+
+## Phase 13: Scores Management UI
+
+**Goal:** View, search, and manage scores in dashboard.
+
+**Prerequisites:** Phase 9 completed
+
+**Estimated AI Complexity:** Medium
+
+### Steps
+
+1. Create scores table component
+2. Create score edit modal
+3. Add to leaderboard detail page
+4. Create API routes
 
 ### Files Created
 - `src/components/dashboard/ScoresTable.tsx`
@@ -1118,338 +1139,16 @@ Package should be installable via Unity Package Manager using git URL.
 - `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/scores/route.ts`
 
 ### Manual Testing Checklist
-- [ ] Leaderboard page shows scores table
+- [ ] Scores table displays
 - [ ] Pagination works
-- [ ] Search filters by player name
-- [ ] Click score → edit modal opens
-- [ ] Edit player name → saves
-- [ ] Delete score → removes (with confirmation)
-
-### AI Prompt
-
-```markdown
-# Task: KeeperBoard Phase 10 - Scores Management UI
-
-Add scores management to the dashboard:
-
-1. Scores table (src/components/dashboard/ScoresTable.tsx):
-   - Columns: Rank, Player Name, Score, Player GUID (truncated), Created
-   - Pagination: 25 per page, prev/next buttons
-   - Search input: filter by player name
-   - Sort by: score (default), date
-   - Row actions: Edit, Delete
-   - Empty state for no scores
-
-2. Edit score modal (src/components/dashboard/EditScoreModal.tsx):
-   - Edit player name
-   - Edit score value
-   - Show metadata (read-only JSON)
-   - Show migration status
-   - Save/Cancel buttons
-
-3. Integrate into leaderboard detail page:
-   - Add ScoresTable below settings
-   - Add "Import Scores" button linking to import page
-
-4. API route for scores:
-   GET /api/games/[gameId]/leaderboards/[leaderboardId]/scores
-   - Query params: page, limit, search, sortBy
-   - Returns: { scores: [...], total, page, totalPages }
-
-   DELETE /api/games/[gameId]/leaderboards/[leaderboardId]/scores/[scoreId]
-
-   PUT /api/games/[gameId]/leaderboards/[leaderboardId]/scores/[scoreId]
-   - Body: { player_name?, score? }
-
-Use Tailwind for styling. Make table responsive.
-```
+- [ ] Search works
+- [ ] Edit/delete works
 
 ---
 
-## Phase 11: Import - Manual (CSV/JSON)
+## Phase 14: Import - Manual (CSV/JSON)
 
-**Goal:** Allow importing scores via CSV or JSON paste.
-
-**Prerequisites:** Phase 10 completed
-
-**Estimated AI Complexity:** Medium
-
-### Steps
-
-1. **Create import page**
-
-   `src/app/(dashboard)/games/[gameId]/import/page.tsx`:
-   - Tab navigation (Manual, UGS)
-   - Manual import form
-
-2. **Create manual import component**
-
-   `src/components/dashboard/ManualImport.tsx`:
-   - Textarea for paste
-   - File upload for CSV/JSON
-   - Column mapping UI
-   - Preview table
-   - Import button
-
-3. **Create import API route**
-
-   `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/import/route.ts`:
-   - Accept array of scores
-   - Insert with is_migrated = true
-
-### Files Created
-- `src/app/(dashboard)/games/[gameId]/import/page.tsx`
-- `src/components/dashboard/ManualImport.tsx`
-- `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/import/route.ts`
-
-### Manual Testing Checklist
-- [ ] Import page accessible from leaderboard
-- [ ] Paste JSON array → preview shows
-- [ ] Upload CSV file → preview shows
-- [ ] Map columns: name → player_name, score → score
-- [ ] Import → scores appear in leaderboard
-- [ ] Imported scores show as "Migrated"
-- [ ] Duplicate handling works (skip or error)
-
-### AI Prompt
-
-```markdown
-# Task: KeeperBoard Phase 11 - Manual Import
-
-Implement manual score import:
-
-1. Import page (src/app/(dashboard)/games/[gameId]/import/page.tsx):
-   - Breadcrumb navigation
-   - Tabs: "Manual Import" | "UGS Import" (UGS disabled for now)
-   - Leaderboard selector dropdown
-
-2. Manual import component (src/components/dashboard/ManualImport.tsx):
-   - Input method toggle: Paste | File Upload
-   - Paste mode: Large textarea
-   - File mode: Drag & drop zone, accepts .csv, .json
-   - Auto-detect format (CSV vs JSON)
-   - Column mapping:
-     - Dropdown for "Player Name column"
-     - Dropdown for "Score column"
-   - Preview table showing first 10 rows
-   - "Import X scores" button
-   - Progress indicator during import
-
-3. CSV/JSON parsing:
-   - CSV: Parse headers, map to columns
-   - JSON: Accept array of objects
-   - Handle common formats
-
-4. Import API route:
-   POST /api/games/[gameId]/leaderboards/[leaderboardId]/import
-   Body: { scores: [{ player_name, score }], source: 'csv' | 'json' }
-   - Insert all with is_migrated=true, migrated_from=source
-   - player_guid = null (for claiming later)
-   - Return: { imported: number, skipped: number }
-
-5. Duplicate handling options (UI):
-   - Skip duplicates (by player_name)
-   - Replace duplicates
-   - Keep highest score
-
-Show success toast with count after import.
-```
-
----
-
-## Phase 12: Import - UGS Direct
-
-**Goal:** Import scores directly from Unity Gaming Services.
-
-**Prerequisites:** Phase 11 completed
-
-**Estimated AI Complexity:** Complex
-
-### Steps
-
-1. **Research UGS API**
-
-   Document the exact API calls needed:
-   - Authentication (service account)
-   - List leaderboards
-   - Fetch scores
-
-2. **Create UGS import component**
-
-   `src/components/dashboard/UGSImport.tsx`:
-   - Project ID input
-   - Service Account Key ID input
-   - Service Account Secret input
-   - Leaderboard selection
-   - Fetch & preview
-   - Import button
-
-3. **Create UGS API utility**
-
-   `src/lib/ugs/client.ts`:
-   - Fetch leaderboards
-   - Fetch all scores (with pagination)
-
-4. **Update import page**
-
-   Enable UGS tab, add UGSImport component.
-
-### Files Created
-- `src/components/dashboard/UGSImport.tsx`
-- `src/lib/ugs/client.ts`
-- Update import page
-
-### Manual Testing Checklist
-- [ ] UGS tab is enabled
-- [ ] Enter UGS credentials
-- [ ] Fetch leaderboards → shows list
-- [ ] Select leaderboard → fetches scores
-- [ ] Preview shows UGS scores
-- [ ] Import → scores transferred to KeeperBoard
-- [ ] Error handling for invalid credentials
-
-### AI Prompt
-
-```markdown
-# Task: KeeperBoard Phase 12 - UGS Direct Import
-
-Implement Unity Gaming Services direct import:
-
-1. Research UGS Leaderboards API:
-   - Base URL: https://services.api.unity.com
-   - Auth: Basic auth with service account (base64 of keyId:secretKey)
-   - GET /leaderboards/v1/projects/{projectId}/leaderboards - List leaderboards
-   - GET /leaderboards/v1/projects/{projectId}/leaderboards/{leaderboardId}/scores - Get scores
-
-2. UGS client utility (src/lib/ugs/client.ts):
-   - Constructor: projectId, keyId, secretKey
-   - getLeaderboards(): Fetch available leaderboards
-   - getScores(leaderboardId, limit, offset): Fetch scores with pagination
-   - fetchAllScores(leaderboardId): Paginate through all scores
-
-3. UGS import component (src/components/dashboard/UGSImport.tsx):
-   - Form fields:
-     - UGS Project ID (from Unity Dashboard)
-     - Service Account Key ID
-     - Service Account Secret Key
-     - Help text with links to Unity docs
-   - "Fetch Leaderboards" button
-   - Leaderboard dropdown (after fetch)
-   - "Fetch Scores" button
-   - Preview table
-   - "Import to KeeperBoard" button
-   - Progress indicator for large imports
-
-4. Security note:
-   - Credentials are NOT stored
-   - Only used for immediate fetch
-   - Recommend users create dedicated service account
-
-5. Error handling:
-   - Invalid credentials → clear error message
-   - Network errors → retry option
-   - Rate limiting → show warning
-
-Import sets is_migrated=true, migrated_from='ugs'.
-```
-
----
-
-## Phase 13: Integration Testing
-
-**Goal:** Test full flow with Graveyard Groundskeeper.
-
-**Prerequisites:** Phases 1-11 completed, Unity package ready
-
-**Estimated AI Complexity:** Medium
-
-### Steps
-
-1. **Migrate Graveyard Groundskeeper**
-
-   In the Unity project:
-   - Install KeeperBoard package
-   - Create configuration
-   - Replace LeaderboardManager implementation
-   - Update LeaderboardUI to use new manager
-
-2. **Import existing scores**
-
-   Using KeeperBoard dashboard:
-   - Create game "Graveyard Groundskeeper"
-   - Generate dev/prod API keys
-   - Import 26 existing scores from UGS
-   - Verify scores appear
-
-3. **Test full flow**
-
-   - Play game, submit score
-   - View leaderboard in game
-   - Verify in dashboard
-
-### Files Modified (in graveyard-groundskeeper)
-- New: `KeeperBoardConfig` asset
-- Modified: `LeaderboardManager.cs` (rewritten)
-- Modified: `LeaderboardUI.cs` (updated references)
-
-### Manual Testing Checklist
-- [ ] Package imports without errors
-- [ ] Configuration asset created
-- [ ] API keys entered
-- [ ] Game connects to KeeperBoard (health check)
-- [ ] Submit score → appears in dashboard
-- [ ] Get leaderboard → shows scores
-- [ ] Migration: Existing player can claim their score
-- [ ] Dev build uses dev key
-- [ ] Prod build uses prod key
-- [ ] Works in Unity Editor
-- [ ] Works in WebGL build
-
-### AI Prompt
-
-```markdown
-# Task: KeeperBoard Phase 13 - Integration Testing
-
-Integrate KeeperBoard into Graveyard Groundskeeper:
-
-1. Install KeeperBoard Unity package via git URL
-
-2. Create KeeperBoardConfig asset in Assets/ScriptableObjects/
-   - Set API URL
-   - Set dev API key (from dashboard)
-   - Set prod API key (from dashboard)
-
-3. Update LeaderboardManager.cs:
-   - Remove all UGS dependencies
-   - Use KeeperBoardClient instead
-   - Maintain same public interface if possible
-   - Initialize in Awake
-   - Use PlayerIdentity for GUID management
-
-4. Update LeaderboardUI.cs:
-   - Update references to new types
-   - LeaderboardEntry → KeeperBoard.LeaderboardEntry
-   - Maintain same UI flow
-
-5. Handle migration:
-   - On first run, if player has PPrefs.PlayerName:
-     - Try to claim migrated score
-     - If successful, player keeps their score
-   - Sync local high score if no claim
-
-6. Test scenarios:
-   - New player: Gets new GUID, submits score
-   - Returning player (from UGS): Claims score, continues
-   - Offline: Graceful degradation
-
-Keep changes minimal - just replace the backend, not the UI.
-```
-
----
-
-## Phase 14: Polish & Deploy
-
-**Goal:** Final polish and production deployment.
+**Goal:** Allow importing scores via CSV or JSON.
 
 **Prerequisites:** Phase 13 completed
 
@@ -1457,97 +1156,94 @@ Keep changes minimal - just replace the backend, not the UI.
 
 ### Steps
 
-1. **Polish dashboard UI**
+1. Create import page
+2. Create manual import component
+3. Create import API route
 
-   - Loading states everywhere
-   - Error boundaries
-   - Empty states
-   - Mobile responsiveness
-   - Dark mode (optional)
-
-2. **Add rate limiting**
-
-   - Implement basic rate limiting on public API
-   - Use Vercel edge config or simple in-memory
-
-3. **Security review**
-
-   - Verify all routes check authentication
-   - Verify RLS policies work
-   - Test with different user accounts
-
-4. **Deploy to Vercel**
-
-   - Connect GitHub repo
-   - Add environment variables
-   - Deploy
-   - Test production
-
-5. **Update Unity package**
-
-   - Update default API URL to production
-   - Tag release
-
-6. **Create landing page** (optional)
-
-   - Simple landing page at root
-   - Feature overview
-   - "Get Started" CTA
-
-### Files Modified
-- Various UI polish
-- `src/middleware.ts` (rate limiting)
-- Vercel configuration
+### Files Created
+- `src/app/(dashboard)/games/[gameId]/import/page.tsx`
+- `src/components/dashboard/ManualImport.tsx`
+- `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/import/route.ts`
 
 ### Manual Testing Checklist
-- [ ] All pages have loading states
-- [ ] Errors show friendly messages
-- [ ] Mobile layout works
-- [ ] Rate limiting triggers on abuse
-- [ ] Production deployment works
-- [ ] Environment variables set correctly
-- [ ] Unity package connects to production
-- [ ] OAuth works in production (redirect URLs configured)
+- [ ] CSV import works
+- [ ] JSON import works
+- [ ] Preview shows correctly
+- [ ] Duplicate handling works
 
-### AI Prompt
+---
 
-```markdown
-# Task: KeeperBoard Phase 14 - Polish & Deploy
+## Phase 15: Import - UGS Direct
 
-Final polish and deployment:
+**Goal:** Import scores directly from Unity Gaming Services.
 
-1. UI Polish:
-   - Add loading skeletons to all data-fetching components
-   - Add error boundaries with friendly messages
-   - Ensure all empty states have helpful text
-   - Test and fix mobile responsiveness
-   - Add subtle animations (page transitions, button states)
+**Prerequisites:** Phase 14 completed
 
-2. Rate limiting:
-   - Add rate limiting middleware to /api/v1/* routes
-   - Limit: 100 requests per minute per API key
-   - Return 429 with Retry-After header when exceeded
+**Estimated AI Complexity:** Complex
 
-3. Security audit:
-   - Verify no sensitive data in client bundles
-   - Verify all dashboard routes check auth
-   - Verify API routes validate API key
-   - Test RLS by trying to access other users' data
+### Steps
 
-4. Production deployment:
-   - Create vercel.json if needed
-   - Document required environment variables
-   - Set up production Supabase (or use same with different env)
-   - Configure OAuth redirect URLs for production domain
+1. Research UGS API
+2. Create UGS import component
+3. Create UGS API utility
+4. Update import page
 
-5. Landing page (optional):
-   - Simple hero section: "Free Leaderboards for Indie Games"
-   - Features list
-   - "Get Started" button → register
-   - "Documentation" link
+### Files Created
+- `src/components/dashboard/UGSImport.tsx`
+- `src/lib/ugs/client.ts`
 
-Test everything in production before announcing.
-```
+### Manual Testing Checklist
+- [ ] UGS credentials work
+- [ ] Fetch leaderboards works
+- [ ] Import works
+
+---
+
+## Phase 16: Integration Testing
+
+**Goal:** Test full flow with Graveyard Groundskeeper.
+
+**Prerequisites:** Phases 1-14 completed
+
+**Estimated AI Complexity:** Medium
+
+### Steps
+
+1. Install KeeperBoard package in game
+2. Create configuration
+3. Update LeaderboardManager
+4. Import existing scores
+5. Test full flow
+
+### Manual Testing Checklist
+- [ ] Package imports
+- [ ] Scores submit
+- [ ] Leaderboard displays
+- [ ] Migration works
+- [ ] Works on Unity Play
+
+---
+
+## Phase 17: Polish & Deploy
+
+**Goal:** Final polish and production deployment.
+
+**Prerequisites:** Phase 16 completed
+
+**Estimated AI Complexity:** Medium
+
+### Steps
+
+1. Polish UI
+2. Add rate limiting
+3. Security review
+4. Production deployment
+5. Update Unity package
+
+### Manual Testing Checklist
+- [ ] All features work in production
+- [ ] Rate limiting works
+- [ ] OAuth works in production
 
 ---
 
@@ -1555,36 +1251,46 @@ Test everything in production before announcing.
 
 ### Phase Summary
 
-| Phase | Name | Complexity | Dependencies |
-|-------|------|------------|--------------|
-| 1 | Project Setup | Simple | None |
-| 2 | Database Schema | Simple | 1 |
-| 3 | Authentication | Medium | 2 |
-| 4 | Dashboard Layout | Medium | 3 |
-| 5 | Games Management | Medium | 4 |
-| 6 | Leaderboards Management | Simple | 5 |
-| 7 | Public API | Medium | 2 |
-| 8 | Unity Package Core | Medium | 2 |
-| 9 | Unity UPM Setup | Simple | 8 |
-| 10 | Scores Management UI | Medium | 6 |
-| 11 | Import - Manual | Medium | 10 |
-| 12 | Import - UGS | Complex | 11 |
-| 13 | Integration Testing | Medium | 1-11 |
-| 14 | Polish & Deploy | Medium | 13 |
+| Phase | Name | Complexity | Dependencies | Notes |
+|-------|------|------------|--------------|-------|
+| 1 | Project Setup | Simple | None | |
+| 2 | Database Schema | Simple | 1 | |
+| 3 | **API Skeleton** | Simple | 2 | **VALIDATION** |
+| 4 | **Unity Test Harness** | Simple | 3 | **VALIDATION** |
+| 5 | **Deploy & Validate** | Simple | 4 | **CSP TEST** |
+| 6 | Authentication | Medium | 5 ✓ | After validation |
+| 7 | Dashboard Layout | Medium | 6 | |
+| 8 | Games Management | Medium | 7 | |
+| 9 | Leaderboards Management | Simple | 8 | |
+| 10 | Full Public API | Medium | 9 | |
+| 11 | Unity Package Core | Medium | 5 ✓ | Parallel with 6-10 |
+| 12 | Unity UPM Setup | Simple | 11 | |
+| 13 | Scores Management UI | Medium | 9 | |
+| 14 | Import - Manual | Medium | 13 | |
+| 15 | Import - UGS | Complex | 14 | |
+| 16 | Integration Testing | Medium | 10, 12 | |
+| 17 | Polish & Deploy | Medium | 16 | |
+
+### Validation Gate
+
+**After Phase 5:**
+- If PASS → Continue to Phase 6+
+- If FAIL → Stop and troubleshoot
 
 ### Parallel Groups
 
-**Group A** (after Phase 2):
-- Phase 3 + Phase 7 + Phase 8
+**After Phase 5 validation passes:**
+- Phase 6 (Auth) + Phase 11 (Unity Package)
 
-**Group B** (after Phase 4):
-- Phase 5 + Phase 6
+**After Phase 7:**
+- Phase 8 + Phase 9 + Phase 10
 
-### Estimated Total
+### Estimated Time
 
-- **Minimum viable** (Phases 1-7, 8-9, 13): ~8-10 sessions
-- **Full feature set** (All phases): ~14-16 sessions
+- **Validation only** (Phases 1-5): ~2-3 sessions
+- **Minimum viable** (Phases 1-12): ~8-10 sessions
+- **Full feature set** (All phases): ~15-17 sessions
 
 ---
 
-*Main plan: `2_keeperboard.md`*
+*Main plan: `keeperboard.md`*

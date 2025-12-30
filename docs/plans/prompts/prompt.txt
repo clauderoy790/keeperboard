@@ -1,0 +1,9 @@
+  See this document for phase 1 implementation, let's do it:
+  /Users/claude/Git/keeper-board/docs/plans/keeperboard-implementation.md
+
+  This is the main app's specs if you need: /Users/claude/Git/keeper-board/docs/plans/keeperboard.md
+
+  Let me know if you have any questions otherwise go ahead!
+
+  DO NOT implement anything besides this phase. Assume that the previous phase(s) are already
+  implemented
