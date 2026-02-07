@@ -1,0 +1,767 @@
+{
+	"info": {
+		"_postman_id": "keeperboard-api-v1",
+		"name": "KeeperBoard API v1",
+		"description": "Full API collection for KeeperBoard leaderboard service. Phase 9 implementation.\n\n**Setup:**\n1. Import this collection into Postman\n2. Create an environment with variables:\n   - `base_url` = `http://localhost:3000` (or your deployment URL)\n   - `api_key` = Your API key from the dashboard (e.g., `kb_dev_abc123...`)\n   - `player_guid` = A test player GUID (e.g., `test-player-123`)\n3. Select the environment before running requests",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check (No Auth Required)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"health"
+							]
+						},
+						"description": "Health check endpoint. Does not require API key."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Scores",
+			"item": [
+				{
+					"name": "Submit Score (Default Leaderboard)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"player_guid\": \"{{player_guid}}\",\n  \"player_name\": \"Test Player\",\n  \"score\": 1500,\n  \"metadata\": {\n    \"level\": 10,\n    \"character\": \"warrior\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/scores",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"scores"
+							]
+						},
+						"description": "Submit a score to the default leaderboard. Only updates if the new score is higher than the existing one."
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Score (Specific Leaderboard)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"player_guid\": \"{{player_guid}}\",\n  \"player_name\": \"Test Player\",\n  \"score\": 2500\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/scores?leaderboard=high-scores",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"scores"
+							],
+							"query": [
+								{
+									"key": "leaderboard",
+									"value": "high-scores",
+									"description": "Leaderboard slug"
+								}
+							]
+						},
+						"description": "Submit a score to a specific leaderboard by slug."
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Score (No API Key - Should Fail)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"player_guid\": \"{{player_guid}}\",\n  \"player_name\": \"Test Player\",\n  \"score\": 1000\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/scores",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"scores"
+							]
+						},
+						"description": "Expected to fail with 401 INVALID_API_KEY"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Leaderboard",
+			"item": [
+				{
+					"name": "Get Leaderboard (Default)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/leaderboard?limit=10&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"leaderboard"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "10",
+									"description": "Number of entries to return (max 100)"
+								},
+								{
+									"key": "offset",
+									"value": "0",
+									"description": "Pagination offset"
+								}
+							]
+						},
+						"description": "Get the default leaderboard entries with pagination."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Leaderboard (Specific by Slug)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/leaderboard?leaderboard=high-scores&limit=25&offset=0",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"leaderboard"
+							],
+							"query": [
+								{
+									"key": "leaderboard",
+									"value": "high-scores",
+									"description": "Leaderboard slug"
+								},
+								{
+									"key": "limit",
+									"value": "25"
+								},
+								{
+									"key": "offset",
+									"value": "0"
+								}
+							]
+						},
+						"description": "Get a specific leaderboard by slug."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Leaderboard (Top 100)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/leaderboard?limit=100",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"leaderboard"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "100",
+									"description": "Maximum allowed"
+								}
+							]
+						},
+						"description": "Get top 100 entries (maximum limit)."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Leaderboard (Invalid API Key - Should Fail)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "kb_dev_fake_invalid_key",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/leaderboard",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"leaderboard"
+							]
+						},
+						"description": "Expected to fail with 401 INVALID_API_KEY"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Player",
+			"item": [
+				{
+					"name": "Get Player Score & Rank",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/player/{{player_guid}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"player",
+								"{{player_guid}}"
+							]
+						},
+						"description": "Get a specific player's score and rank on the default leaderboard."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Player (Specific Leaderboard)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/player/{{player_guid}}?leaderboard=high-scores",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"player",
+								"{{player_guid}}"
+							],
+							"query": [
+								{
+									"key": "leaderboard",
+									"value": "high-scores"
+								}
+							]
+						},
+						"description": "Get player's score on a specific leaderboard."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Player Name",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"player_name\": \"Updated Player Name\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/player/{{player_guid}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"player",
+								"{{player_guid}}"
+							]
+						},
+						"description": "Update a player's display name. Score and rank remain the same."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Player (Not Found - Should Fail)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/player/nonexistent-player-guid",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"player",
+								"nonexistent-player-guid"
+							]
+						},
+						"description": "Expected to fail with 404 NOT_FOUND"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Claim",
+			"item": [
+				{
+					"name": "Claim Migrated Score",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"player_guid\": \"new-player-guid-123\",\n  \"player_name\": \"MigratedPlayerName\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/claim",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"claim"
+							]
+						},
+						"description": "Claim a migrated score by matching player_name. The migrated score must have `is_migrated=true` and `player_guid=NULL`.\n\n**To test this:**\n1. Create a migrated score via CSV import (Phase 12) OR\n2. Manually insert a score in the database:\n   ```sql\n   INSERT INTO scores (leaderboard_id, player_name, score, is_migrated, migrated_from)\n   VALUES ('your-leaderboard-id', 'MigratedPlayerName', 5000, true, 'csv');\n   ```"
+					},
+					"response": []
+				},
+				{
+					"name": "Claim Score (Specific Leaderboard)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"player_guid\": \"new-player-guid-456\",\n  \"player_name\": \"AnotherMigratedPlayer\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/claim?leaderboard=high-scores",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"claim"
+							],
+							"query": [
+								{
+									"key": "leaderboard",
+									"value": "high-scores"
+								}
+							]
+						},
+						"description": "Claim a migrated score on a specific leaderboard."
+					},
+					"response": []
+				},
+				{
+					"name": "Claim Score (Not Found - Should Fail)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"player_guid\": \"test-guid\",\n  \"player_name\": \"NonexistentPlayer\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/claim",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"claim"
+							]
+						},
+						"description": "Expected to fail with 404 NOT_FOUND if no unclaimed score exists for this player_name."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Complete Flow Example",
+			"item": [
+				{
+					"name": "1. Submit First Score",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"player_guid\": \"flow-player-001\",\n  \"player_name\": \"FlowTester\",\n  \"score\": 1000\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/scores",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"scores"
+							]
+						},
+						"description": "Step 1: Submit initial score"
+					},
+					"response": []
+				},
+				{
+					"name": "2. Get Player's Current Rank",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/player/flow-player-001",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"player",
+								"flow-player-001"
+							]
+						},
+						"description": "Step 2: Check player's rank"
+					},
+					"response": []
+				},
+				{
+					"name": "3. Submit Higher Score",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"player_guid\": \"flow-player-001\",\n  \"player_name\": \"FlowTester\",\n  \"score\": 2500\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/scores",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"scores"
+							]
+						},
+						"description": "Step 3: Submit higher score (should update)"
+					},
+					"response": []
+				},
+				{
+					"name": "4. Submit Lower Score",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"player_guid\": \"flow-player-001\",\n  \"player_name\": \"FlowTester\",\n  \"score\": 500\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/scores",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"scores"
+							]
+						},
+						"description": "Step 4: Submit lower score (should NOT update, is_new_high_score=false)"
+					},
+					"response": []
+				},
+				{
+					"name": "5. View Full Leaderboard",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/leaderboard?limit=50",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"leaderboard"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Step 5: View complete leaderboard"
+					},
+					"response": []
+				},
+				{
+					"name": "6. Update Player Name",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{api_key}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"player_name\": \"FlowTester Pro\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/player/flow-player-001",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"player",
+								"flow-player-001"
+							]
+						},
+						"description": "Step 6: Update player's display name"
+					},
+					"response": []
+				}
+			],
+			"description": "Complete workflow demonstrating all API features in sequence."
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "api_key",
+			"value": "YOUR_API_KEY_HERE",
+			"type": "string"
+		},
+		{
+			"key": "player_guid",
+			"value": "test-player-123",
+			"type": "string"
+		}
+	]
+}

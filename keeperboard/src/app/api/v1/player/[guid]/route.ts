@@ -1,9 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 import { corsHeaders } from '@/lib/utils/cors';
-
-// Hardcoded leaderboard ID for skeleton testing
-const TEST_LEADERBOARD_ID = '00000000-0000-0000-0000-000000000002';
+import { validateApiKey } from '@/lib/api/auth';
+import { resolveLeaderboard } from '@/lib/api/leaderboard';
 
 interface RouteParams {
   params: Promise<{ guid: string }>;
@@ -11,6 +10,20 @@ interface RouteParams {
 
 export async function GET(request: Request, { params }: RouteParams) {
   try {
+    // Validate API key
+    const { gameId, environmentId } = await validateApiKey(request);
+
+    // Get leaderboard slug from query params (optional)
+    const { searchParams } = new URL(request.url);
+    const leaderboardSlug = searchParams.get('leaderboard') || undefined;
+
+    // Resolve leaderboard
+    const { leaderboardId } = await resolveLeaderboard(
+      gameId,
+      environmentId,
+      leaderboardSlug
+    );
+
     const { guid } = await params;
     const supabase = createAdminClient();
 
@@ -18,7 +31,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     const { data: playerScore, error } = await supabase
       .from('scores')
       .select('id, player_guid, player_name, score')
-      .eq('leaderboard_id', TEST_LEADERBOARD_ID)
+      .eq('leaderboard_id', leaderboardId)
       .eq('player_guid', guid)
       .single();
 
@@ -35,7 +48,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     const { count } = await supabase
       .from('scores')
       .select('*', { count: 'exact', head: true })
-      .eq('leaderboard_id', TEST_LEADERBOARD_ID)
+      .eq('leaderboard_id', leaderboardId)
       .gt('score', playerScore.score);
 
     const rank = (count ?? 0) + 1;
@@ -53,6 +66,20 @@ export async function GET(request: Request, { params }: RouteParams) {
     );
   } catch (error) {
     console.error('Player fetch error:', error);
+
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (
+        error.message.includes('Missing X-API-Key') ||
+        error.message.includes('Invalid API key')
+      ) {
+        return errorResponse(error.message, 'INVALID_API_KEY', 401, corsHeaders);
+      }
+      if (error.message.includes('not found')) {
+        return errorResponse(error.message, 'NOT_FOUND', 404, corsHeaders);
+      }
+    }
+
     return errorResponse(
       'Failed to fetch player',
       'INTERNAL_ERROR',
@@ -64,6 +91,20 @@ export async function GET(request: Request, { params }: RouteParams) {
 
 export async function PUT(request: Request, { params }: RouteParams) {
   try {
+    // Validate API key
+    const { gameId, environmentId } = await validateApiKey(request);
+
+    // Get leaderboard slug from query params (optional)
+    const { searchParams } = new URL(request.url);
+    const leaderboardSlug = searchParams.get('leaderboard') || undefined;
+
+    // Resolve leaderboard
+    const { leaderboardId } = await resolveLeaderboard(
+      gameId,
+      environmentId,
+      leaderboardSlug
+    );
+
     const { guid } = await params;
     const body = await request.json();
     const { player_name } = body;
@@ -83,7 +124,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const { data: existingScore, error: fetchError } = await supabase
       .from('scores')
       .select('id, score')
-      .eq('leaderboard_id', TEST_LEADERBOARD_ID)
+      .eq('leaderboard_id', leaderboardId)
       .eq('player_guid', guid)
       .single();
 
@@ -111,7 +152,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const { count } = await supabase
       .from('scores')
       .select('*', { count: 'exact', head: true })
-      .eq('leaderboard_id', TEST_LEADERBOARD_ID)
+      .eq('leaderboard_id', leaderboardId)
       .gt('score', existingScore.score);
 
     const rank = (count ?? 0) + 1;
@@ -129,6 +170,20 @@ export async function PUT(request: Request, { params }: RouteParams) {
     );
   } catch (error) {
     console.error('Player update error:', error);
+
+    // Handle specific errors
+    if (error instanceof Error) {
+      if (
+        error.message.includes('Missing X-API-Key') ||
+        error.message.includes('Invalid API key')
+      ) {
+        return errorResponse(error.message, 'INVALID_API_KEY', 401, corsHeaders);
+      }
+      if (error.message.includes('not found')) {
+        return errorResponse(error.message, 'NOT_FOUND', 404, corsHeaders);
+      }
+    }
+
     return errorResponse(
       'Failed to update player',
       'INTERNAL_ERROR',

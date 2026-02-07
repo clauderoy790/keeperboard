@@ -1,20 +1,24 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { successResponse, errorResponse } from '@/lib/utils/api-response';
 import { corsHeaders } from '@/lib/utils/cors';
-
-// Hardcoded leaderboard ID for skeleton testing
-const TEST_LEADERBOARD_ID = '00000000-0000-0000-0000-000000000002';
+import { validateApiKey } from '@/lib/api/auth';
+import { resolveLeaderboard } from '@/lib/api/leaderboard';
 
 interface ScoreSubmission {
   player_guid: string;
   player_name: string;
   score: number;
+  metadata?: Record<string, unknown>;
 }
 
 export async function POST(request: Request) {
   try {
+    // Validate API key
+    const { gameId, environmentId } = await validateApiKey(request);
+
+    // Parse request body
     const body = (await request.json()) as ScoreSubmission;
-    const { player_guid, player_name, score } = body;
+    const { player_guid, player_name, score, metadata } = body;
 
     // Basic validation
     if (!player_guid || !player_name || typeof score !== 'number') {
@@ -26,13 +30,24 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get leaderboard slug from query params (optional)
+    const { searchParams } = new URL(request.url);
+    const leaderboardSlug = searchParams.get('leaderboard') || undefined;
+
+    // Resolve leaderboard
+    const { leaderboardId } = await resolveLeaderboard(
+      gameId,
+      environmentId,
+      leaderboardSlug
+    );
+
     const supabase = createAdminClient();
 
     // Check for existing score
     const { data: existingScore } = await supabase
       .from('scores')
       .select('id, score')
-      .eq('leaderboard_id', TEST_LEADERBOARD_ID)
+      .eq('leaderboard_id', leaderboardId)
       .eq('player_guid', player_guid)
       .single();
 
@@ -48,6 +63,7 @@ export async function POST(request: Request) {
           .update({
             score,
             player_name,
+            metadata: (metadata as any) || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingScore.id)
@@ -70,10 +86,11 @@ export async function POST(request: Request) {
       const { data: inserted, error: insertError } = await supabase
         .from('scores')
         .insert({
-          leaderboard_id: TEST_LEADERBOARD_ID,
+          leaderboard_id: leaderboardId,
           player_guid,
           player_name,
           score,
+          metadata: (metadata as any) || null,
         })
         .select('id')
         .single();
@@ -89,7 +106,7 @@ export async function POST(request: Request) {
     const { count } = await supabase
       .from('scores')
       .select('*', { count: 'exact', head: true })
-      .eq('leaderboard_id', TEST_LEADERBOARD_ID)
+      .eq('leaderboard_id', leaderboardId)
       .gt('score', finalScore);
 
     const rank = (count ?? 0) + 1;
@@ -108,6 +125,20 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error('Score submission error:', error);
+
+    // Handle specific API key validation errors
+    if (error instanceof Error) {
+      if (
+        error.message.includes('Missing X-API-Key') ||
+        error.message.includes('Invalid API key')
+      ) {
+        return errorResponse(error.message, 'INVALID_API_KEY', 401, corsHeaders);
+      }
+      if (error.message.includes('not found')) {
+        return errorResponse(error.message, 'NOT_FOUND', 404, corsHeaders);
+      }
+    }
+
     return errorResponse(
       'Failed to submit score',
       'INTERNAL_ERROR',
