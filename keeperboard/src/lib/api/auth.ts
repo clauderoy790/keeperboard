@@ -1,10 +1,12 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createHash } from 'crypto';
+import { checkRateLimit } from './rate-limit';
 
 export interface ApiKeyValidationResult {
   gameId: string;
   environmentId: string;
   environmentSlug: string;
+  rateLimitHeaders: Record<string, string>;
 }
 
 /**
@@ -27,6 +29,24 @@ export async function validateApiKey(
   // Validate key format (kb_{env}_{random})
   if (!apiKey.startsWith('kb_')) {
     throw new Error('Invalid API key format');
+  }
+
+  // Check rate limit
+  const rateLimit = checkRateLimit(apiKey);
+  const rateLimitHeaders = {
+    'X-RateLimit-Limit': rateLimit.limit.toString(),
+    'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+    'X-RateLimit-Reset': Math.ceil(rateLimit.resetAt / 1000).toString(),
+  };
+
+  if (!rateLimit.allowed) {
+    const error = new Error('Rate limit exceeded') as Error & {
+      code: string;
+      headers: Record<string, string>;
+    };
+    error.code = 'RATE_LIMITED';
+    error.headers = rateLimitHeaders;
+    throw error;
   }
 
   // Hash the key for lookup
@@ -71,5 +91,6 @@ export async function validateApiKey(
     gameId: apiKeyData.game_id,
     environmentId: apiKeyData.environment_id,
     environmentSlug: environment.slug,
+    rateLimitHeaders,
   };
 }

@@ -43,10 +43,10 @@ keeper-board/
 - [x] Phase 9: Full Public API
 - [x] Phase 10: TypeScript Client SDK
 - [x] Phase 11: Scores Management UI
-- [ ] Phase 12: CSV/JSON Import
-- [ ] Phase 13: Integration Testing & Polish
+- [x] Phase 12: CSV/JSON Import
+- [x] Phase 13: Integration Testing & Polish
 
-**Next phase:** Phase 12 — CSV/JSON Import
+**Status:** Plan 2 Complete!
 
 ## Key Decisions
 

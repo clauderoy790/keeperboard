@@ -153,8 +153,6 @@ export default function LeaderboardDetailPage({
         setLeaderboard({ ...leaderboard, score_count: 0 });
       }
 
-      // alert(`Successfully deleted ${data.deletedCount} score${data.deletedCount !== 1 ? 's' : ''}.`);
-
       // Trigger a re-fetch of the scores table
       window.location.reload();
     } catch (error: any) {
@@ -303,16 +301,29 @@ export default function LeaderboardDetailPage({
         title={
           <div className="flex items-center justify-between w-full">
             <span>Scores ({scoreCount})</span>
-            {scoreCount > 0 && (
+            <div className="flex gap-2">
               <Button
-                variant="danger"
+                variant="secondary"
                 size="sm"
-                onClick={handleResetLeaderboard}
-                loading={resetting}
+                onClick={() =>
+                  router.push(
+                    `/dashboard/games/${resolvedParams.gameId}/leaderboards/${resolvedParams.leaderboardId}/import`
+                  )
+                }
               >
-                Reset Leaderboard
+                Import Scores
               </Button>
-            )}
+              {scoreCount > 0 && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleResetLeaderboard}
+                  loading={resetting}
+                >
+                  Reset Leaderboard
+                </Button>
+              )}
+            </div>
           </div>
         }
         description="View and manage player scores"

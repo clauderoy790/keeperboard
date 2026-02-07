@@ -7,7 +7,7 @@ import { resolveLeaderboard } from '@/lib/api/leaderboard';
 export async function GET(request: Request) {
   try {
     // Validate API key
-    const { gameId, environmentId } = await validateApiKey(request);
+    const { gameId, environmentId, rateLimitHeaders } = await validateApiKey(request);
 
     // Parse query params
     const { searchParams } = new URL(request.url);
@@ -54,13 +54,27 @@ export async function GET(request: Request) {
         total_count: totalCount ?? 0,
       },
       200,
-      corsHeaders
+      { ...corsHeaders, ...rateLimitHeaders }
     );
   } catch (error) {
     console.error('Leaderboard fetch error:', error);
 
     // Handle specific errors
     if (error instanceof Error) {
+      const errorWithHeaders = error as Error & {
+        code?: string;
+        headers?: Record<string, string>;
+      };
+
+      if (errorWithHeaders.code === 'RATE_LIMITED') {
+        return errorResponse(
+          'Rate limit exceeded',
+          'RATE_LIMITED',
+          429,
+          { ...corsHeaders, ...errorWithHeaders.headers }
+        );
+      }
+
       if (
         error.message.includes('Missing X-API-Key') ||
         error.message.includes('Invalid API key')

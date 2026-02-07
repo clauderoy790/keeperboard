@@ -1,0 +1,19 @@
+{
+  "name": "keeperboard-test-game",
+  "version": "1.0.0",
+  "description": "Phaser.js test game for KeeperBoard SDK integration",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "^3.87.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
+}

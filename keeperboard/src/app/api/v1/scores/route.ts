@@ -14,7 +14,7 @@ interface ScoreSubmission {
 export async function POST(request: Request) {
   try {
     // Validate API key
-    const { gameId, environmentId } = await validateApiKey(request);
+    const { gameId, environmentId, rateLimitHeaders } = await validateApiKey(request);
 
     // Parse request body
     const body = (await request.json()) as ScoreSubmission;
@@ -121,13 +121,27 @@ export async function POST(request: Request) {
         is_new_high_score: isNewHighScore,
       },
       200,
-      corsHeaders
+      { ...corsHeaders, ...rateLimitHeaders }
     );
   } catch (error) {
     console.error('Score submission error:', error);
 
     // Handle specific API key validation errors
     if (error instanceof Error) {
+      const errorWithHeaders = error as Error & {
+        code?: string;
+        headers?: Record<string, string>;
+      };
+
+      if (errorWithHeaders.code === 'RATE_LIMITED') {
+        return errorResponse(
+          'Rate limit exceeded',
+          'RATE_LIMITED',
+          429,
+          { ...corsHeaders, ...errorWithHeaders.headers }
+        );
+      }
+
       if (
         error.message.includes('Missing X-API-Key') ||
         error.message.includes('Invalid API key')

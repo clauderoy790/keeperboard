@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KeeperBoard Test Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #1a1a2e;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    #game-container {
+      margin: 20px 0;
+    }
+    #ui-container {
+      text-align: center;
+      color: #fff;
+      max-width: 800px;
+      padding: 20px;
+    }
+    button {
+      background: #4a90e2;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 8px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #357abd;
+    }
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+    input {
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #444;
+      background: #2a2a3e;
+      color: #fff;
+      font-size: 16px;
+      margin: 8px;
+      min-width: 200px;
+    }
+    .leaderboard {
+      background: #2a2a3e;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    .leaderboard-entry {
+      padding: 12px;
+      margin: 8px 0;
+      background: #1a1a2e;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .rank {
+      font-weight: bold;
+      color: #4a90e2;
+      margin-right: 16px;
+    }
+    .player-name {
+      flex: 1;
+    }
+    .score {
+      font-weight: bold;
+      color: #50e3c2;
+    }
+    .status {
+      margin: 16px 0;
+      padding: 12px;
+      border-radius: 6px;
+      background: #2a2a3e;
+    }
+    .error {
+      color: #ff6b6b;
+    }
+    .success {
+      color: #50e3c2;
+    }
+    h1 {
+      margin: 0 0 12px 0;
+    }
+    h2 {
+      margin: 20px 0 12px 0;
+      color: #4a90e2;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui-container">
+    <h1>KeeperBoard Test Game</h1>
+    <p>A simple click counter to test the KeeperBoard SDK</p>
+
+    <div id="setup-section">
+      <h2>Setup</h2>
+      <input type="text" id="api-url" placeholder="API URL (e.g., http://localhost:3000)" value="http://localhost:3000" />
+      <input type="text" id="api-key" placeholder="API Key (kb_dev_...)" />
+      <br>
+      <input type="text" id="player-name" placeholder="Your Name" />
+      <button id="start-game">Start Game</button>
+      <div id="setup-status" class="status"></div>
+    </div>
+
+    <div id="game-section" style="display: none;">
+      <div id="game-container"></div>
+      <div id="game-status" class="status">
+        <p><strong>Player:</strong> <span id="current-player"></span></p>
+        <p><strong>Score:</strong> <span id="current-score">0</span></p>
+        <p><strong>Time Left:</strong> <span id="time-left">30</span>s</p>
+      </div>
+      <button id="view-leaderboard">View Leaderboard</button>
+      <button id="restart-game">New Game</button>
+    </div>
+
+    <div id="leaderboard-section" style="display: none;">
+      <h2>Leaderboard</h2>
+      <div id="leaderboard-content" class="leaderboard"></div>
+      <button id="hide-leaderboard">Back to Game</button>
+      <button id="test-all-methods">Test All SDK Methods</button>
+      <div id="test-results" class="status"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
