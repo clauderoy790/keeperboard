@@ -6,6 +6,9 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import GameForm from '@/components/forms/GameForm';
 import ApiKeysCard from '@/components/dashboard/ApiKeysCard';
+import EnvironmentsCard from '@/components/dashboard/EnvironmentsCard';
+import EnvironmentSwitcher from '@/components/dashboard/EnvironmentSwitcher';
+import LeaderboardsList from '@/components/dashboard/LeaderboardsList';
 
 interface Game {
   id: string;
@@ -18,10 +21,28 @@ interface Game {
 
 interface ApiKey {
   id: string;
-  environment: 'dev' | 'prod';
+  environment_id: string;
   key_prefix: string;
   last_used_at: string | null;
   created_at: string | null;
+}
+
+interface Environment {
+  id: string;
+  game_id: string;
+  name: string;
+  slug: string;
+  is_default: boolean;
+  created_at: string;
+}
+
+interface Leaderboard {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order: 'asc' | 'desc';
+  score_count: number;
+  created_at: string;
 }
 
 export default function GameDetailPage({ params }: { params: Promise<{ gameId: string }> }) {
@@ -29,6 +50,11 @@ export default function GameDetailPage({ params }: { params: Promise<{ gameId: s
   const router = useRouter();
   const [game, setGame] = useState<Game | null>(null);
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [environments, setEnvironments] = useState<Environment[]>([]);
+  const [leaderboards, setLeaderboards] = useState<Leaderboard[]>([]);
+  const [selectedEnvironmentId, setSelectedEnvironmentId] = useState<
+    string | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -36,8 +62,15 @@ export default function GameDetailPage({ params }: { params: Promise<{ gameId: s
 
   useEffect(() => {
     fetchGame();
+    fetchEnvironments();
     fetchApiKeys();
   }, []);
+
+  useEffect(() => {
+    if (selectedEnvironmentId) {
+      fetchLeaderboards();
+    }
+  }, [selectedEnvironmentId]);
 
   const fetchGame = async () => {
     try {
@@ -58,13 +91,51 @@ export default function GameDetailPage({ params }: { params: Promise<{ gameId: s
     }
   };
 
+  const fetchEnvironments = async () => {
+    try {
+      const response = await fetch(`/api/games/${resolvedParams.gameId}/environments`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setEnvironments(data.environments || []);
+        // Auto-select default environment
+        const defaultEnv = data.environments?.find((e: Environment) => e.is_default);
+        if (defaultEnv && !selectedEnvironmentId) {
+          setSelectedEnvironmentId(defaultEnv.id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch environments:', error);
+    }
+  };
+
   const fetchApiKeys = async () => {
     try {
-      // Note: API keys endpoint doesn't exist yet, will be added in this phase
-      // For now, just set empty array
-      setApiKeys([]);
+      const response = await fetch(`/api/games/${resolvedParams.gameId}/api-keys`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setApiKeys(data.api_keys || []);
+      }
     } catch (error) {
       console.error('Failed to fetch API keys:', error);
+    }
+  };
+
+  const fetchLeaderboards = async () => {
+    if (!selectedEnvironmentId) return;
+
+    try {
+      const response = await fetch(
+        `/api/games/${resolvedParams.gameId}/leaderboards?environment_id=${selectedEnvironmentId}`
+      );
+      const data = await response.json();
+
+      if (response.ok) {
+        setLeaderboards(data.leaderboards || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch leaderboards:', error);
     }
   };
 
@@ -201,20 +272,55 @@ export default function GameDetailPage({ params }: { params: Promise<{ gameId: s
         )}
       </Card>
 
+      {/* Environments */}
+      <EnvironmentsCard
+        gameId={resolvedParams.gameId}
+        environments={environments}
+        onEnvironmentCreated={fetchEnvironments}
+        onEnvironmentDeleted={() => {
+          fetchEnvironments();
+          setSelectedEnvironmentId(null);
+        }}
+      />
+
       {/* API Keys */}
       <ApiKeysCard
         gameId={resolvedParams.gameId}
         apiKeys={apiKeys}
+        environments={environments}
         onKeyGenerated={fetchApiKeys}
-        onKeyDeleted={fetchApiKeys}
       />
 
-      {/* Leaderboards Section (Placeholder for Phase 8) */}
-      <Card title="Leaderboards" description="Manage leaderboards for this game">
-        <div className="text-center py-8">
-          <p className="text-sm font-mono text-neutral-500">
-            Leaderboards management coming in Phase 8
-          </p>
+      {/* Leaderboards Section */}
+      <Card
+        title="Leaderboards"
+        description="Manage leaderboards for this game"
+      >
+        <div className="space-y-4">
+          {/* Environment Switcher */}
+          {environments.length > 0 && (
+            <EnvironmentSwitcher
+              environments={environments}
+              selectedEnvironmentId={selectedEnvironmentId}
+              onEnvironmentChange={setSelectedEnvironmentId}
+            />
+          )}
+
+          {/* Leaderboards List */}
+          {selectedEnvironmentId ? (
+            <LeaderboardsList
+              gameId={resolvedParams.gameId}
+              environmentId={selectedEnvironmentId}
+              leaderboards={leaderboards}
+              onLeaderboardCreated={fetchLeaderboards}
+            />
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-sm font-mono text-neutral-500">
+                Create an environment first to add leaderboards
+              </p>
+            </div>
+          )}
         </div>
       </Card>
     </div>

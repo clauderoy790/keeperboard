@@ -9,20 +9,74 @@ type Params = {
   }>;
 };
 
-// Generate a random API key with format: kb_{env}_{48_random_chars}
-function generateApiKey(environment: 'dev' | 'prod'): { key: string; hash: string; prefix: string } {
+// Generate a random API key with format: kb_{env_slug}_{48_random_chars}
+function generateApiKey(environmentSlug: string): {
+  key: string;
+  hash: string;
+  prefix: string;
+} {
   const randomBytes = crypto.randomBytes(36);
-  const randomString = randomBytes.toString('base64')
+  const randomString = randomBytes
+    .toString('base64')
     .replace(/\+/g, '')
     .replace(/\//g, '')
     .replace(/=/g, '')
     .substring(0, 48);
 
-  const key = `kb_${environment}_${randomString}`;
+  const key = `kb_${environmentSlug}_${randomString}`;
   const hash = crypto.createHash('sha256').update(key).digest('hex');
-  const prefix = `kb_${environment}_`;
+  const prefix = `kb_${environmentSlug}_`;
 
   return { key, hash, prefix };
+}
+
+// GET /api/games/[gameId]/api-keys - List existing API keys
+export async function GET(request: NextRequest, { params }: Params) {
+  const { gameId } = await params;
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const adminSupabase = createAdminClient();
+
+    // Verify game ownership
+    const { data: game } = await adminSupabase
+      .from('games')
+      .select('user_id')
+      .eq('id', gameId)
+      .single();
+
+    if (!game || game.user_id !== user.id) {
+      return NextResponse.json({ error: 'Game not found' }, { status: 404 });
+    }
+
+    // Get all API keys for this game (never return the hash)
+    const { data: apiKeys, error } = await adminSupabase
+      .from('api_keys')
+      .select('id, game_id, environment_id, key_prefix, last_used_at, created_at')
+      .eq('game_id', gameId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return NextResponse.json({ api_keys: apiKeys || [] });
+  } catch (error: any) {
+    console.error('GET /api/games/[gameId]/api-keys error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to fetch API keys' },
+      { status: 500 }
+    );
+  }
 }
 
 // POST /api/games/[gameId]/api-keys - Generate new API key
@@ -42,12 +96,12 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   try {
     const body = await request.json();
-    const { environment } = body;
+    const { environment_id } = body;
 
-    // Validate environment
-    if (environment !== 'dev' && environment !== 'prod') {
+    // Validate environment_id
+    if (!environment_id) {
       return NextResponse.json(
-        { error: 'Environment must be "dev" or "prod"' },
+        { error: 'environment_id is required' },
         { status: 400 }
       );
     }
@@ -63,36 +117,40 @@ export async function POST(request: NextRequest, { params }: Params) {
       .single();
 
     if (!game || game.user_id !== user.id) {
+      return NextResponse.json({ error: 'Game not found' }, { status: 404 });
+    }
+
+    // Verify environment belongs to this game and get slug
+    const { data: environment } = await adminSupabase
+      .from('environments')
+      .select('slug')
+      .eq('id', environment_id)
+      .eq('game_id', gameId)
+      .single();
+
+    if (!environment) {
       return NextResponse.json(
-        { error: 'Game not found' },
+        { error: 'Environment not found for this game' },
         { status: 404 }
       );
     }
 
-    // Check if key already exists for this environment
-    const { data: existingKey } = await adminSupabase
+    // Delete existing key for this environment if one exists (regenerate flow)
+    await adminSupabase
       .from('api_keys')
-      .select('id')
+      .delete()
       .eq('game_id', gameId)
-      .eq('environment', environment)
-      .single();
-
-    if (existingKey) {
-      return NextResponse.json(
-        { error: `API key for ${environment} environment already exists. Delete it first to regenerate.` },
-        { status: 409 }
-      );
-    }
+      .eq('environment_id', environment_id);
 
     // Generate new API key
-    const { key, hash, prefix } = generateApiKey(environment);
+    const { key, hash, prefix } = generateApiKey(environment.slug);
 
     // Insert API key
     const { data: apiKey, error } = await adminSupabase
       .from('api_keys')
       .insert({
         game_id: gameId,
-        environment,
+        environment_id,
         key_hash: hash,
         key_prefix: prefix,
       })
@@ -100,23 +158,24 @@ export async function POST(request: NextRequest, { params }: Params) {
       .single();
 
     if (error) {
-      return NextResponse.json(
-        { error: 'Failed to create API key' },
-        { status: 500 }
-      );
+      throw new Error(error.message);
     }
 
     // Return the plain key (shown only once!)
-    return NextResponse.json({
-      api_key: {
-        ...apiKey,
-        key, // Plain key returned only on creation
-      }
-    }, { status: 201 });
-  } catch (error) {
     return NextResponse.json(
-      { error: 'Invalid request body' },
-      { status: 400 }
+      {
+        api_key: {
+          ...apiKey,
+          key, // Plain key returned only on creation
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error('POST /api/games/[gameId]/api-keys error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to create API key' },
+      { status: 500 }
     );
   }
 }
@@ -138,12 +197,12 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
   try {
     const body = await request.json();
-    const { environment } = body;
+    const { environment_id } = body;
 
-    // Validate environment
-    if (environment !== 'dev' && environment !== 'prod') {
+    // Validate environment_id
+    if (!environment_id) {
       return NextResponse.json(
-        { error: 'Environment must be "dev" or "prod"' },
+        { error: 'environment_id is required' },
         { status: 400 }
       );
     }
@@ -159,10 +218,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       .single();
 
     if (!game || game.user_id !== user.id) {
-      return NextResponse.json(
-        { error: 'Game not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
     // Delete API key
@@ -170,20 +226,18 @@ export async function DELETE(request: NextRequest, { params }: Params) {
       .from('api_keys')
       .delete()
       .eq('game_id', gameId)
-      .eq('environment', environment);
+      .eq('environment_id', environment_id);
 
     if (error) {
-      return NextResponse.json(
-        { error: 'Failed to delete API key' },
-        { status: 500 }
-      );
+      throw new Error(error.message);
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('DELETE /api/games/[gameId]/api-keys error:', error);
     return NextResponse.json(
-      { error: 'Invalid request body' },
-      { status: 400 }
+      { error: error.message || 'Failed to delete API key' },
+      { status: 500 }
     );
   }
 }

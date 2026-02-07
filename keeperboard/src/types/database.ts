@@ -17,7 +17,7 @@ export type Database = {
       api_keys: {
         Row: {
           created_at: string | null
-          environment: string
+          environment_id: string
           game_id: string
           id: string
           key_hash: string
@@ -26,7 +26,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          environment: string
+          environment_id: string
           game_id: string
           id?: string
           key_hash: string
@@ -35,7 +35,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          environment?: string
+          environment_id?: string
           game_id?: string
           id?: string
           key_hash?: string
@@ -44,7 +44,49 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "api_keys_environment_id_fkey"
+            columns: ["environment_id"]
+            isOneToOne: false
+            referencedRelation: "environments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "api_keys_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      environments: {
+        Row: {
+          created_at: string | null
+          game_id: string
+          id: string
+          is_default: boolean | null
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          game_id: string
+          id?: string
+          is_default?: boolean | null
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string | null
+          game_id?: string
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "environments_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
@@ -93,6 +135,7 @@ export type Database = {
       leaderboards: {
         Row: {
           created_at: string | null
+          environment_id: string
           game_id: string
           id: string
           name: string
@@ -102,6 +145,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          environment_id: string
           game_id: string
           id?: string
           name?: string
@@ -111,6 +155,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          environment_id?: string
           game_id?: string
           id?: string
           name?: string
@@ -119,6 +164,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "leaderboards_environment_id_fkey"
+            columns: ["environment_id"]
+            isOneToOne: false
+            referencedRelation: "environments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leaderboards_game_id_fkey"
             columns: ["game_id"]

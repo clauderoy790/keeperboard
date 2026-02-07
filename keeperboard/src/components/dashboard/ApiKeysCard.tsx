@@ -6,30 +6,55 @@ import Button from '@/components/ui/Button';
 
 interface ApiKey {
   id: string;
-  environment: 'dev' | 'prod';
+  environment_id: string;
   key_prefix: string;
   last_used_at: string | null;
   created_at: string | null;
 }
 
+interface Environment {
+  id: string;
+  name: string;
+  slug: string;
+  is_default: boolean;
+}
+
 interface ApiKeysCardProps {
   gameId: string;
   apiKeys: ApiKey[];
+  environments: Environment[];
   onKeyGenerated: () => void;
-  onKeyDeleted: () => void;
 }
 
-export default function ApiKeysCard({ gameId, apiKeys, onKeyGenerated, onKeyDeleted }: ApiKeysCardProps) {
-  const [generatedKey, setGeneratedKey] = useState<{ env: string; key: string } | null>(null);
+export default function ApiKeysCard({
+  gameId,
+  apiKeys,
+  environments,
+  onKeyGenerated,
+}: ApiKeysCardProps) {
+  const [generatedKey, setGeneratedKey] = useState<{
+    envName: string;
+    key: string;
+  } | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const devKey = apiKeys.find(k => k.environment === 'dev');
-  const prodKey = apiKeys.find(k => k.environment === 'prod');
+  const generateKey = async (
+    environmentId: string,
+    environmentName: string,
+    isRegenerate: boolean
+  ) => {
+    if (
+      isRegenerate &&
+      !confirm(
+        `Are you sure you want to regenerate the ${environmentName} API key?\n\nThe old key will stop working immediately. Any applications using it will break until updated with the new key.`
+      )
+    ) {
+      return;
+    }
 
-  const generateKey = async (environment: 'dev' | 'prod') => {
-    setLoading(environment);
+    setLoading(environmentId);
     setError(null);
     setGeneratedKey(null);
 
@@ -37,7 +62,7 @@ export default function ApiKeysCard({ gameId, apiKeys, onKeyGenerated, onKeyDele
       const response = await fetch(`/api/games/${gameId}/api-keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ environment }),
+        body: JSON.stringify({ environment_id: environmentId }),
       });
 
       const data = await response.json();
@@ -46,39 +71,8 @@ export default function ApiKeysCard({ gameId, apiKeys, onKeyGenerated, onKeyDele
         throw new Error(data.error || 'Failed to generate API key');
       }
 
-      setGeneratedKey({ env: environment, key: data.api_key.key });
+      setGeneratedKey({ envName: environmentName, key: data.api_key.key });
       onKeyGenerated();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const deleteKey = async (environment: 'dev' | 'prod') => {
-    if (!confirm(`Are you sure you want to delete the ${environment} API key? This action cannot be undone and will break any applications using this key.`)) {
-      return;
-    }
-
-    setLoading(`delete-${environment}`);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/games/${gameId}/api-keys`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ environment }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to delete API key');
-      }
-
-      onKeyDeleted();
-      if (generatedKey?.env === environment) {
-        setGeneratedKey(null);
-      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -132,99 +126,83 @@ export default function ApiKeysCard({ gameId, apiKeys, onKeyGenerated, onKeyDele
           </div>
         )}
 
-        {/* Development Key */}
-        <div className="p-4 bg-neutral-900/30 border border-cyan-500/10">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-mono font-semibold text-cyan-400 uppercase tracking-wider text-sm">
-              Development
-            </h4>
-            {devKey && (
-              <span className="text-xs font-mono text-neutral-500">
-                Created {devKey.created_at ? new Date(devKey.created_at).toLocaleDateString() : 'N/A'}
-              </span>
-            )}
+        {/* Environment API Keys */}
+        {environments.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-sm font-mono text-neutral-500">
+              No environments available. Create an environment first.
+            </p>
           </div>
+        ) : (
+          environments.map((env) => {
+            const existingKey = apiKeys.find(
+              (k) => k.environment_id === env.id
+            );
 
-          {devKey ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <code className="flex-1 px-3 py-2 bg-neutral-900/50 text-neutral-400 font-mono text-sm border border-neutral-700">
-                  {devKey.key_prefix}••••••••••••••••••••••••••••••••••••••••••••
-                </code>
-              </div>
-              {devKey.last_used_at && (
-                <p className="text-xs font-mono text-neutral-600">
-                  Last used: {new Date(devKey.last_used_at).toLocaleString()}
-                </p>
-              )}
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => deleteKey('dev')}
-                loading={loading === 'delete-dev'}
-                className="w-full"
+            return (
+              <div
+                key={env.id}
+                className="p-4 bg-neutral-900/30 border border-cyan-500/10"
               >
-                Delete Dev Key
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant="secondary"
-              onClick={() => generateKey('dev')}
-              loading={loading === 'dev'}
-              className="w-full"
-            >
-              Generate Dev Key
-            </Button>
-          )}
-        </div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-mono font-semibold text-cyan-400 uppercase tracking-wider text-sm">
+                      {env.name}
+                    </h4>
+                    {env.is_default && (
+                      <span className="px-2 py-0.5 bg-green-500/20 border border-green-500/50 text-green-400 text-xs font-mono uppercase tracking-wider">
+                        ✓ Default
+                      </span>
+                    )}
+                  </div>
+                  {existingKey && (
+                    <span className="text-xs font-mono text-neutral-500">
+                      Created{' '}
+                      {existingKey.created_at
+                        ? new Date(existingKey.created_at).toLocaleDateString()
+                        : 'N/A'}
+                    </span>
+                  )}
+                </div>
 
-        {/* Production Key */}
-        <div className="p-4 bg-neutral-900/30 border border-cyan-500/10">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-mono font-semibold text-cyan-400 uppercase tracking-wider text-sm">
-              Production
-            </h4>
-            {prodKey && (
-              <span className="text-xs font-mono text-neutral-500">
-                Created {prodKey.created_at ? new Date(prodKey.created_at).toLocaleDateString() : 'N/A'}
-              </span>
-            )}
-          </div>
-
-          {prodKey ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <code className="flex-1 px-3 py-2 bg-neutral-900/50 text-neutral-400 font-mono text-sm border border-neutral-700">
-                  {prodKey.key_prefix}••••••••••••••••••••••••••••••••••••••••••••
-                </code>
+                {existingKey ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <code className="flex-1 px-3 py-2 bg-neutral-900/50 text-neutral-400 font-mono text-sm border border-neutral-700">
+                        {existingKey.key_prefix}
+                        ••••••••••••••••••••••••••••••••••••••••••••
+                      </code>
+                    </div>
+                    {existingKey.last_used_at && (
+                      <p className="text-xs font-mono text-neutral-600">
+                        Last used:{' '}
+                        {new Date(existingKey.last_used_at).toLocaleString()}
+                      </p>
+                    )}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => generateKey(env.id, env.name, true)}
+                      loading={loading === env.id}
+                      className="w-full"
+                    >
+                      Regenerate {env.name} Key
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    onClick={() => generateKey(env.id, env.name, false)}
+                    loading={loading === env.id}
+                    className="w-full"
+                  >
+                    Generate {env.name} Key
+                  </Button>
+                )}
               </div>
-              {prodKey.last_used_at && (
-                <p className="text-xs font-mono text-neutral-600">
-                  Last used: {new Date(prodKey.last_used_at).toLocaleString()}
-                </p>
-              )}
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => deleteKey('prod')}
-                loading={loading === 'delete-prod'}
-                className="w-full"
-              >
-                Delete Prod Key
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant="secondary"
-              onClick={() => generateKey('prod')}
-              loading={loading === 'prod'}
-              className="w-full"
-            >
-              Generate Prod Key
-            </Button>
-          )}
-        </div>
+            );
+          })
+        )}
       </div>
     </Card>
   );
