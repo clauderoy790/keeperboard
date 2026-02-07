@@ -15,15 +15,26 @@ export default async function DashboardPage() {
   }
 
   // Fetch stats
-  const [gamesResult, leaderboardsResult, scoresResult] = await Promise.all([
-    supabase.from('games').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-    supabase.from('leaderboards').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-    supabase.from('scores').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-  ]);
+  const { data: games, count: gamesCount } = await supabase
+    .from('games')
+    .select('id', { count: 'exact' })
+    .eq('user_id', user.id);
 
-  const totalGames = gamesResult.count || 0;
-  const totalLeaderboards = leaderboardsResult.count || 0;
-  const totalScores = scoresResult.count || 0;
+  const gameIds = (games || []).map((game) => game.id);
+
+  const { data: leaderboards, count: leaderboardsCount } = gameIds.length > 0
+    ? await supabase.from('leaderboards').select('id', { count: 'exact' }).in('game_id', gameIds)
+    : { data: [], count: 0 };
+
+  const leaderboardIds = (leaderboards || []).map((leaderboard) => leaderboard.id);
+
+  const { count: scoresCount } = leaderboardIds.length > 0
+    ? await supabase.from('scores').select('id', { count: 'exact', head: true }).in('leaderboard_id', leaderboardIds)
+    : { count: 0 };
+
+  const totalGames = gamesCount || 0;
+  const totalLeaderboards = leaderboardsCount || 0;
+  const totalScores = scoresCount || 0;
 
   // Fetch recent games
   const { data: recentGames } = await supabase
@@ -169,7 +180,7 @@ export default async function DashboardPage() {
 
         <Card className="group hover:scale-105 transition-transform duration-300">
           <a
-            href="https://github.com/yourusername/keeperboard"
+            href="https://github.com/clauderoy790/keeper-board"
             target="_blank"
             rel="noopener noreferrer"
             className="block"

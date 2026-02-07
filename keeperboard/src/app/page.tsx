@@ -52,7 +52,7 @@ export default async function HomePage() {
               Start Building Free
             </Link>
             <a
-              href="https://github.com/yourusername/keeper-board"
+              href="https://github.com/clauderoy790/keeper-board"
               target="_blank"
               rel="noopener noreferrer"
               className="px-8 py-4 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition font-semibold text-lg"
