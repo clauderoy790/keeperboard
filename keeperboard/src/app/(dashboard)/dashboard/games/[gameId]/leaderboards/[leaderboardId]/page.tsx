@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import LeaderboardForm from '@/components/forms/LeaderboardForm';
+import ScoresTable from '@/components/dashboard/ScoresTable';
 
 interface Leaderboard {
   id: string;
@@ -29,6 +30,8 @@ export default function LeaderboardDetailPage({
   const [editing, setEditing] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [liveScoreCount, setLiveScoreCount] = useState<number | null>(null);
 
   useEffect(() => {
     fetchLeaderboard();
@@ -47,6 +50,7 @@ export default function LeaderboardDetailPage({
       }
 
       setLeaderboard(data.leaderboard);
+      setLiveScoreCount(data.leaderboard.score_count);
     } catch (error) {
       console.error('Failed to fetch leaderboard:', error);
       router.push(`/dashboard/games/${resolvedParams.gameId}`);
@@ -114,6 +118,56 @@ export default function LeaderboardDetailPage({
     }
   };
 
+  const handleResetLeaderboard = async () => {
+    const scoreCount = liveScoreCount ?? leaderboard?.score_count ?? 0;
+
+    if (scoreCount === 0) {
+      alert('No scores to delete.');
+      return;
+    }
+
+    if (
+      !confirm(
+        `⚠️ RESET LEADERBOARD\n\nThis will permanently delete all ${scoreCount} score${scoreCount !== 1 ? 's' : ''} from "${leaderboard?.name}".\n\nThe leaderboard itself will NOT be deleted.\n\nThis action cannot be undone. Continue?`
+      )
+    ) {
+      return;
+    }
+
+    setResetting(true);
+    try {
+      const response = await fetch(
+        `/api/games/${resolvedParams.gameId}/leaderboards/${resolvedParams.leaderboardId}/scores`,
+        { method: 'DELETE' }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reset leaderboard');
+      }
+
+      // Update score count and refresh the page data
+      setLiveScoreCount(0);
+      if (leaderboard) {
+        setLeaderboard({ ...leaderboard, score_count: 0 });
+      }
+
+      // alert(`Successfully deleted ${data.deletedCount} score${data.deletedCount !== 1 ? 's' : ''}.`);
+
+      // Trigger a re-fetch of the scores table
+      window.location.reload();
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  const handleScoreCountChange = (count: number) => {
+    setLiveScoreCount(count);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -125,6 +179,8 @@ export default function LeaderboardDetailPage({
   if (!leaderboard) {
     return null;
   }
+
+  const scoreCount = liveScoreCount ?? leaderboard.score_count;
 
   return (
     <div className="space-y-6">
@@ -227,7 +283,7 @@ export default function LeaderboardDetailPage({
                 Total Scores
               </label>
               <p className="text-sm font-mono text-neutral-400">
-                {leaderboard.score_count}
+                {scoreCount}
               </p>
             </div>
             <div>
@@ -242,13 +298,30 @@ export default function LeaderboardDetailPage({
         )}
       </Card>
 
-      {/* Scores Section (Placeholder for Phase 11) */}
-      <Card title="Scores" description="View and manage scores">
-        <div className="text-center py-8">
-          <p className="text-sm font-mono text-neutral-500">
-            Scores management coming in Phase 11
-          </p>
-        </div>
+      {/* Scores Section */}
+      <Card
+        title={
+          <div className="flex items-center justify-between w-full">
+            <span>Scores ({scoreCount})</span>
+            {scoreCount > 0 && (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleResetLeaderboard}
+                loading={resetting}
+              >
+                Reset Leaderboard
+              </Button>
+            )}
+          </div>
+        }
+        description="View and manage player scores"
+      >
+        <ScoresTable
+          gameId={resolvedParams.gameId}
+          leaderboardId={resolvedParams.leaderboardId}
+          onScoreCountChange={handleScoreCountChange}
+        />
       </Card>
     </div>
   );
