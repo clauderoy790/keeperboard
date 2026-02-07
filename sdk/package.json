@@ -1,0 +1,33 @@
+{
+  "name": "keeperboard-sdk",
+  "version": "1.0.0",
+  "description": "TypeScript client SDK for KeeperBoard leaderboard-as-a-service",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "leaderboard",
+    "phaser",
+    "game",
+    "scores",
+    "typescript",
+    "sdk"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

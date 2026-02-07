@@ -41,12 +41,12 @@ keeper-board/
 - [x] Phase 7: Games Management
 - [x] Phase 8: Environments & Leaderboards Management
 - [x] Phase 9: Full Public API
-- [ ] Phase 10: TypeScript Client SDK
+- [x] Phase 10: TypeScript Client SDK
 - [ ] Phase 11: Scores Management UI
 - [ ] Phase 12: CSV/JSON Import
 - [ ] Phase 13: Integration Testing & Polish
 
-**Next phase:** Phase 10 — TypeScript Client SDK
+**Next phase:** Phase 11 — Scores Management UI
 
 ## Key Decisions
 

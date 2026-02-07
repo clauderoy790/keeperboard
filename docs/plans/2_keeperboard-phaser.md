@@ -708,6 +708,10 @@ The SDK lives inside this repo (not a separate npm package for now). Games impor
    - Submit score on game over
    - Display leaderboard
    - Handle errors
+   - Ensure there's an example for every method possible in the sdk. Refer to created postman collection with multiple calls: /Users/claude/Git/keeper-board/KeeperBoard_API.postman_collection.json
+
+7. **Create a readme**
+   - Tie everything together into a readme that anyone could read and easily integrate the sdk into their typescript project step by step.
 
 ### Files Created
 - `sdk/package.json` (new)
@@ -717,6 +721,7 @@ The SDK lives inside this repo (not a separate npm package for now). Games impor
 - `sdk/src/types.ts` (new)
 - `sdk/src/PlayerIdentity.ts` (new)
 - `sdk/examples/phaser-example.ts` (new)
+- `sdk/readme.md` (new)
 
 ### Manual Testing Checklist
 - [ ] SDK compiles without errors (`npx tsc --noEmit` in sdk/)
