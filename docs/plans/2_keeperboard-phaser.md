@@ -1,6 +1,6 @@
 # KeeperBoard - Phaser.js Adaptation Plan
 
-> Adapted implementation plan. Replaces the original Unity-focused plan. Target: Phaser.js games with a JavaScript/TypeScript client SDK.
+> Adapted implementation plan. Replaces the original Unity-focused plan. Target: Phaser.js games with a TypeScript client SDK.
 
 ---
 
@@ -10,7 +10,8 @@
 
 - **Removed:** Unity package phases (11, 12), Unity test harness references
 - **Removed:** UGS (Unity Gaming Services) direct import (Phase 15)
-- **Added:** JavaScript/TypeScript client SDK for Phaser.js games
+- **Added:** TypeScript client SDK for Phaser.js games (and any web game)
+- **Added:** Custom environments per game (dev, staging, prod, etc.) — inspired by UGS environment system
 - **Kept:** Manual CSV/JSON import for general data migration
 - **Resolved:** CSP validation passed — Unity Play accepts Vercel requests
 
@@ -27,10 +28,10 @@ Phase 6 (Dashboard Layout)
     │
     ├──────────────────────────┐
     ▼                          ▼
-Phase 7 (Games CRUD)     Phase 10 (JS Client SDK)
+Phase 7 (Games CRUD)     Phase 10 (TS Client SDK)
     │                          │
     ▼                          │
-Phase 8 (Leaderboards)        │
+Phase 8 (Envs + Leaderboards) │
     │                          │
     ▼                          │
 Phase 9 (Full Public API) ◄───┘
@@ -54,7 +55,7 @@ Phase 13 (Integration Test & Polish)
 | Auth | Supabase Auth (email/password + OAuth) |
 | Styling | Tailwind CSS 4 |
 | Hosting | Vercel |
-| Game Client | Phaser.js + TypeScript SDK |
+| Game Client | Phaser.js + TypeScript Client SDK |
 
 ---
 
@@ -348,73 +349,160 @@ API key format: `kb_{env}_{random48chars}` (e.g., `kb_dev_a1b2c3...`). Keys are 
 
 ---
 
-## Phase 8: Leaderboards Management
+## Phase 8: Environments & Leaderboards Management
 
-**Goal:** CRUD for leaderboards within a game.
+**Goal:** Add custom environments per game and CRUD for leaderboards scoped by environment.
 
 **Prerequisites:** Phase 7 completed
 
-**Estimated Complexity:** Simple (4-5 files)
+**Estimated Complexity:** Medium (8-10 files)
 
 ### Context
 
 Games CRUD is working. Game detail page exists with a placeholder for leaderboards. The `leaderboards` table has fields: id, game_id, name, slug, sort_order (asc/desc). Unique constraint on (game_id, slug).
 
+**New: Environments system.** Inspired by UGS (Unity Gaming Services), each game can have custom environments (dev, staging, prod, etc.). Leaderboards and their scores are scoped to an environment, keeping dev/test data completely separate from production. API keys are tied to an environment, so the game client's environment is determined by which API key it uses.
+
+### Schema Changes
+
+**New `environments` table:**
+```sql
+CREATE TABLE environments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  game_id UUID NOT NULL REFERENCES games(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,           -- e.g. "production", "dev", "staging"
+  slug TEXT NOT NULL,           -- e.g. "production", "dev", "staging"
+  is_default BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(game_id, slug)
+);
+```
+
+**Modify `api_keys` table:**
+- Replace `environment TEXT CHECK (...)` with `environment_id UUID REFERENCES environments(id)`
+- Remove old CHECK constraint
+- Update unique constraint to `(game_id, environment_id)`
+- Key format stays `kb_{env_slug}_{random}` (e.g., `kb_dev_a1b2c3...`)
+
+**Modify `leaderboards` table:**
+- Add `environment_id UUID NOT NULL REFERENCES environments(id) ON DELETE CASCADE`
+- Change unique constraint from `(game_id, slug)` to `(game_id, slug, environment_id)`
+
+**Auto-create default environment:** When a game is created, auto-create a "production" environment as the default. This can be done via a DB trigger or in the game creation API route.
+
 ### Steps
 
-1. **Create leaderboards list component**
+1. **Run schema migration**
+
+   Create and run SQL migration to:
+   - Create `environments` table
+   - Add `environment_id` to `leaderboards` and `api_keys`
+   - Migrate any existing data (create "production" environment for existing games)
+   - Drop old CHECK constraint on `api_keys.environment`
+   - Update unique constraints
+
+2. **Create environments management UI**
+
+   `src/components/dashboard/EnvironmentsCard.tsx`:
+   - List of environments for the game (name, slug, created date)
+   - "Add Environment" button with inline form (name input, slug auto-generates)
+   - Default environment badge (green checkmark, like UGS)
+   - Delete environment (with warning — deletes all scoped leaderboards + scores)
+   - Displayed on the game detail page
+
+3. **Update API key generation**
+
+   Update `src/components/dashboard/ApiKeysCard.tsx` and API key routes:
+   - Instead of hardcoded dev/prod dropdown, show environments from the game
+   - One API key per environment (unique constraint)
+   - Key prefix uses environment slug: `kb_{slug}_{random}`
+
+4. **Create environment switcher component**
+
+   `src/components/dashboard/EnvironmentSwitcher.tsx`:
+   - Dropdown matching UGS style (shown at top of leaderboards section)
+   - Lists all environments for the game
+   - Persists selection in URL query param or state
+   - Shows on game detail page and leaderboard pages
+
+5. **Create leaderboards list component**
 
    `src/components/dashboard/LeaderboardsList.tsx`:
-   - List of leaderboards for a game
+   - List of leaderboards filtered by selected environment
    - Each row: name, slug, sort order, score count, created date
-   - "Create Leaderboard" button
+   - "Create Leaderboard" button (creates in current environment)
    - Click to navigate to leaderboard detail
 
-2. **Create leaderboard form**
+6. **Create leaderboard form**
 
    `src/components/forms/LeaderboardForm.tsx`:
    - Fields: name, slug (auto-generated), sort order (dropdown: "Highest First" / "Lowest First")
+   - Environment is implicit (from the current environment context)
    - Used for create and edit
 
-3. **Add leaderboard detail page**
+7. **Add leaderboard detail page**
 
    `src/app/(dashboard)/games/[gameId]/leaderboards/[leaderboardId]/page.tsx`:
    - Leaderboard info with edit capability
    - Scores table placeholder (built in Phase 11)
    - Delete leaderboard button
 
-4. **Create dashboard API routes**
+8. **Create dashboard API routes for environments**
+
+   `src/app/api/games/[gameId]/environments/route.ts`:
+   - GET: List environments for game
+   - POST: Create environment (name, slug)
+
+   `src/app/api/games/[gameId]/environments/[environmentId]/route.ts`:
+   - PUT: Update environment name
+   - DELETE: Delete environment (cascades to leaderboards + scores)
+
+9. **Create dashboard API routes for leaderboards**
 
    `src/app/api/games/[gameId]/leaderboards/route.ts`:
-   - GET: List leaderboards for game (with score counts)
-   - POST: Create leaderboard
+   - GET: List leaderboards for game, filtered by `environment_id` query param
+   - POST: Create leaderboard (requires `environment_id`)
 
    `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/route.ts`:
    - GET: Leaderboard details
    - PUT: Update leaderboard
    - DELETE: Delete leaderboard
 
-5. **Integrate into game detail page**
+10. **Integrate into game detail page**
 
-   Update `src/app/(dashboard)/games/[gameId]/page.tsx`:
-   - Replace leaderboard placeholder with LeaderboardsList component
+    Update `src/app/(dashboard)/games/[gameId]/page.tsx`:
+    - Add EnvironmentsCard to game settings section
+    - Add EnvironmentSwitcher above leaderboards section
+    - Replace leaderboard placeholder with LeaderboardsList (filtered by environment)
 
 ### Files Created/Modified
+- `keeperboard/supabase/migrations/001_environments.sql` (new — schema migration)
+- `src/components/dashboard/EnvironmentsCard.tsx` (new)
+- `src/components/dashboard/EnvironmentSwitcher.tsx` (new)
 - `src/components/dashboard/LeaderboardsList.tsx` (new)
 - `src/components/forms/LeaderboardForm.tsx` (new)
+- `src/components/dashboard/ApiKeysCard.tsx` (modify — use environments)
+- `src/app/(dashboard)/games/[gameId]/page.tsx` (modify)
 - `src/app/(dashboard)/games/[gameId]/leaderboards/[leaderboardId]/page.tsx` (new)
+- `src/app/api/games/[gameId]/environments/route.ts` (new)
+- `src/app/api/games/[gameId]/environments/[environmentId]/route.ts` (new)
 - `src/app/api/games/[gameId]/leaderboards/route.ts` (new)
 - `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/route.ts` (new)
-- `src/app/(dashboard)/games/[gameId]/page.tsx` (modify)
+- `src/app/api/games/[gameId]/api-keys/route.ts` (modify — use environment_id)
 
 ### Manual Testing Checklist
-- [ ] Create leaderboard within a game → appears in list
+- [ ] New game auto-creates "production" environment
+- [ ] Add custom environment (e.g., "dev") → appears in list
+- [ ] Environment switcher dropdown works on game detail page
+- [ ] API key generation shows environment dropdown (from game's environments)
+- [ ] Create leaderboard within selected environment → appears in filtered list
+- [ ] Switch environment → different leaderboards shown
 - [ ] Slug auto-generates from name
 - [ ] Sort order dropdown works (Highest First / Lowest First)
 - [ ] Edit leaderboard name/sort order works
 - [ ] Leaderboard detail page loads
 - [ ] Delete leaderboard works
-- [ ] Leaderboards show in game detail page
+- [ ] Delete environment cascades (removes its leaderboards + scores)
 - [ ] `npm run build` completes without errors
 
 ---
@@ -454,14 +542,14 @@ The health endpoint stays public (no API key needed).
    - Look up in `api_keys` table by `key_hash`
    - Join to get `game_id` and game details
    - Update `last_used_at` timestamp
-   - Return `{ gameId, environment }` or error
+   - Return `{ gameId, environmentId }` or error
 
 2. **Create leaderboard resolver**
 
    `src/lib/api/leaderboard.ts`:
-   - `resolveLeaderboard(gameId: string, leaderboardSlug?: string)` function
-   - If slug provided: look up specific leaderboard for game
-   - If no slug: return the first/default leaderboard for game
+   - `resolveLeaderboard(gameId: string, environmentId: string, leaderboardSlug?: string)` function
+   - If slug provided: look up specific leaderboard for game + environment
+   - If no slug: return the first/default leaderboard for game + environment
    - Return leaderboard ID or 404 error
 
 3. **Update scores endpoint**
@@ -544,9 +632,9 @@ curl http://localhost:3000/api/v1/health
 
 ---
 
-## Phase 10: JavaScript Client SDK
+## Phase 10: TypeScript Client SDK
 
-**Goal:** Create a lightweight TypeScript/JavaScript client SDK for Phaser.js (and any web game).
+**Goal:** Create a lightweight TypeScript client SDK for Phaser.js (and any web game).
 
 **Prerequisites:** Phase 9 completed (full public API working with API key auth)
 
@@ -554,9 +642,9 @@ curl http://localhost:3000/api/v1/health
 
 ### Context
 
-The public API is fully working with API key auth. Now we need a client library that Phaser.js games can use. This should be a standalone TypeScript package that works in any browser environment — not tied to Phaser.js specifically.
+The public API is fully working with API key auth. Now we need a client library that TypeScript games can use. This should be a standalone TypeScript package that works in any browser environment — not tied to Phaser.js specifically.
 
-The SDK lives inside this repo (not a separate npm package for now). Games import it as a module or copy the files.
+The SDK lives inside this repo (not a separate npm package for now). Games import it as a module or copy the built files. The consuming game is a TypeScript project, so full type safety and `.d.ts` declarations are required.
 
 ### Steps
 
@@ -643,15 +731,15 @@ The SDK lives inside this repo (not a separate npm package for now). Games impor
 
 ## Phase 11: Scores Management UI
 
-**Goal:** View, search, and manage scores in the dashboard leaderboard detail page.
+**Goal:** View, search, and manage scores in the dashboard leaderboard detail page. Includes individual score CRUD and "Reset Leaderboard" (clear all scores).
 
 **Prerequisites:** Phase 8 completed (leaderboard detail page exists)
 
-**Estimated Complexity:** Medium (4-5 files)
+**Estimated Complexity:** Medium (5-6 files)
 
 ### Context
 
-Leaderboard detail page exists from Phase 8 with a scores placeholder. Need to add a full scores table with search, pagination, edit, and delete.
+Leaderboard detail page exists from Phase 8 with a scores placeholder. Need to add a full scores table with search, pagination, edit, and delete. Also need a "Reset Leaderboard" action (like UGS) that deletes all scores but keeps the leaderboard definition.
 
 ### Steps
 
@@ -662,6 +750,7 @@ Leaderboard detail page exists from Phase 8 with a scores placeholder. Need to a
    - Pagination (10/25/50 per page)
    - Search by player name or GUID
    - Sort by score, date, name
+   - Per-row delete button (trash icon, like UGS) with confirmation
    - Inline actions: edit, delete
 
 2. **Create edit score modal**
@@ -674,17 +763,20 @@ Leaderboard detail page exists from Phase 8 with a scores placeholder. Need to a
 
    `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/scores/route.ts`:
    - GET: List scores with pagination, search, sorting
-   - DELETE: Delete a score by ID
+   - DELETE (no scoreId = bulk): Delete ALL scores for this leaderboard (reset)
 
    `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/scores/[scoreId]/route.ts`:
    - PUT: Update score (name, score value)
-   - DELETE: Delete score
+   - DELETE: Delete single score by ID
 
 4. **Integrate into leaderboard detail page**
 
    Update `src/app/(dashboard)/games/[gameId]/leaderboards/[leaderboardId]/page.tsx`:
    - Add ScoresTable component
    - Show total score count in header
+   - Add "Reset Leaderboard" button (top-right, like UGS) with confirmation dialog
+     - Warning: "This will permanently delete all X scores. The leaderboard itself will not be deleted."
+     - Calls DELETE on scores route (bulk)
 
 ### Files Created/Modified
 - `src/components/dashboard/ScoresTable.tsx` (new)
@@ -698,7 +790,9 @@ Leaderboard detail page exists from Phase 8 with a scores placeholder. Need to a
 - [ ] Pagination works (next/prev, page size)
 - [ ] Search by player name filters results
 - [ ] Edit score modal opens and saves changes
-- [ ] Delete score removes it (with confirmation)
+- [ ] Delete single score (trash icon) removes it with confirmation
+- [ ] "Reset Leaderboard" button shows confirmation with score count
+- [ ] Reset deletes all scores but leaderboard still exists
 - [ ] Ranks recalculate after edit/delete
 - [ ] Empty state shows when no scores
 - [ ] `npm run build` completes without errors
@@ -871,9 +965,9 @@ ThirdPlace,4000
 | 5 | Authentication | Medium | Pending | |
 | 6 | Dashboard Layout | Medium | Pending | |
 | 7 | Games Management | Medium | Pending | |
-| 8 | Leaderboards Management | Simple | Pending | |
+| 8 | Environments & Leaderboards | Medium | Pending | Custom envs + leaderboard CRUD |
 | 9 | Full Public API | Medium | Pending | Replace skeleton |
-| 10 | JavaScript Client SDK | Medium | Pending | For Phaser.js |
+| 10 | TypeScript Client SDK | Medium | Pending | For Phaser.js + any TS game |
 | 11 | Scores Management UI | Medium | Pending | |
 | 12 | CSV/JSON Import | Medium | Pending | |
 | 13 | Integration Test & Polish | Medium | Pending | |
@@ -888,7 +982,7 @@ ThirdPlace,4000
 | `keeperboard/src/lib/api/auth.ts` | API key validation |
 | `keeperboard/src/lib/utils/` | Response helpers, CORS |
 | `keeperboard/src/types/database.ts` | Auto-generated DB types |
-| `sdk/` | JavaScript/TypeScript client SDK |
+| `sdk/` | TypeScript client SDK |
 | `supabase/schema.sql` | Database schema |
 | `supabase/rls-policies.sql` | Row Level Security policies |
 

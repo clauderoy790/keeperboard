@@ -21,7 +21,7 @@ keeper-board/
 │       ├── app/(dashboard)/ # Protected dashboard
 │       ├── lib/supabase/ # DB clients (browser, server, admin)
 │       └── types/        # Auto-generated DB types
-├── sdk/                  # JS/TS client SDK (Phase 10)
+├── sdk/                  # TypeScript client SDK (Phase 10)
 ├── supabase/             # Schema + RLS SQL files
 └── docs/plans/           # Architecture + implementation plans
 ```
@@ -38,15 +38,15 @@ keeper-board/
 - [x] Phase 4: CSP Validation
 - [x] Phase 5: Authentication System
 - [x] Phase 6: Dashboard Layout & Navigation
-- [ ] Phase 7: Games Management
-- [ ] Phase 8: Leaderboards Management
+- [x] Phase 7: Games Management
+- [ ] Phase 8: Environments & Leaderboards Management
 - [ ] Phase 9: Full Public API
-- [ ] Phase 10: JavaScript Client SDK
+- [ ] Phase 10: TypeScript Client SDK
 - [ ] Phase 11: Scores Management UI
 - [ ] Phase 12: CSV/JSON Import
 - [ ] Phase 13: Integration Testing & Polish
 
-**Next phase:** Phase 7 — Games Management
+**Next phase:** Phase 8 — Environments & Leaderboards Management
 
 ## Key Decisions
 
@@ -54,4 +54,6 @@ keeper-board/
 - API keys hashed with SHA-256 before storage, shown to user only once
 - One score per player per leaderboard (upsert: only update if higher)
 - Admin client (service role) used for API routes to bypass RLS
-- SDK is browser-native (fetch API), not Phaser-specific
+- SDK is TypeScript, browser-native (fetch API), not Phaser-specific
+- Custom environments per game (dev, staging, prod, etc.) — leaderboards + scores scoped by environment
+- API key tied to an environment → game client's env is determined by which key it uses
