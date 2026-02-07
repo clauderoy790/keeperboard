@@ -36,7 +36,7 @@ keeper-board/
 - [x] Phase 2: Database Schema
 - [x] Phase 3: API Skeleton
 - [x] Phase 4: CSP Validation
-- [ ] Phase 5: Authentication System
+- [x] Phase 5: Authentication System
 - [ ] Phase 6: Dashboard Layout & Navigation
 - [ ] Phase 7: Games Management
 - [ ] Phase 8: Leaderboards Management
@@ -46,7 +46,7 @@ keeper-board/
 - [ ] Phase 12: CSV/JSON Import
 - [ ] Phase 13: Integration Testing & Polish
 
-**Next phase:** Phase 5 — Authentication System
+**Next phase:** Phase 6 — Dashboard Layout & Navigation
 
 ## Key Decisions
 
