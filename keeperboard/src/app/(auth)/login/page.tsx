@@ -2,6 +2,7 @@
 
 import { signInWithPassword, signInWithOAuth } from '../actions';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -10,6 +11,8 @@ import Card from '@/components/ui/Card';
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const resetSuccess = searchParams.get('reset') === 'success';
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -44,6 +47,16 @@ export default function LoginPage() {
         <div className="h-1 w-20 bg-gradient-to-r from-cyan-500 to-transparent" />
       </div>
 
+      {resetSuccess && (
+        <div className="mb-4 p-4 bg-cyan-500/10 border-2 border-cyan-500/50 relative">
+          <span className="absolute top-0 left-0 w-2 h-2 border-l-2 border-t-2 border-cyan-500" />
+          <span className="absolute top-0 right-0 w-2 h-2 border-r-2 border-t-2 border-cyan-500" />
+          <span className="absolute bottom-0 left-0 w-2 h-2 border-l-2 border-b-2 border-cyan-500" />
+          <span className="absolute bottom-0 right-0 w-2 h-2 border-r-2 border-b-2 border-cyan-500" />
+          <p className="text-cyan-300 text-sm font-mono">Password updated. Please sign in.</p>
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 p-4 bg-red-500/10 border-2 border-red-500/50 relative">
           <span className="absolute top-0 left-0 w-2 h-2 border-l-2 border-t-2 border-red-500" />
@@ -72,6 +85,12 @@ export default function LoginPage() {
           placeholder="••••••••"
           required
         />
+
+        <div className="flex justify-end">
+          <Link href="/reset-password" className="text-xs font-mono text-cyan-400 hover:text-cyan-300 tracking-wider uppercase transition-colors">
+            Forgot password?
+          </Link>
+        </div>
 
         <Button
           type="submit"

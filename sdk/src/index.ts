@@ -6,7 +6,7 @@
  * import { KeeperBoardClient, PlayerIdentity } from 'keeperboard-sdk';
  *
  * const client = new KeeperBoardClient({
- *   apiUrl: 'https://your-app.vercel.app',
+ *   apiUrl: 'https://keeperboard.vercel.app',
  *   apiKey: 'kb_dev_your_api_key',
  * });
  *

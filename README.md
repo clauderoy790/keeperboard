@@ -70,7 +70,7 @@ Or copy the `sdk/src/` folder directly into your project.
 import { KeeperBoardClient, PlayerIdentity } from 'keeperboard-sdk';
 
 const client = new KeeperBoardClient({
-  apiUrl: 'https://your-deployment.vercel.app',
+  apiUrl: 'https://keeperboard.vercel.app',
   apiKey: 'kb_prod_your_api_key',
 });
 

@@ -36,7 +36,10 @@ export async function middleware(request: NextRequest) {
 
   const url = request.nextUrl.clone();
   const isDashboard = url.pathname.startsWith('/dashboard');
-  const isAuth = url.pathname.startsWith('/login') || url.pathname.startsWith('/register');
+  const isAuth =
+    url.pathname.startsWith('/login') ||
+    url.pathname.startsWith('/register') ||
+    url.pathname.startsWith('/reset-password');
   const isAuthCallback = url.pathname.startsWith('/auth/callback');
   const isPublicApi = url.pathname.startsWith('/api/v1');
   const isDemoLogin = url.pathname.startsWith('/api/demo-login');

@@ -638,7 +638,7 @@ Make it ugly but functional. This is a test tool, not a product.
 3. **Verify deployment**
 
    ```bash
-   curl https://your-keeperboard.vercel.app/api/v1/health
+   curl https://keeperboard.vercel.app/api/v1/health
    ```
 
 4. **Update Unity test harness**

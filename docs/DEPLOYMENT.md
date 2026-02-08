@@ -20,7 +20,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 
 # Site URL (for OAuth callbacks)
-NEXT_PUBLIC_SITE_URL=https://your-domain.vercel.app
+NEXT_PUBLIC_SITE_URL=https://keeperboard.vercel.app
 ```
 
 ### Optional Variables (OAuth)
@@ -57,9 +57,9 @@ Execute the SQL files in order:
 
 In Supabase Dashboard → Authentication → Settings:
 
-1. **Site URL**: Set to your production URL (e.g., `https://your-domain.vercel.app`)
+1. **Site URL**: Set to your production URL (e.g., `https://keeperboard.vercel.app`)
 2. **Redirect URLs**: Add your auth callback URL:
-   - `https://your-domain.vercel.app/auth/callback`
+   - `https://keeperboard.vercel.app/auth/callback`
    - `http://localhost:3000/auth/callback` (for local dev)
 
 ### 4. Enable Email Auth

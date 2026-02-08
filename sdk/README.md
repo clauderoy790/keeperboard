@@ -33,7 +33,7 @@ import { KeeperBoardClient, PlayerIdentity } from 'keeperboard-sdk';
 
 // Create the API client
 const keeperboard = new KeeperBoardClient({
-  apiUrl: 'https://your-app.vercel.app',
+  apiUrl: 'https://keeperboard.vercel.app',
   apiKey: 'kb_dev_your_api_key_here',
 });
 
@@ -233,7 +233,7 @@ try {
 import { KeeperBoardClient, PlayerIdentity } from 'keeperboard-sdk';
 
 const keeperboard = new KeeperBoardClient({
-  apiUrl: 'https://your-app.vercel.app',
+  apiUrl: 'https://keeperboard.vercel.app',
   apiKey: 'kb_prod_your_api_key',
 });
 
