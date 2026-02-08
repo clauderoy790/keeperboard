@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { resolveCurrentVersion } from '@/lib/api/version';
 
 interface RouteParams {
   params: Promise<{ gameId: string; leaderboardId: string }>;
@@ -37,7 +38,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     // Verify leaderboard exists and belongs to this game
     const { data: leaderboard } = await supabase
       .from('leaderboards')
-      .select('id, sort_order')
+      .select('id, sort_order, reset_schedule, reset_hour, current_version, current_period_start')
       .eq('id', leaderboardId)
       .eq('game_id', gameId)
       .single();
@@ -59,16 +60,37 @@ export async function GET(request: Request, { params }: RouteParams) {
     const search = searchParams.get('search') || '';
     const sortBy = searchParams.get('sortBy') || 'score';
     const sortOrder = searchParams.get('sortOrder') || leaderboard.sort_order;
+    const versionParam = searchParams.get('version');
 
     const offset = (page - 1) * pageSize;
+
+    // Determine which version to query
+    let targetVersion: number;
+    if (leaderboard.reset_schedule !== 'none') {
+      // Resolve current version (may trigger lazy reset)
+      const versionInfo = await resolveCurrentVersion({
+        id: leaderboard.id,
+        reset_schedule: leaderboard.reset_schedule,
+        reset_hour: leaderboard.reset_hour,
+        current_version: leaderboard.current_version,
+        current_period_start: leaderboard.current_period_start,
+      });
+
+      // Use specified version or default to current
+      targetVersion = versionParam ? parseInt(versionParam) : versionInfo.version;
+    } else {
+      // For 'none' leaderboards, always use version 1
+      targetVersion = 1;
+    }
 
     // Build query
     let query = supabase
       .from('scores')
-      .select('id, player_guid, player_name, score, created_at, updated_at', {
+      .select('id, player_guid, player_name, score, version, created_at, updated_at', {
         count: 'exact',
       })
-      .eq('leaderboard_id', leaderboardId);
+      .eq('leaderboard_id', leaderboardId)
+      .eq('version', targetVersion);
 
     // Apply search filter
     if (search) {
@@ -101,13 +123,14 @@ export async function GET(request: Request, { params }: RouteParams) {
       throw error;
     }
 
-    // Calculate ranks for each score
+    // Calculate ranks for each score (within the same version)
     const scoresWithRanks = await Promise.all(
       (scores || []).map(async (score) => {
         const { count: higherCount } = await supabase
           .from('scores')
           .select('*', { count: 'exact', head: true })
           .eq('leaderboard_id', leaderboardId)
+          .eq('version', targetVersion)
           .gt('score', score.score);
 
         return {
@@ -117,7 +140,8 @@ export async function GET(request: Request, { params }: RouteParams) {
       })
     );
 
-    return NextResponse.json({
+    // Build response metadata
+    const response: any = {
       scores: scoresWithRanks,
       pagination: {
         page,
@@ -125,7 +149,14 @@ export async function GET(request: Request, { params }: RouteParams) {
         totalCount: count ?? 0,
         totalPages: Math.ceil((count ?? 0) / pageSize),
       },
-    });
+    };
+
+    // Include version metadata for time-based leaderboards
+    if (leaderboard.reset_schedule !== 'none') {
+      response.version = targetVersion;
+    }
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Failed to fetch scores:', error);
     return NextResponse.json(
@@ -167,7 +198,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Verify leaderboard exists
     const { data: leaderboard } = await supabase
       .from('leaderboards')
-      .select('id')
+      .select('id, reset_schedule, current_version')
       .eq('id', leaderboardId)
       .eq('game_id', gameId)
       .single();
@@ -179,17 +210,32 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       );
     }
 
+    // Parse query params
+    const { searchParams } = new URL(request.url);
+    const allVersions = searchParams.get('all_versions') === 'true';
+
+    // Build delete query
+    let deleteQuery = supabase.from('scores').delete().eq('leaderboard_id', leaderboardId);
+
+    // For time-based leaderboards, default to current version only unless all_versions is true
+    if (leaderboard.reset_schedule !== 'none' && !allVersions) {
+      deleteQuery = deleteQuery.eq('version', leaderboard.current_version);
+    }
+
     // Get count before deletion
-    const { count: deletedCount } = await supabase
+    let countQuery = supabase
       .from('scores')
       .select('*', { count: 'exact', head: true })
       .eq('leaderboard_id', leaderboardId);
 
-    // Delete all scores
-    const { error } = await supabase
-      .from('scores')
-      .delete()
-      .eq('leaderboard_id', leaderboardId);
+    if (leaderboard.reset_schedule !== 'none' && !allVersions) {
+      countQuery = countQuery.eq('version', leaderboard.current_version);
+    }
+
+    const { count: deletedCount } = await countQuery;
+
+    // Delete scores
+    const { error } = await deleteQuery;
 
     if (error) {
       throw error;
@@ -198,6 +244,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       deletedCount: deletedCount ?? 0,
+      deletedAllVersions: allVersions,
     });
   } catch (error) {
     console.error('Failed to reset leaderboard:', error);

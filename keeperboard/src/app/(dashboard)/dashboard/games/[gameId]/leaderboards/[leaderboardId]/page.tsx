@@ -6,14 +6,18 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import LeaderboardForm from '@/components/forms/LeaderboardForm';
 import ScoresTable from '@/components/dashboard/ScoresTable';
+import { calculateNextReset, calculatePeriodStartForVersion } from '@/lib/api/version';
 
 interface Leaderboard {
   id: string;
   game_id: string;
   environment_id: string;
   name: string;
-  slug: string;
   sort_order: 'asc' | 'desc';
+  reset_schedule: 'none' | 'daily' | 'weekly' | 'monthly';
+  reset_hour: number;
+  current_version: number;
+  current_period_start: string;
   score_count: number;
   created_at: string;
 }
@@ -32,10 +36,38 @@ export default function LeaderboardDetailPage({
   const [deleting, setDeleting] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [liveScoreCount, setLiveScoreCount] = useState<number | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
+  const [oldestVersion, setOldestVersion] = useState(1);
+  const [nextResetTime, setNextResetTime] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchLeaderboard();
   }, []);
+
+  // Calculate next reset time for countdown
+  useEffect(() => {
+    if (
+      leaderboard &&
+      leaderboard.reset_schedule !== 'none' &&
+      leaderboard.current_period_start
+    ) {
+      const nextReset = calculateNextReset(
+        leaderboard.reset_schedule,
+        leaderboard.reset_hour,
+        leaderboard.current_period_start
+      );
+      setNextResetTime(nextReset);
+
+      // Update countdown every minute
+      const interval = setInterval(() => {
+        setNextResetTime(new Date(nextReset));
+      }, 60000);
+
+      return () => clearInterval(interval);
+    } else {
+      setNextResetTime(null);
+    }
+  }, [leaderboard]);
 
   const fetchLeaderboard = async () => {
     try {
@@ -61,8 +93,9 @@ export default function LeaderboardDetailPage({
 
   const handleUpdate = async (formData: {
     name: string;
-    slug: string;
     sort_order: 'asc' | 'desc';
+    reset_schedule: 'none' | 'daily' | 'weekly' | 'monthly';
+    reset_hour: number;
   }) => {
     setUpdating(true);
     try {
@@ -166,6 +199,67 @@ export default function LeaderboardDetailPage({
     setLiveScoreCount(count);
   };
 
+  // Helper: format countdown to next reset
+  const formatNextReset = (nextReset: Date): string => {
+    const now = new Date();
+    const diffMs = nextReset.getTime() - now.getTime();
+
+    if (diffMs <= 0) return 'Resetting soon...';
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours >= 24) {
+      const days = Math.floor(hours / 24);
+      return `in ${days}d ${hours % 24}h`;
+    }
+
+    return `in ${hours}h ${minutes}m`;
+  };
+
+  // Helper: get period range for a version
+  const getPeriodRange = (version: number): string => {
+    if (!leaderboard || leaderboard.reset_schedule === 'none') return '';
+
+    const periodStart = new Date(
+      calculatePeriodStartForVersion(
+        {
+          id: leaderboard.id,
+          reset_schedule: leaderboard.reset_schedule,
+          reset_hour: leaderboard.reset_hour,
+          current_version: leaderboard.current_version,
+          current_period_start: leaderboard.current_period_start,
+        },
+        version
+      )
+    );
+
+    const periodEnd = new Date(
+      calculateNextReset(
+        leaderboard.reset_schedule,
+        leaderboard.reset_hour,
+        periodStart.toISOString()
+      )
+    );
+
+    // Adjust end to show last second of period
+    periodEnd.setSeconds(periodEnd.getSeconds() - 1);
+
+    const formatDate = (date: Date) => {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    };
+
+    return `${formatDate(periodStart)} - ${formatDate(periodEnd)}`;
+  };
+
+  const handleVersionChange = (newVersion: number) => {
+    setSelectedVersion(newVersion);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -188,10 +282,7 @@ export default function LeaderboardDetailPage({
           <h1 className="text-3xl font-mono font-bold text-cyan-400 tracking-wider uppercase mb-2">
             {leaderboard.name}
           </h1>
-          <div className="h-1 w-32 bg-gradient-to-r from-cyan-500 to-transparent mb-2" />
-          <p className="text-sm font-mono text-neutral-500">
-            /{leaderboard.slug}
-          </p>
+          <div className="h-1 w-32 bg-gradient-to-r from-cyan-500 to-transparent" />
         </div>
         <Button
           variant="ghost"
@@ -231,12 +322,14 @@ export default function LeaderboardDetailPage({
             <LeaderboardForm
               initialData={{
                 name: leaderboard.name,
-                slug: leaderboard.slug,
                 sort_order: leaderboard.sort_order,
+                reset_schedule: leaderboard.reset_schedule,
+                reset_hour: leaderboard.reset_hour,
               }}
               onSubmit={handleUpdate}
               submitLabel="Save Changes"
               loading={updating}
+              isEditing={true}
             />
             <div className="mt-4">
               <Button
@@ -256,14 +349,6 @@ export default function LeaderboardDetailPage({
               </label>
               <p className="text-lg font-mono text-cyan-400 font-semibold">
                 {leaderboard.name}
-              </p>
-            </div>
-            <div>
-              <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
-                Slug
-              </label>
-              <p className="text-lg font-mono text-neutral-300">
-                /{leaderboard.slug}
               </p>
             </div>
             <div>
@@ -292,45 +377,130 @@ export default function LeaderboardDetailPage({
                 {new Date(leaderboard.created_at).toLocaleString()}
               </p>
             </div>
+            <div>
+              <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
+                Reset Schedule
+              </label>
+              <p className="text-sm font-mono text-neutral-400 mt-1">
+                {leaderboard.reset_schedule === 'none' && 'No Reset (All-Time)'}
+                {leaderboard.reset_schedule === 'daily' && 'Daily'}
+                {leaderboard.reset_schedule === 'weekly' && 'Weekly'}
+                {leaderboard.reset_schedule === 'monthly' && 'Monthly'}
+              </p>
+            </div>
+            {leaderboard.reset_schedule !== 'none' && (
+              <>
+                <div>
+                  <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
+                    Reset Time
+                  </label>
+                  <p className="text-sm font-mono text-neutral-400 mt-1">
+                    {String(leaderboard.reset_hour).padStart(2, '0')}:00 UTC
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
+                    Current Version
+                  </label>
+                  <p className="text-sm font-mono text-neutral-400 mt-1">
+                    Version {leaderboard.current_version}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
+                    Next Reset
+                  </label>
+                  <p className="text-sm font-mono text-neutral-400 mt-1">
+                    {nextResetTime ? formatNextReset(nextResetTime) : 'Calculating...'}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         )}
       </Card>
+
+      {/* Version Navigation (only for reset leaderboards) */}
+      {leaderboard.reset_schedule !== 'none' && (
+        <div className="flex items-center justify-center gap-4 py-4 px-6 bg-neutral-800/50 border border-cyan-500/20 rounded-lg">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              handleVersionChange((selectedVersion ?? leaderboard.current_version) - 1)
+            }
+            disabled={
+              (selectedVersion ?? leaderboard.current_version) <= oldestVersion
+            }
+          >
+            ← Previous
+          </Button>
+          <div className="text-center">
+            <div className="text-lg font-mono font-bold text-cyan-400">
+              Version {selectedVersion ?? leaderboard.current_version}
+            </div>
+            <div className="text-xs font-mono text-neutral-500 mt-1">
+              {getPeriodRange(selectedVersion ?? leaderboard.current_version)}
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              handleVersionChange((selectedVersion ?? leaderboard.current_version) + 1)
+            }
+            disabled={
+              (selectedVersion ?? leaderboard.current_version) >=
+              leaderboard.current_version
+            }
+          >
+            Next →
+          </Button>
+        </div>
+      )}
 
       {/* Scores Section */}
       <Card
         title={
           <div className="flex items-center justify-between w-full">
             <span>Scores ({scoreCount})</span>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() =>
-                  router.push(
-                    `/dashboard/games/${resolvedParams.gameId}/leaderboards/${resolvedParams.leaderboardId}/import`
-                  )
-                }
-              >
-                Import Scores
-              </Button>
-              {scoreCount > 0 && (
+            {selectedVersion === null && (
+              <div className="flex gap-2">
                 <Button
-                  variant="danger"
+                  variant="secondary"
                   size="sm"
-                  onClick={handleResetLeaderboard}
-                  loading={resetting}
+                  onClick={() =>
+                    router.push(
+                      `/dashboard/games/${resolvedParams.gameId}/leaderboards/${resolvedParams.leaderboardId}/import`
+                    )
+                  }
                 >
-                  Reset Leaderboard
+                  Import Scores
                 </Button>
-              )}
-            </div>
+                {scoreCount > 0 && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={handleResetLeaderboard}
+                    loading={resetting}
+                  >
+                    Reset Leaderboard
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         }
-        description="View and manage player scores"
+        description={
+          selectedVersion !== null && selectedVersion < leaderboard.current_version
+            ? 'Historical version (read-only)'
+            : 'View and manage player scores'
+        }
       >
         <ScoresTable
           gameId={resolvedParams.gameId}
           leaderboardId={resolvedParams.leaderboardId}
+          version={selectedVersion ?? undefined}
           onScoreCountChange={handleScoreCountChange}
         />
       </Card>

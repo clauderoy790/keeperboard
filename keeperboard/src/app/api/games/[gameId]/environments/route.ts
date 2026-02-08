@@ -93,20 +93,12 @@ export async function POST(
 
     // Parse request body
     const body = await request.json();
-    const { name, slug } = body;
+    const { name } = body;
 
     // Validate input
-    if (!name || !slug) {
+    if (!name) {
       return NextResponse.json(
-        { error: 'Name and slug are required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate slug format (lowercase, hyphens only)
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-      return NextResponse.json(
-        { error: 'Slug must be lowercase letters, numbers, and hyphens only' },
+        { error: 'Name is required' },
         { status: 400 }
       );
     }
@@ -120,7 +112,6 @@ export async function POST(
       .insert({
         game_id: gameId,
         name,
-        slug,
         is_default: false,
       })
       .select()
@@ -130,7 +121,7 @@ export async function POST(
       if (createError.code === '23505') {
         // Unique constraint violation
         return NextResponse.json(
-          { error: 'An environment with this slug already exists' },
+          { error: 'An environment with this name already exists' },
           { status: 409 }
         );
       }

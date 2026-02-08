@@ -25,19 +25,10 @@ export interface ScoreSubmission {
   metadata?: Record<string, unknown>;
 }
 
-export interface PlayerNameUpdate {
-  /** New display name for the player */
-  player_name: string;
-}
-
-export interface ClaimRequest {
-  /** Player GUID to assign to the migrated score */
-  player_guid: string;
-  /** Player name to match against migrated scores */
-  player_name: string;
-}
-
 // ----- Response Types -----
+
+/** Reset schedule options for leaderboards */
+export type ResetSchedule = 'none' | 'daily' | 'weekly' | 'monthly';
 
 export interface ScoreResponse {
   /** Score ID in the database */
@@ -68,8 +59,16 @@ export interface LeaderboardEntry {
 export interface LeaderboardResponse {
   /** Array of leaderboard entries */
   entries: LeaderboardEntry[];
-  /** Total number of scores on this leaderboard */
+  /** Total number of scores in this version/period */
   total_count: number;
+  /** The reset schedule of this leaderboard */
+  reset_schedule: ResetSchedule;
+  /** Current version number — only present when reset_schedule is not 'none' */
+  version?: number;
+  /** Oldest available version number — only present when reset_schedule is not 'none' */
+  oldest_version?: number;
+  /** ISO timestamp of when the next reset occurs — only present when reset_schedule is not 'none' */
+  next_reset?: string;
 }
 
 export interface PlayerResponse {

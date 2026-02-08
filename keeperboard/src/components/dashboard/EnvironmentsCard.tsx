@@ -9,7 +9,6 @@ interface Environment {
   id: string;
   game_id: string;
   name: string;
-  slug: string;
   is_default: boolean;
   created_at: string;
 }
@@ -19,14 +18,6 @@ interface EnvironmentsCardProps {
   environments: Environment[];
   onEnvironmentCreated: () => void;
   onEnvironmentDeleted: () => void;
-}
-
-// Convert name to slug format (lowercase, hyphens only)
-function nameToSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
 }
 
 export default function EnvironmentsCard({
@@ -51,12 +42,10 @@ export default function EnvironmentsCard({
     setError(null);
 
     try {
-      const slug = nameToSlug(name);
-
       const response = await fetch(`/api/games/${gameId}/environments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, slug }),
+        body: JSON.stringify({ name }),
       });
 
       const data = await response.json();
@@ -147,9 +136,6 @@ export default function EnvironmentsCard({
                       </span>
                     )}
                   </div>
-                  <p className="text-xs font-mono text-neutral-500">
-                    /{env.slug}
-                  </p>
                 </div>
               </div>
               {!env.is_default && (

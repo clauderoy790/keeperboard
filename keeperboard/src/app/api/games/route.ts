@@ -22,7 +22,6 @@ export async function GET() {
     .select(`
       id,
       name,
-      slug,
       description,
       created_at,
       leaderboards (count)
@@ -41,7 +40,6 @@ export async function GET() {
   const gamesWithCount = games?.map(game => ({
     id: game.id,
     name: game.name,
-    slug: game.slug,
     description: game.description,
     created_at: game.created_at,
     leaderboard_count: Array.isArray(game.leaderboards) ? game.leaderboards.length : 0,
@@ -66,20 +64,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, slug, description } = body;
+    const { name, description } = body;
 
     // Validate required fields
-    if (!name || !slug) {
+    if (!name) {
       return NextResponse.json(
-        { error: 'Name and slug are required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate slug format (lowercase, hyphens only)
-    if (!/^[a-z0-9-]+$/.test(slug)) {
-      return NextResponse.json(
-        { error: 'Slug must be lowercase alphanumeric with hyphens only' },
+        { error: 'Name is required' },
         { status: 400 }
       );
     }
@@ -93,23 +83,32 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: user.id,
         name,
-        slug,
         description: description || null,
       })
       .select()
       .single();
 
     if (error) {
-      // Check for unique constraint violation
-      if (error.code === '23505') {
-        return NextResponse.json(
-          { error: 'A game with this slug already exists' },
-          { status: 409 }
-        );
-      }
-
       return NextResponse.json(
         { error: 'Failed to create game' },
+        { status: 500 }
+      );
+    }
+
+    const { error: envError } = await adminSupabase
+      .from('environments')
+      .upsert(
+        {
+          game_id: game.id,
+          name: 'Production',
+          is_default: true,
+        },
+        { onConflict: 'game_id,name' }
+      );
+
+    if (envError) {
+      return NextResponse.json(
+        { error: 'Failed to create default environment' },
         { status: 500 }
       );
     }

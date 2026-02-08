@@ -66,7 +66,6 @@ export type Database = {
           id: string
           is_default: boolean | null
           name: string
-          slug: string
         }
         Insert: {
           created_at?: string | null
@@ -74,7 +73,6 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           name: string
-          slug: string
         }
         Update: {
           created_at?: string | null
@@ -82,7 +80,6 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           name?: string
-          slug?: string
         }
         Relationships: [
           {
@@ -100,7 +97,6 @@ export type Database = {
           description: string | null
           id: string
           name: string
-          slug: string
           updated_at: string | null
           user_id: string
         }
@@ -109,7 +105,6 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
-          slug: string
           updated_at?: string | null
           user_id: string
         }
@@ -118,7 +113,6 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
-          slug?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -135,31 +129,40 @@ export type Database = {
       leaderboards: {
         Row: {
           created_at: string | null
+          current_period_start: string
+          current_version: number
           environment_id: string
           game_id: string
           id: string
           name: string
-          slug: string
+          reset_hour: number
+          reset_schedule: string
           sort_order: string
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          current_period_start?: string
+          current_version?: number
           environment_id: string
           game_id: string
           id?: string
           name?: string
-          slug?: string
+          reset_hour?: number
+          reset_schedule?: string
           sort_order?: string
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          current_period_start?: string
+          current_version?: number
           environment_id?: string
           game_id?: string
           id?: string
           name?: string
-          slug?: string
+          reset_hour?: number
+          reset_schedule?: string
           sort_order?: string
           updated_at?: string | null
         }
@@ -192,6 +195,7 @@ export type Database = {
           player_name: string
           score: number
           updated_at: string | null
+          version: number
         }
         Insert: {
           created_at?: string | null
@@ -204,6 +208,7 @@ export type Database = {
           player_name: string
           score: number
           updated_at?: string | null
+          version?: number
         }
         Update: {
           created_at?: string | null
@@ -216,6 +221,7 @@ export type Database = {
           player_name?: string
           score?: number
           updated_at?: string | null
+          version?: number
         }
         Relationships: [
           {

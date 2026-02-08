@@ -20,32 +20,57 @@ export class KeeperBoardClient {
   private readonly apiKey: string;
 
   constructor(config: KeeperBoardConfig) {
-    // Remove trailing slash from URL if present
     this.apiUrl = config.apiUrl.replace(/\/$/, '');
     this.apiKey = config.apiKey;
   }
 
+  // ============================================
+  // SCORE SUBMISSION
+  // ============================================
+
   /**
-   * Submit a score to the leaderboard.
+   * Submit a score to the default leaderboard.
    * Only updates if the new score is higher than the existing one.
-   *
-   * @param playerGuid - Unique player identifier
-   * @param playerName - Player display name
-   * @param score - Score value
-   * @param metadata - Optional metadata to attach
-   * @param leaderboardSlug - Optional leaderboard slug (uses default if not specified)
-   * @returns Score response with rank and whether it's a new high score
    */
+  submitScore(
+    playerGuid: string,
+    playerName: string,
+    score: number
+  ): Promise<ScoreResponse>;
+
+  /**
+   * Submit a score to a specific leaderboard.
+   * Only updates if the new score is higher than the existing one.
+   */
+  submitScore(
+    playerGuid: string,
+    playerName: string,
+    score: number,
+    leaderboard: string
+  ): Promise<ScoreResponse>;
+
+  /**
+   * Submit a score with metadata.
+   * Only updates if the new score is higher than the existing one.
+   */
+  submitScore(
+    playerGuid: string,
+    playerName: string,
+    score: number,
+    leaderboard: string,
+    metadata: Record<string, unknown>
+  ): Promise<ScoreResponse>;
+
   async submitScore(
     playerGuid: string,
     playerName: string,
     score: number,
-    metadata?: Record<string, unknown>,
-    leaderboardSlug?: string
+    leaderboard?: string,
+    metadata?: Record<string, unknown>
   ): Promise<ScoreResponse> {
     const params = new URLSearchParams();
-    if (leaderboardSlug) {
-      params.set('leaderboard', leaderboardSlug);
+    if (leaderboard) {
+      params.set('leaderboard', leaderboard);
     }
 
     const url = `${this.apiUrl}/api/v1/scores${params.toString() ? '?' + params.toString() : ''}`;
@@ -57,63 +82,159 @@ export class KeeperBoardClient {
       ...(metadata && { metadata }),
     };
 
-    const response = await this.request<ScoreResponse>(url, {
+    return this.request<ScoreResponse>(url, {
       method: 'POST',
       body: JSON.stringify(body),
     });
-
-    return response;
   }
 
+  // ============================================
+  // LEADERBOARD
+  // ============================================
+
   /**
-   * Get the leaderboard entries with pagination.
+   * Get the default leaderboard (top 10 entries).
    *
-   * @param limit - Maximum number of entries to return (default: 10, max: 100)
-   * @param offset - Pagination offset (default: 0)
-   * @param leaderboardSlug - Optional leaderboard slug (uses default if not specified)
-   * @returns Leaderboard entries with total count
+   * @example
+   * const lb = await client.getLeaderboard();
    */
+  getLeaderboard(): Promise<LeaderboardResponse>;
+
+  /**
+   * Get a specific leaderboard by name (top 10 entries).
+   *
+   * @example
+   * const lb = await client.getLeaderboard('Weekly Best');
+   */
+  getLeaderboard(name: string): Promise<LeaderboardResponse>;
+
+  /**
+   * Get a leaderboard with custom limit.
+   *
+   * @example
+   * const lb = await client.getLeaderboard('Weekly Best', 25);
+   */
+  getLeaderboard(name: string, limit: number): Promise<LeaderboardResponse>;
+
+  /**
+   * Get a leaderboard with pagination.
+   *
+   * @example
+   * const page2 = await client.getLeaderboard('Weekly Best', 10, 10);
+   */
+  getLeaderboard(
+    name: string,
+    limit: number,
+    offset: number
+  ): Promise<LeaderboardResponse>;
+
   async getLeaderboard(
+    name?: string,
     limit: number = 10,
-    offset: number = 0,
-    leaderboardSlug?: string
+    offset: number = 0
   ): Promise<LeaderboardResponse> {
     const params = new URLSearchParams();
     params.set('limit', String(Math.min(limit, 100)));
     params.set('offset', String(offset));
-    if (leaderboardSlug) {
-      params.set('leaderboard', leaderboardSlug);
+    if (name) {
+      params.set('leaderboard', name);
     }
 
     const url = `${this.apiUrl}/api/v1/leaderboard?${params.toString()}`;
 
-    return this.request<LeaderboardResponse>(url, {
-      method: 'GET',
-    });
+    return this.request<LeaderboardResponse>(url, { method: 'GET' });
   }
 
+  // ============================================
+  // LEADERBOARD VERSION (for time-based boards)
+  // ============================================
+
   /**
-   * Get a specific player's score and rank.
+   * Get a specific version of a time-based leaderboard.
    *
-   * @param playerGuid - Player's unique identifier
-   * @param leaderboardSlug - Optional leaderboard slug (uses default if not specified)
-   * @returns Player's score and rank, or null if not found
+   * @example
+   * // Get last week's leaderboard (version 3)
+   * const lastWeek = await client.getLeaderboardVersion('Weekly Best', 3);
    */
-  async getPlayer(
+  getLeaderboardVersion(
+    name: string,
+    version: number
+  ): Promise<LeaderboardResponse>;
+
+  /**
+   * Get a specific version with custom limit.
+   */
+  getLeaderboardVersion(
+    name: string,
+    version: number,
+    limit: number
+  ): Promise<LeaderboardResponse>;
+
+  /**
+   * Get a specific version with pagination.
+   */
+  getLeaderboardVersion(
+    name: string,
+    version: number,
+    limit: number,
+    offset: number
+  ): Promise<LeaderboardResponse>;
+
+  async getLeaderboardVersion(
+    name: string,
+    version: number,
+    limit: number = 10,
+    offset: number = 0
+  ): Promise<LeaderboardResponse> {
+    const params = new URLSearchParams();
+    params.set('leaderboard', name);
+    params.set('version', String(version));
+    params.set('limit', String(Math.min(limit, 100)));
+    params.set('offset', String(offset));
+
+    const url = `${this.apiUrl}/api/v1/leaderboard?${params.toString()}`;
+
+    return this.request<LeaderboardResponse>(url, { method: 'GET' });
+  }
+
+  // ============================================
+  // PLAYER
+  // ============================================
+
+  /**
+   * Get a player's rank and score on the default leaderboard.
+   * Returns null if the player has no score.
+   *
+   * @example
+   * const player = await client.getPlayerRank(playerGuid);
+   * if (player) {
+   *   console.log(`You are ranked #${player.rank}`);
+   * }
+   */
+  getPlayerRank(playerGuid: string): Promise<PlayerResponse | null>;
+
+  /**
+   * Get a player's rank and score on a specific leaderboard.
+   * Returns null if the player has no score.
+   */
+  getPlayerRank(
     playerGuid: string,
-    leaderboardSlug?: string
+    leaderboard: string
+  ): Promise<PlayerResponse | null>;
+
+  async getPlayerRank(
+    playerGuid: string,
+    leaderboard?: string
   ): Promise<PlayerResponse | null> {
     const params = new URLSearchParams();
-    if (leaderboardSlug) {
-      params.set('leaderboard', leaderboardSlug);
+    if (leaderboard) {
+      params.set('leaderboard', leaderboard);
     }
 
     const url = `${this.apiUrl}/api/v1/player/${encodeURIComponent(playerGuid)}${params.toString() ? '?' + params.toString() : ''}`;
 
     try {
-      return await this.request<PlayerResponse>(url, {
-        method: 'GET',
-      });
+      return await this.request<PlayerResponse>(url, { method: 'GET' });
     } catch (error) {
       if (error instanceof KeeperBoardError && error.code === 'NOT_FOUND') {
         return null;
@@ -123,21 +244,30 @@ export class KeeperBoardClient {
   }
 
   /**
-   * Update a player's display name.
-   *
-   * @param playerGuid - Player's unique identifier
-   * @param newName - New display name
-   * @param leaderboardSlug - Optional leaderboard slug (uses default if not specified)
-   * @returns Updated player info
+   * Update a player's display name on the default leaderboard.
    */
+  updatePlayerName(
+    playerGuid: string,
+    newName: string
+  ): Promise<PlayerResponse>;
+
+  /**
+   * Update a player's display name on a specific leaderboard.
+   */
+  updatePlayerName(
+    playerGuid: string,
+    newName: string,
+    leaderboard: string
+  ): Promise<PlayerResponse>;
+
   async updatePlayerName(
     playerGuid: string,
     newName: string,
-    leaderboardSlug?: string
+    leaderboard?: string
   ): Promise<PlayerResponse> {
     const params = new URLSearchParams();
-    if (leaderboardSlug) {
-      params.set('leaderboard', leaderboardSlug);
+    if (leaderboard) {
+      params.set('leaderboard', leaderboard);
     }
 
     const url = `${this.apiUrl}/api/v1/player/${encodeURIComponent(playerGuid)}${params.toString() ? '?' + params.toString() : ''}`;
@@ -148,23 +278,33 @@ export class KeeperBoardClient {
     });
   }
 
+  // ============================================
+  // CLAIM (for migrated scores)
+  // ============================================
+
   /**
    * Claim a migrated score by matching player name.
-   * Used when scores were imported (e.g., from CSV) without player GUIDs.
-   *
-   * @param playerGuid - Player GUID to assign to the claimed score
-   * @param playerName - Player name to match against migrated scores
-   * @param leaderboardSlug - Optional leaderboard slug (uses default if not specified)
-   * @returns Claim result with score and rank
+   * Used when scores were imported without player GUIDs.
    */
+  claimScore(playerGuid: string, playerName: string): Promise<ClaimResponse>;
+
+  /**
+   * Claim a migrated score on a specific leaderboard.
+   */
+  claimScore(
+    playerGuid: string,
+    playerName: string,
+    leaderboard: string
+  ): Promise<ClaimResponse>;
+
   async claimScore(
     playerGuid: string,
     playerName: string,
-    leaderboardSlug?: string
+    leaderboard?: string
   ): Promise<ClaimResponse> {
     const params = new URLSearchParams();
-    if (leaderboardSlug) {
-      params.set('leaderboard', leaderboardSlug);
+    if (leaderboard) {
+      params.set('leaderboard', leaderboard);
     }
 
     const url = `${this.apiUrl}/api/v1/claim${params.toString() ? '?' + params.toString() : ''}`;
@@ -178,20 +318,20 @@ export class KeeperBoardClient {
     });
   }
 
+  // ============================================
+  // HEALTH CHECK
+  // ============================================
+
   /**
    * Check if the API is healthy.
    * This endpoint does not require an API key.
-   *
-   * @returns Health status with version and timestamp
    */
   async healthCheck(): Promise<HealthResponse> {
     const url = `${this.apiUrl}/api/v1/health`;
 
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        Accept: 'application/json',
-      },
+      headers: { Accept: 'application/json' },
     });
 
     const json = (await response.json()) as ApiResponse<HealthResponse>;
@@ -203,13 +343,11 @@ export class KeeperBoardClient {
     return json.data;
   }
 
-  /**
-   * Internal request helper with auth and error handling.
-   */
-  private async request<T>(
-    url: string,
-    options: RequestInit
-  ): Promise<T> {
+  // ============================================
+  // INTERNAL
+  // ============================================
+
+  private async request<T>(url: string, options: RequestInit): Promise<T> {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
@@ -218,10 +356,7 @@ export class KeeperBoardClient {
 
     const response = await fetch(url, {
       ...options,
-      headers: {
-        ...headers,
-        ...(options.headers || {}),
-      },
+      headers: { ...headers, ...(options.headers || {}) },
     });
 
     const json = (await response.json()) as ApiResponse<T>;

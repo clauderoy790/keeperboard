@@ -58,15 +58,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
   try {
     const body = await request.json();
-    const { name, slug, description } = body;
-
-    // Validate slug format if provided
-    if (slug && !/^[a-z0-9-]+$/.test(slug)) {
-      return NextResponse.json(
-        { error: 'Slug must be lowercase alphanumeric with hyphens only' },
-        { status: 400 }
-      );
-    }
+    const { name, description } = body;
 
     // Use admin client to bypass RLS
     const adminSupabase = createAdminClient();
@@ -90,7 +82,6 @@ export async function PUT(request: NextRequest, { params }: Params) {
       .from('games')
       .update({
         ...(name && { name }),
-        ...(slug && { slug }),
         ...(description !== undefined && { description }),
       })
       .eq('id', gameId)
@@ -98,13 +89,6 @@ export async function PUT(request: NextRequest, { params }: Params) {
       .single();
 
     if (error) {
-      if (error.code === '23505') {
-        return NextResponse.json(
-          { error: 'A game with this slug already exists' },
-          { status: 409 }
-        );
-      }
-
       return NextResponse.json(
         { error: 'Failed to update game' },
         { status: 500 }

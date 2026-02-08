@@ -51,7 +51,7 @@ export default async function DashboardPage() {
   // Fetch recent games
   const { data: recentGames } = await supabase
     .from('games')
-    .select('id, name, slug, created_at')
+    .select('id, name, created_at')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(3);
@@ -176,9 +176,6 @@ export default async function DashboardPage() {
                     <h4 className='font-mono font-semibold text-cyan-400 group-hover:text-cyan-300 transition-colors'>
                       {game.name}
                     </h4>
-                    <p className='text-xs font-mono text-neutral-500 mt-1'>
-                      /{game.slug}
-                    </p>
                   </div>
                   <div className='text-xs font-mono text-neutral-600'>
                     {game.created_at

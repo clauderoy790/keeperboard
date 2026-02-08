@@ -5,7 +5,6 @@ import { checkRateLimit } from './rate-limit';
 export interface ApiKeyValidationResult {
   gameId: string;
   environmentId: string;
-  environmentSlug: string;
   rateLimitHeaders: Record<string, string>;
 }
 
@@ -60,11 +59,7 @@ export async function validateApiKey(
       `
       id,
       game_id,
-      environment_id,
-      environments (
-        id,
-        slug
-      )
+      environment_id
     `
     )
     .eq('key_hash', keyHash)
@@ -82,15 +77,9 @@ export async function validateApiKey(
     .then(() => {});
 
   // Extract environment data
-  const environment = apiKeyData.environments as unknown as {
-    id: string;
-    slug: string;
-  };
-
   return {
     gameId: apiKeyData.game_id,
     environmentId: apiKeyData.environment_id,
-    environmentSlug: environment.slug,
     rateLimitHeaders,
   };
 }

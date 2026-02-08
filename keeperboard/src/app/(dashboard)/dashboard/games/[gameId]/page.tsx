@@ -13,7 +13,6 @@ import LeaderboardsList from '@/components/dashboard/LeaderboardsList';
 interface Game {
   id: string;
   name: string;
-  slug: string;
   description: string | null;
   created_at: string;
   user_id: string;
@@ -31,7 +30,6 @@ interface Environment {
   id: string;
   game_id: string;
   name: string;
-  slug: string;
   is_default: boolean;
   created_at: string;
 }
@@ -139,7 +137,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ gameId: s
     }
   };
 
-  const handleUpdateGame = async (formData: { name: string; slug: string; description: string }) => {
+  const handleUpdateGame = async (formData: { name: string; description: string }) => {
     setUpdating(true);
     try {
       const response = await fetch(`/api/games/${resolvedParams.gameId}`, {
@@ -207,7 +205,6 @@ export default function GameDetailPage({ params }: { params: Promise<{ gameId: s
             {game.name}
           </h1>
           <div className="h-1 w-32 bg-gradient-to-r from-cyan-500 to-transparent mb-2" />
-          <p className="text-sm font-mono text-neutral-500">/{game.slug}</p>
         </div>
         <Button variant="ghost" onClick={() => router.push('/dashboard/games')}>
           ← Back to Games
@@ -235,7 +232,6 @@ export default function GameDetailPage({ params }: { params: Promise<{ gameId: s
             <GameForm
               initialData={{
                 name: game.name,
-                slug: game.slug,
                 description: game.description || '',
               }}
               onSubmit={handleUpdateGame}
@@ -253,10 +249,6 @@ export default function GameDetailPage({ params }: { params: Promise<{ gameId: s
             <div>
               <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">Name</label>
               <p className="text-lg font-mono text-cyan-400 font-semibold">{game.name}</p>
-            </div>
-            <div>
-              <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">Slug</label>
-              <p className="text-lg font-mono text-neutral-300">/{game.slug}</p>
             </div>
             {game.description && (
               <div>

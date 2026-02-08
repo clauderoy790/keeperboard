@@ -10,10 +10,14 @@
  *   apiKey: 'kb_dev_your_api_key',
  * });
  *
- * const identity = new PlayerIdentity();
- * const playerGuid = identity.getOrCreatePlayerGuid();
+ * // Submit a score
+ * await client.submitScore(playerGuid, 'PlayerOne', 1500);
  *
- * await client.submitScore(playerGuid, 'Player1', 1500);
+ * // Get leaderboard
+ * const lb = await client.getLeaderboard();
+ *
+ * // Get player's rank
+ * const player = await client.getPlayerRank(playerGuid);
  * ```
  */
 
@@ -30,9 +34,5 @@ export {
   type PlayerResponse,
   type ClaimResponse,
   type HealthResponse,
-  type ApiResponse,
-  type ApiSuccessResponse,
-  type ApiErrorResponse,
-  type PlayerNameUpdate,
-  type ClaimRequest,
+  type ResetSchedule,
 } from './types';

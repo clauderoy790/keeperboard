@@ -28,13 +28,23 @@ keeperboard/
 
 ## Active Plan
 
-**Plan 3:** [Supabase Keep-Alive System](docs/plans/3_supabase-keep-alive.md)
+**Plan 3:** [Time-Based Leaderboards](docs/plans/3_time-based-leaderboards.md) — ✅ Completed
 
-### Phase Status
+- [x] Phase 1: Database Migration (Schema Changes)
+- [x] Phase 2: Version Resolution Logic (Lazy Reset Engine)
+- [x] Phase 3: Public API Updates (Score Submission + Leaderboard Query)
+- [x] Phase 4: Dashboard API Updates (CRUD + Scores Management)
+- [x] Phase 5: Dashboard UI — Create/Edit Leaderboard Form
+- [x] Phase 6: Dashboard UI — Leaderboard Detail Page (Version Navigation)
+- [x] Phase 7: SDK Updates (TypeScript Client)
+- [x] Phase 8: Archive Cleanup + Retention
+- [x] Phase 9: Integration Testing & Polish
 
-- [x] Phase 1: SQL Function & GitHub Actions Workflow
+**Previous Plans:**
+- Plan 2 — KeeperBoard Phaser Adaptation (Completed)
+- Plan 1 — Initial Architecture (Completed)
 
-**Status:** Plan 3 Complete!
+*Note: Keep-alive pings are now managed centrally via [Claudium](https://github.com/clauderoy790/claudium).*
 
 ## Key Decisions
 

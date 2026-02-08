@@ -8,7 +8,6 @@ import LeaderboardForm from '@/components/forms/LeaderboardForm';
 interface Leaderboard {
   id: string;
   name: string;
-  slug: string;
   sort_order: 'asc' | 'desc';
   score_count: number;
   created_at: string;
@@ -34,8 +33,9 @@ export default function LeaderboardsList({
 
   const handleCreate = async (data: {
     name: string;
-    slug: string;
     sort_order: 'asc' | 'desc';
+    reset_schedule: 'none' | 'daily' | 'weekly' | 'monthly';
+    reset_hour: number;
   }) => {
     setCreating(true);
     setError(null);
@@ -153,9 +153,6 @@ export default function LeaderboardsList({
                   <h3 className="text-lg font-mono font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors">
                     {leaderboard.name}
                   </h3>
-                  <p className="text-xs font-mono text-neutral-500 mt-1">
-                    /{leaderboard.slug}
-                  </p>
                 </div>
                 <div className="text-right">
                   <div className="flex items-center gap-2">

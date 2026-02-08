@@ -9,8 +9,8 @@ type Params = {
   }>;
 };
 
-// Generate a random API key with format: kb_{env_slug}_{48_random_chars}
-function generateApiKey(environmentSlug: string): {
+// Generate a random API key with format: kb_{env_id_prefix}_{48_random_chars}
+function generateApiKey(environmentId: string): {
   key: string;
   hash: string;
   prefix: string;
@@ -23,9 +23,10 @@ function generateApiKey(environmentSlug: string): {
     .replace(/=/g, '')
     .substring(0, 48);
 
-  const key = `kb_${environmentSlug}_${randomString}`;
+  const envPrefix = environmentId.replace(/-/g, '').slice(0, 8);
+  const key = `kb_${envPrefix}_${randomString}`;
   const hash = crypto.createHash('sha256').update(key).digest('hex');
-  const prefix = `kb_${environmentSlug}_`;
+  const prefix = `kb_${envPrefix}_`;
 
   return { key, hash, prefix };
 }
@@ -120,10 +121,10 @@ export async function POST(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
-    // Verify environment belongs to this game and get slug
+    // Verify environment belongs to this game
     const { data: environment } = await adminSupabase
       .from('environments')
-      .select('slug')
+      .select('id')
       .eq('id', environment_id)
       .eq('game_id', gameId)
       .single();
@@ -143,7 +144,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       .eq('environment_id', environment_id);
 
     // Generate new API key
-    const { key, hash, prefix } = generateApiKey(environment.slug);
+    const { key, hash, prefix } = generateApiKey(environment.id);
 
     // Insert API key
     const { data: apiKey, error } = await adminSupabase
