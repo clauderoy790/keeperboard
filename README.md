@@ -163,9 +163,9 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 |------|-------------|---------|--------|
 | [Plan 1](docs/plans/keeperboard.md) | Initial Architecture | 2024-12-29 | Completed |
 | [Plan 2](docs/plans/2_keeperboard-phaser.md) | KeeperBoard Phaser Adaptation | 2024-12-30 | Completed |
-| [Plan 3](docs/plans/3_time-based-leaderboards.md) | Time-Based Leaderboards | 2026-02-08 | Phase 1/9 (Feb 8) |
+| [Plan 3](docs/plans/3_time-based-leaderboards.md) | Time-Based Leaderboards | 2026-02-08 | Phase 2/9 (Feb 8) |
 
-**Active:** Plan 3 - Time-Based Leaderboards (Phase 2 next)
+**Active:** Plan 3 - Time-Based Leaderboards (Phase 3 next)
 
 ## License
 

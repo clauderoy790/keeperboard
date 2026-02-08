@@ -31,7 +31,7 @@ keeperboard/
 **Plan 3:** [Time-Based Leaderboards](docs/plans/3_time-based-leaderboards.md)
 
 - [x] Phase 1: Database Migration (Schema Changes)
-- [ ] Phase 2: Version Resolution Logic (Lazy Reset Engine)
+- [x] Phase 2: Version Resolution Logic (Lazy Reset Engine)
 - [ ] Phase 3: Public API Updates (Score Submission + Leaderboard Query)
 - [ ] Phase 4: Dashboard API Updates (CRUD + Scores Management)
 - [ ] Phase 5: Dashboard UI — Create/Edit Leaderboard Form
