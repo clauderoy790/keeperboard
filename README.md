@@ -18,8 +18,8 @@ Works with **Phaser.js**, **Unity**, and any game that can make HTTP requests.
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-username/keeper-board.git
-cd keeper-board/keeperboard
+git clone git@github.com:clauderoy790/keeperboard.git
+cd keeperboard/keeperboard
 npm install
 ```
 
@@ -80,13 +80,13 @@ const identity = new PlayerIdentity();
 const result = await client.submitScore(
   identity.getOrCreatePlayerGuid(),
   'PlayerName',
-  1500
+  1500,
 );
 console.log(`Rank: #${result.rank}`);
 
 // Get leaderboard
 const leaderboard = await client.getLeaderboard(10);
-leaderboard.entries.forEach(entry => {
+leaderboard.entries.forEach((entry) => {
   console.log(`#${entry.rank} ${entry.player_name}: ${entry.score}`);
 });
 ```
@@ -107,19 +107,19 @@ Deploy to Vercel with one click, or see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ## Tech Stack
 
-| Component | Technology |
-|-----------|------------|
-| Framework | Next.js 16 (App Router) |
-| Database | Supabase (PostgreSQL) |
-| Auth | Supabase Auth |
-| Styling | Tailwind CSS 4 |
-| Hosting | Vercel |
-| SDK | TypeScript (fetch-based) |
+| Component | Technology               |
+| --------- | ------------------------ |
+| Framework | Next.js 16 (App Router)  |
+| Database  | Supabase (PostgreSQL)    |
+| Auth      | Supabase Auth            |
+| Styling   | Tailwind CSS 4           |
+| Hosting   | Vercel                   |
+| SDK       | TypeScript (fetch-based) |
 
 ## Project Structure
 
 ```
-keeper-board/
+keeperboard/
 ├── keeperboard/          # Next.js web app
 │   ├── src/app/api/v1/   # Public REST API
 │   ├── src/app/(auth)/   # Login/register pages
@@ -133,14 +133,14 @@ keeper-board/
 
 All endpoints require an API key via `X-API-Key` header (except health check).
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/health` | GET | Health check (no auth) |
-| `/api/v1/scores` | POST | Submit a score |
-| `/api/v1/leaderboard` | GET | Get leaderboard entries |
-| `/api/v1/player/:guid` | GET | Get player's score and rank |
-| `/api/v1/player/:guid` | PUT | Update player name |
-| `/api/v1/claim` | POST | Claim imported score |
+| Endpoint               | Method | Description                 |
+| ---------------------- | ------ | --------------------------- |
+| `/api/v1/health`       | GET    | Health check (no auth)      |
+| `/api/v1/scores`       | POST   | Submit a score              |
+| `/api/v1/leaderboard`  | GET    | Get leaderboard entries     |
+| `/api/v1/player/:guid` | GET    | Get player's score and rank |
+| `/api/v1/player/:guid` | PUT    | Update player name          |
+| `/api/v1/claim`        | POST   | Claim imported score        |
 
 ## Documentation
 

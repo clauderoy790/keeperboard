@@ -1,6 +1,6 @@
 # KeeperBoard SDK
 
-TypeScript client SDK for [KeeperBoard](https://github.com/YOUR_USERNAME/keeper-board) — a free, open-source leaderboard-as-a-service for indie game developers.
+TypeScript client SDK for [KeeperBoard](https://github.com/YOUR_USERNAME/keeperboard) — a free, open-source leaderboard-as-a-service for indie game developers.
 
 Works with Phaser.js, vanilla JavaScript, and any TypeScript/JavaScript game running in the browser.
 
@@ -48,11 +48,7 @@ const playerIdentity = new PlayerIdentity();
 const playerGuid = playerIdentity.getOrCreatePlayerGuid();
 
 // Submit a score (only updates if higher than existing)
-const result = await keeperboard.submitScore(
-  playerGuid,
-  'PlayerName',
-  1500
-);
+const result = await keeperboard.submitScore(playerGuid, 'PlayerName', 1500);
 
 console.log(`Rank: #${result.rank}`);
 console.log(`New high score: ${result.is_new_high_score}`);
@@ -76,8 +72,8 @@ leaderboard.entries.forEach((entry) => {
 
 ```typescript
 const client = new KeeperBoardClient({
-  apiUrl: string,  // Your KeeperBoard API URL
-  apiKey: string,  // API key from dashboard (e.g., "kb_dev_...")
+  apiUrl: string, // Your KeeperBoard API URL
+  apiKey: string, // API key from dashboard (e.g., "kb_dev_...")
 });
 ```
 
@@ -93,7 +89,7 @@ const result = await client.submitScore(
   'PlayerName',
   2500,
   { level: 10, character: 'warrior' }, // optional metadata
-  'high-scores' // optional leaderboard slug
+  'high-scores', // optional leaderboard slug
 );
 
 // Returns:
@@ -113,9 +109,9 @@ Get leaderboard entries with pagination.
 
 ```typescript
 const result = await client.getLeaderboard(
-  25,           // limit (max 100)
-  0,            // offset
-  'high-scores' // optional leaderboard slug
+  25, // limit (max 100)
+  0, // offset
+  'high-scores', // optional leaderboard slug
 );
 
 // Returns:
@@ -144,7 +140,7 @@ Update a player's display name.
 ```typescript
 const result = await client.updatePlayerName(
   'player-uuid-123',
-  'NewPlayerName'
+  'NewPlayerName',
 );
 ```
 
@@ -156,7 +152,7 @@ Claim a migrated score by matching player name. Used when scores were imported w
 try {
   const result = await client.claimScore(
     'new-player-guid',
-    'ImportedPlayerName'
+    'ImportedPlayerName',
   );
   console.log(`Claimed score: ${result.score}`);
 } catch (error) {
@@ -181,7 +177,7 @@ Helper for managing persistent player identity in localStorage.
 
 ```typescript
 const identity = new PlayerIdentity({
-  keyPrefix: 'mygame_'  // optional, default: 'keeperboard_'
+  keyPrefix: 'mygame_', // optional, default: 'keeperboard_'
 });
 
 // Get or create a persistent player GUID
@@ -258,19 +254,23 @@ class GameOverScene extends Phaser.Scene {
     const result = await keeperboard.submitScore(
       playerGuid,
       playerName,
-      this.score
+      this.score,
     );
 
     // Display result
-    this.add.text(400, 200, `Your Rank: #${result.rank}`, {
-      fontSize: '32px',
-    }).setOrigin(0.5);
+    this.add
+      .text(400, 200, `Your Rank: #${result.rank}`, {
+        fontSize: '32px',
+      })
+      .setOrigin(0.5);
 
     if (result.is_new_high_score) {
-      this.add.text(400, 250, 'NEW HIGH SCORE!', {
-        fontSize: '24px',
-        color: '#ffff00',
-      }).setOrigin(0.5);
+      this.add
+        .text(400, 250, 'NEW HIGH SCORE!', {
+          fontSize: '24px',
+          color: '#ffff00',
+        })
+        .setOrigin(0.5);
     }
 
     // Display leaderboard
@@ -280,12 +280,14 @@ class GameOverScene extends Phaser.Scene {
       const isMe = entry.player_guid === playerGuid;
       const color = isMe ? '#00ff00' : '#ffffff';
 
-      this.add.text(
-        400,
-        350 + index * 30,
-        `#${entry.rank} ${entry.player_name}: ${entry.score}`,
-        { fontSize: '18px', color }
-      ).setOrigin(0.5);
+      this.add
+        .text(
+          400,
+          350 + index * 30,
+          `#${entry.rank} ${entry.player_name}: ${entry.score}`,
+          { fontSize: '18px', color },
+        )
+        .setOrigin(0.5);
     });
   }
 }

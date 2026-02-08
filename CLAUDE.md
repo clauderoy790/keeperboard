@@ -13,7 +13,7 @@ Free, open-source leaderboard-as-a-service for indie game developers. Built with
 ## Project Structure
 
 ```
-keeper-board/
+keeperboard/
 ├── keeperboard/          # Next.js web app (dashboard + API)
 │   └── src/
 │       ├── app/api/v1/   # Public REST API

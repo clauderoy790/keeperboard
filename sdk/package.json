@@ -34,12 +34,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_USERNAME/keeper-board.git",
+    "url": "git+https://github.com/YOUR_USERNAME/keeperboard.git",
     "directory": "sdk"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/keeper-board#readme",
+  "homepage": "https://github.com/YOUR_USERNAME/keeperboard#readme",
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/keeper-board/issues"
+    "url": "https://github.com/YOUR_USERNAME/keeperboard/issues"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

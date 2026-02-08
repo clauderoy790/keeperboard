@@ -48,14 +48,14 @@ Phase 13 (Integration Test & Polish)
 
 ### Tech Stack
 
-| Component | Technology |
-|-----------|------------|
-| Framework | Next.js 16+ (App Router) |
-| Database | Supabase (PostgreSQL) |
-| Auth | Supabase Auth (email/password + OAuth) |
-| Styling | Tailwind CSS 4 |
-| Hosting | Vercel |
-| Game Client | Phaser.js + TypeScript Client SDK |
+| Component   | Technology                             |
+| ----------- | -------------------------------------- |
+| Framework   | Next.js 16+ (App Router)               |
+| Database    | Supabase (PostgreSQL)                  |
+| Auth        | Supabase Auth (email/password + OAuth) |
+| Styling     | Tailwind CSS 4                         |
+| Hosting     | Vercel                                 |
+| Game Client | Phaser.js + TypeScript Client SDK      |
 
 ---
 
@@ -102,6 +102,7 @@ Unity test harness built and deployed. Verified that Unity Play accepts requests
 ### Context
 
 The project has three Supabase clients already created:
+
 - `src/lib/supabase/client.ts` — Browser client (createBrowserClient from @supabase/ssr)
 - `src/lib/supabase/server.ts` — Server client (createServerClient from @supabase/ssr, uses cookies)
 - `src/lib/supabase/admin.ts` — Admin client (service role, bypasses RLS)
@@ -160,6 +161,7 @@ Auth should use `@supabase/ssr` patterns. The server client handles cookie-based
    - Server action for OAuth sign-in
 
 ### Files Created/Modified
+
 - `src/middleware.ts` (new)
 - `src/app/(auth)/login/page.tsx` (replace stub)
 - `src/app/(auth)/register/page.tsx` (replace stub)
@@ -168,6 +170,7 @@ Auth should use `@supabase/ssr` patterns. The server client handles cookie-based
 - `src/app/(auth)/actions.ts` (new)
 
 ### Manual Testing Checklist
+
 - [ ] Visit `/dashboard` when logged out → redirects to `/login`
 - [ ] Register with new email → success message shown
 - [ ] Login with registered account → redirects to `/dashboard`
@@ -238,6 +241,7 @@ Auth is now working. Dashboard routes are protected by middleware. The `(dashboa
    - Quick links to recent games
 
 ### Files Created/Modified
+
 - `src/components/ui/Button.tsx` (new)
 - `src/components/ui/Input.tsx` (new)
 - `src/components/ui/Card.tsx` (new)
@@ -247,6 +251,7 @@ Auth is now working. Dashboard routes are protected by middleware. The `(dashboa
 - `src/app/(dashboard)/page.tsx` (replace stub)
 
 ### Manual Testing Checklist
+
 - [ ] Dashboard has sidebar with navigation links
 - [ ] Dashboard has header with page title
 - [ ] Sidebar highlights active page
@@ -328,6 +333,7 @@ API key format: `kb_{env}_{random48chars}` (e.g., `kb_dev_a1b2c3...`). Keys are 
    - Regenerate warning (old key stops working)
 
 ### Files Created/Modified
+
 - `src/app/(dashboard)/games/page.tsx` (new)
 - `src/app/(dashboard)/games/[gameId]/page.tsx` (replace stub)
 - `src/components/forms/GameForm.tsx` (new)
@@ -337,6 +343,7 @@ API key format: `kb_{env}_{random48chars}` (e.g., `kb_dev_a1b2c3...`). Keys are 
 - `src/app/api/games/[gameId]/api-keys/route.ts` (new)
 
 ### Manual Testing Checklist
+
 - [ ] Create a game → appears in games list
 - [ ] Game slug auto-generates from name
 - [ ] View game detail page shows game info
@@ -366,6 +373,7 @@ Games CRUD is working. Game detail page exists with a placeholder for leaderboar
 ### Schema Changes
 
 **New `environments` table:**
+
 ```sql
 CREATE TABLE environments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -379,12 +387,14 @@ CREATE TABLE environments (
 ```
 
 **Modify `api_keys` table:**
+
 - Replace `environment TEXT CHECK (...)` with `environment_id UUID REFERENCES environments(id)`
 - Remove old CHECK constraint
 - Update unique constraint to `(game_id, environment_id)`
 - Key format stays `kb_{env_slug}_{random}` (e.g., `kb_dev_a1b2c3...`)
 
 **Modify `leaderboards` table:**
+
 - Add `environment_id UUID NOT NULL REFERENCES environments(id) ON DELETE CASCADE`
 - Change unique constraint from `(game_id, slug)` to `(game_id, slug, environment_id)`
 
@@ -476,6 +486,7 @@ CREATE TABLE environments (
     - Replace leaderboard placeholder with LeaderboardsList (filtered by environment)
 
 ### Files Created/Modified
+
 - `keeperboard/supabase/migrations/001_environments.sql` (new — schema migration)
 - `src/components/dashboard/EnvironmentsCard.tsx` (new)
 - `src/components/dashboard/EnvironmentSwitcher.tsx` (new)
@@ -491,6 +502,7 @@ CREATE TABLE environments (
 - `src/app/api/games/[gameId]/api-keys/route.ts` (modify — use environment_id)
 
 ### Manual Testing Checklist
+
 - [ ] New game auto-creates "production" environment
 - [ ] Add custom environment (e.g., "dev") → appears in list
 - [ ] Environment switcher dropdown works on game detail page
@@ -518,12 +530,14 @@ CREATE TABLE environments (
 ### Context
 
 Current API routes use `TEST_LEADERBOARD_ID = '00000000-0000-0000-0000-000000000002'` hardcoded. Need to:
+
 1. Validate API key from `X-API-Key` header
 2. Look up the game from the API key
 3. Determine which leaderboard to use (from query param or default)
 4. Replace all hardcoded IDs
 
 Existing routes to update:
+
 - `src/app/api/v1/scores/route.ts`
 - `src/app/api/v1/leaderboard/route.ts`
 - `src/app/api/v1/player/[guid]/route.ts`
@@ -586,6 +600,7 @@ The health endpoint stays public (no API key needed).
    - If already claimed: return 409
 
 ### Files Created/Modified
+
 - `src/lib/api/auth.ts` (replace stub)
 - `src/lib/api/leaderboard.ts` (new)
 - `src/app/api/v1/scores/route.ts` (modify)
@@ -708,12 +723,13 @@ The SDK lives inside this repo (not a separate npm package for now). Games impor
    - Submit score on game over
    - Display leaderboard
    - Handle errors
-   - Ensure there's an example for every method possible in the sdk. Refer to created postman collection with multiple calls: /Users/claude/Git/keeper-board/KeeperBoard_API.postman_collection.json
+   - Ensure there's an example for every method possible in the sdk. Refer to created postman collection with multiple calls: /Users/claude/Git/keeperboard/KeeperBoard_API.postman_collection.json
 
 7. **Create a readme**
    - Tie everything together into a readme that anyone could read and easily integrate the sdk into their typescript project step by step.
 
 ### Files Created
+
 - `sdk/package.json` (new)
 - `sdk/tsconfig.json` (new)
 - `sdk/src/index.ts` (new)
@@ -724,6 +740,7 @@ The SDK lives inside this repo (not a separate npm package for now). Games impor
 - `sdk/readme.md` (new)
 
 ### Manual Testing Checklist
+
 - [ ] SDK compiles without errors (`npx tsc --noEmit` in sdk/)
 - [ ] Import SDK in a test script and call `healthCheck()`
 - [ ] Submit a score via SDK → appears in dashboard
@@ -784,6 +801,7 @@ Leaderboard detail page exists from Phase 8 with a scores placeholder. Need to a
      - Calls DELETE on scores route (bulk)
 
 ### Files Created/Modified
+
 - `src/components/dashboard/ScoresTable.tsx` (new)
 - `src/components/dashboard/EditScoreModal.tsx` (new)
 - `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/scores/route.ts` (new)
@@ -791,6 +809,7 @@ Leaderboard detail page exists from Phase 8 with a scores placeholder. Need to a
 - `src/app/(dashboard)/games/[gameId]/leaderboards/[leaderboardId]/page.tsx` (modify)
 
 ### Manual Testing Checklist
+
 - [ ] Scores table displays in leaderboard detail
 - [ ] Pagination works (next/prev, page size)
 - [ ] Search by player name filters results
@@ -847,12 +866,14 @@ Scores management UI exists. Import should allow users to bring in scores from a
    Update leaderboard detail page to include "Import Scores" button linking to import page.
 
 ### Files Created/Modified
+
 - `src/app/(dashboard)/games/[gameId]/leaderboards/[leaderboardId]/import/page.tsx` (new)
 - `src/components/dashboard/ImportWizard.tsx` (new)
 - `src/app/api/games/[gameId]/leaderboards/[leaderboardId]/import/route.ts` (new)
 - `src/app/(dashboard)/games/[gameId]/leaderboards/[leaderboardId]/page.tsx` (modify — add import button)
 
 ### Expected CSV Format
+
 ```csv
 player_name,score
 Champion,5000
@@ -861,6 +882,7 @@ ThirdPlace,4000
 ```
 
 ### Expected JSON Format
+
 ```json
 [
   { "player_name": "Champion", "score": 5000 },
@@ -869,6 +891,7 @@ ThirdPlace,4000
 ```
 
 ### Manual Testing Checklist
+
 - [ ] CSV paste imports correctly
 - [ ] JSON paste imports correctly
 - [ ] File upload works (drag & drop or click)
@@ -908,7 +931,6 @@ ThirdPlace,4000
    - Use in-memory store (simple Map with TTL) for MVP
 
 3. **Polish dashboard UI**
-
    - Toast notifications for actions (create, delete, import)
    - Confirmation dialogs for destructive actions
    - Loading states on all data fetches
@@ -916,7 +938,6 @@ ThirdPlace,4000
    - Empty states with helpful CTAs
 
 4. **Security review**
-
    - Verify all dashboard API routes check auth
    - Verify public API routes require API key (except health)
    - Input validation on all endpoints (length limits, type checks)
@@ -931,19 +952,20 @@ ThirdPlace,4000
    - Simple, clean design
 
 6. **Production deployment prep**
-
    - Verify all environment variables set in Vercel
    - Re-enable RLS if disabled for testing
    - Test OAuth callbacks with production URLs
    - Update CORS if needed for production domains
 
 ### Files Created/Modified
+
 - `test-game/` directory (new — Phaser.js test game)
 - `src/app/page.tsx` (replace default Next.js page)
 - Various dashboard components (polish)
 - API routes (rate limiting)
 
 ### Manual Testing Checklist
+
 - [ ] Phaser.js test game submits scores via SDK
 - [ ] Leaderboard displays correctly in test game
 - [ ] Dashboard shows scores submitted from game
@@ -961,37 +983,37 @@ ThirdPlace,4000
 
 ### Phase Summary
 
-| Phase | Name | Complexity | Status | Notes |
-|-------|------|------------|--------|-------|
-| 1 | Project Setup | Simple | ✅ Done | |
-| 2 | Database Schema | Simple | ✅ Done | |
-| 3 | API Skeleton | Simple | ✅ Done | Hardcoded IDs |
-| 4 | CSP Validation | Simple | ✅ Done | Passed |
-| 5 | Authentication | Medium | Pending | |
-| 6 | Dashboard Layout | Medium | Pending | |
-| 7 | Games Management | Medium | Pending | |
-| 8 | Environments & Leaderboards | Medium | Pending | Custom envs + leaderboard CRUD |
-| 9 | Full Public API | Medium | Pending | Replace skeleton |
-| 10 | TypeScript Client SDK | Medium | Pending | For Phaser.js + any TS game |
-| 11 | Scores Management UI | Medium | Pending | |
-| 12 | CSV/JSON Import | Medium | Pending | |
-| 13 | Integration Test & Polish | Medium | Pending | |
+| Phase | Name                        | Complexity | Status  | Notes                          |
+| ----- | --------------------------- | ---------- | ------- | ------------------------------ |
+| 1     | Project Setup               | Simple     | ✅ Done |                                |
+| 2     | Database Schema             | Simple     | ✅ Done |                                |
+| 3     | API Skeleton                | Simple     | ✅ Done | Hardcoded IDs                  |
+| 4     | CSP Validation              | Simple     | ✅ Done | Passed                         |
+| 5     | Authentication              | Medium     | Pending |                                |
+| 6     | Dashboard Layout            | Medium     | Pending |                                |
+| 7     | Games Management            | Medium     | Pending |                                |
+| 8     | Environments & Leaderboards | Medium     | Pending | Custom envs + leaderboard CRUD |
+| 9     | Full Public API             | Medium     | Pending | Replace skeleton               |
+| 10    | TypeScript Client SDK       | Medium     | Pending | For Phaser.js + any TS game    |
+| 11    | Scores Management UI        | Medium     | Pending |                                |
+| 12    | CSV/JSON Import             | Medium     | Pending |                                |
+| 13    | Integration Test & Polish   | Medium     | Pending |                                |
 
 ### Key File Locations
 
-| File | Purpose |
-|------|---------|
-| `keeperboard/src/app/api/v1/` | Public API endpoints |
-| `keeperboard/src/app/(dashboard)/` | Dashboard pages |
-| `keeperboard/src/lib/supabase/` | Supabase clients (browser, server, admin) |
-| `keeperboard/src/lib/api/auth.ts` | API key validation |
-| `keeperboard/src/lib/utils/` | Response helpers, CORS |
-| `keeperboard/src/types/database.ts` | Auto-generated DB types |
-| `sdk/` | TypeScript client SDK |
-| `supabase/schema.sql` | Database schema |
-| `supabase/rls-policies.sql` | Row Level Security policies |
+| File                                | Purpose                                   |
+| ----------------------------------- | ----------------------------------------- |
+| `keeperboard/src/app/api/v1/`       | Public API endpoints                      |
+| `keeperboard/src/app/(dashboard)/`  | Dashboard pages                           |
+| `keeperboard/src/lib/supabase/`     | Supabase clients (browser, server, admin) |
+| `keeperboard/src/lib/api/auth.ts`   | API key validation                        |
+| `keeperboard/src/lib/utils/`        | Response helpers, CORS                    |
+| `keeperboard/src/types/database.ts` | Auto-generated DB types                   |
+| `sdk/`                              | TypeScript client SDK                     |
+| `supabase/schema.sql`               | Database schema                           |
+| `supabase/rls-policies.sql`         | Row Level Security policies               |
 
 ---
 
-*Main design doc: `docs/plans/keeperboard.md`*
-*Previous plan (superseded): `docs/plans/keeperboard-implementation.md`*
+_Main design doc: `docs/plans/keeperboard.md`_
+_Previous plan (superseded): `docs/plans/keeperboard-implementation.md`_

@@ -24,9 +24,9 @@ Before first publish, update these fields in `sdk/package.json`:
 {
   "author": "Your Name <your@email.com>",
   "repository": {
-    "url": "git+https://github.com/YOUR_USERNAME/keeper-board.git"
+    "url": "git+https://github.com/YOUR_USERNAME/keeperboard.git"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/keeper-board#readme"
+  "homepage": "https://github.com/YOUR_USERNAME/keeperboard#readme"
 }
 ```
 
@@ -48,6 +48,7 @@ npm version major
 ```
 
 This automatically:
+
 - Updates `package.json` version
 - Creates a git commit
 - Creates a git tag
@@ -69,20 +70,22 @@ git push && git push --tags
 ## Verifying Publication
 
 After publishing, verify at:
+
 - https://www.npmjs.com/package/keeperboard-sdk
 
 Test installation:
+
 ```bash
 npm install keeperboard-sdk
 ```
 
 ## Version Guidelines
 
-| Change Type | Version Bump | Example |
-|-------------|--------------|---------|
-| Bug fix | `patch` | 1.0.0 → 1.0.1 |
-| New feature (backward compatible) | `minor` | 1.0.0 → 1.1.0 |
-| Breaking API change | `major` | 1.0.0 → 2.0.0 |
+| Change Type                       | Version Bump | Example       |
+| --------------------------------- | ------------ | ------------- |
+| Bug fix                           | `patch`      | 1.0.0 → 1.0.1 |
+| New feature (backward compatible) | `minor`      | 1.0.0 → 1.1.0 |
+| Breaking API change               | `major`      | 1.0.0 → 2.0.0 |
 
 ## Security Notes
 

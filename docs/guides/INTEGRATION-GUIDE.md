@@ -73,6 +73,7 @@ You need **two API keys**: one for development, one for production.
 2. Click **"Generate Dev Key"**
 
 3. **IMPORTANT**: Copy the key immediately! It will only be shown once.
+
    ```
    kb_dev_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4
    ```
@@ -90,10 +91,10 @@ You need **two API keys**: one for development, one for production.
 
 ### Key Format
 
-| Environment | Prefix | Example |
-|-------------|--------|---------|
-| Development | `kb_dev_` | `kb_dev_abc123...` |
-| Production | `kb_prod_` | `kb_prod_xyz789...` |
+| Environment | Prefix     | Example             |
+| ----------- | ---------- | ------------------- |
+| Development | `kb_dev_`  | `kb_dev_abc123...`  |
+| Production  | `kb_prod_` | `kb_prod_xyz789...` |
 
 ---
 
@@ -131,8 +132,9 @@ Each game can have multiple leaderboards (e.g., "High Scores", "Weekly Best", "S
 4. Select **"Add package from git URL..."**
 
 5. Enter:
+
    ```
-   https://github.com/YOUR_USERNAME/keeper-board-unity.git
+   https://github.com/YOUR_USERNAME/keeperboard-unity.git
    ```
 
 6. Click **"Add"**
@@ -167,24 +169,24 @@ Each game can have multiple leaderboards (e.g., "High Scores", "Weekly Best", "S
 
 Select the config asset and fill in the Inspector:
 
-| Field | Value | Notes |
-|-------|-------|-------|
-| **API URL** | `https://keeperboard.vercel.app/api/v1` | Or your self-hosted URL |
-| **Dev API Key** | `kb_dev_your_key_here` | From Step 3 |
-| **Prod API Key** | `kb_prod_your_key_here` | From Step 3 |
-| **Use Production In Editor** | ❌ Unchecked | Check only to test prod |
-| **Max Retries** | `3` | Retry failed requests |
-| **Retry Delay (seconds)** | `1` | Delay between retries |
+| Field                        | Value                                   | Notes                   |
+| ---------------------------- | --------------------------------------- | ----------------------- |
+| **API URL**                  | `https://keeperboard.vercel.app/api/v1` | Or your self-hosted URL |
+| **Dev API Key**              | `kb_dev_your_key_here`                  | From Step 3             |
+| **Prod API Key**             | `kb_prod_your_key_here`                 | From Step 3             |
+| **Use Production In Editor** | ❌ Unchecked                            | Check only to test prod |
+| **Max Retries**              | `3`                                     | Retry failed requests   |
+| **Retry Delay (seconds)**    | `1`                                     | Delay between retries   |
 
 ### Key Selection Logic
 
 The package automatically selects the correct key:
 
-| Build Type | Key Used |
-|------------|----------|
-| Unity Editor | Dev (unless "Use Production In Editor" checked) |
-| Development Build | Dev |
-| Release Build | Prod |
+| Build Type        | Key Used                                        |
+| ----------------- | ----------------------------------------------- |
+| Unity Editor      | Dev (unless "Use Production In Editor" checked) |
+| Development Build | Dev                                             |
+| Release Build     | Prod                                            |
 
 ---
 
@@ -411,6 +413,7 @@ public class LeaderboardManager : MonoBehaviour
 1. Enter Play mode
 
 2. Submit a test score:
+
    ```csharp
    // In a test script or console
    LeaderboardManager.Instance.SubmitScore(100);
@@ -450,11 +453,13 @@ If you're replacing Unity Gaming Services leaderboards:
 ### Export UGS Scores
 
 **Option A: Manual Export**
+
 1. Go to Unity Dashboard > Gaming Services > Leaderboards
 2. View your leaderboard scores
 3. Copy/note player names and scores
 
 **Option B: Direct Import (in KeeperBoard)**
+
 1. Go to your game in KeeperBoard dashboard
 2. Click **"Import Scores"**
 3. Select **"UGS Import"** tab
@@ -468,15 +473,16 @@ If you're replacing Unity Gaming Services leaderboards:
 ### Import to KeeperBoard
 
 **For Manual Export:**
+
 1. Go to your game in KeeperBoard dashboard
 2. Click **"Import Scores"**
 3. Select **"Manual Import"** tab
 4. Paste your data (CSV or JSON format):
    ```json
    [
-     {"player_name": "Player1", "score": 5000},
-     {"player_name": "Player2", "score": 4500},
-     {"player_name": "Player3", "score": 3200}
+     { "player_name": "Player1", "score": 5000 },
+     { "player_name": "Player2", "score": 4500 },
+     { "player_name": "Player3", "score": 3200 }
    ]
    ```
 5. Map the columns if needed
@@ -512,12 +518,12 @@ private async void Start()
 
 Replace UGS calls with KeeperBoard:
 
-| UGS | KeeperBoard |
-|-----|-------------|
-| `LeaderboardsService.Instance.AddPlayerScoreAsync()` | `client.SubmitScore()` |
-| `LeaderboardsService.Instance.GetScoresAsync()` | `client.GetTopScores()` |
-| `LeaderboardsService.Instance.GetPlayerScoreAsync()` | `client.GetPlayerScore()` |
-| `AuthenticationService.Instance.PlayerId` | `PlayerIdentity.Guid` |
+| UGS                                                      | KeeperBoard                 |
+| -------------------------------------------------------- | --------------------------- |
+| `LeaderboardsService.Instance.AddPlayerScoreAsync()`     | `client.SubmitScore()`      |
+| `LeaderboardsService.Instance.GetScoresAsync()`          | `client.GetTopScores()`     |
+| `LeaderboardsService.Instance.GetPlayerScoreAsync()`     | `client.GetPlayerScore()`   |
+| `AuthenticationService.Instance.PlayerId`                | `PlayerIdentity.Guid`       |
 | `AuthenticationService.Instance.UpdatePlayerNameAsync()` | `client.UpdatePlayerName()` |
 
 ### Remove UGS Dependencies
@@ -558,6 +564,7 @@ Once migration is complete:
 ### Player GUID Changes
 
 The GUID is stored in `PlayerPrefs`. It can reset if:
+
 - Player clears browser data (WebGL)
 - Player reinstalls the app (mobile)
 - PlayerPrefs are deleted
@@ -580,22 +587,22 @@ KeeperBoard only updates scores if the new score is **higher** than the existing
 
 ### API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/v1/scores` | Submit score |
-| `GET` | `/api/v1/leaderboard` | Get top scores |
-| `GET` | `/api/v1/player/:guid` | Get player's score |
-| `PUT` | `/api/v1/player/:guid` | Update player name |
-| `POST` | `/api/v1/claim` | Claim migrated score |
-| `GET` | `/api/v1/health` | Health check |
+| Method | Endpoint               | Description          |
+| ------ | ---------------------- | -------------------- |
+| `POST` | `/api/v1/scores`       | Submit score         |
+| `GET`  | `/api/v1/leaderboard`  | Get top scores       |
+| `GET`  | `/api/v1/player/:guid` | Get player's score   |
+| `PUT`  | `/api/v1/player/:guid` | Update player name   |
+| `POST` | `/api/v1/claim`        | Claim migrated score |
+| `GET`  | `/api/v1/health`       | Health check         |
 
 ### PlayerIdentity Properties
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `PlayerIdentity.Guid` | `string` | Unique player ID (auto-generated) |
-| `PlayerIdentity.Name` | `string` | Player display name |
-| `PlayerIdentity.HasConfirmedName` | `bool` | Whether name was set |
+| Property                          | Type     | Description                       |
+| --------------------------------- | -------- | --------------------------------- |
+| `PlayerIdentity.Guid`             | `string` | Unique player ID (auto-generated) |
+| `PlayerIdentity.Name`             | `string` | Player display name               |
+| `PlayerIdentity.HasConfirmedName` | `bool`   | Whether name was set              |
 
 ### Response Format
 
@@ -621,9 +628,9 @@ All API responses follow this structure:
 ## Support
 
 - **Documentation**: [https://keeperboard.vercel.app/docs](https://keeperboard.vercel.app/docs)
-- **Issues**: [https://github.com/YOUR_USERNAME/keeper-board/issues](https://github.com/YOUR_USERNAME/keeper-board/issues)
-- **Unity Package Issues**: [https://github.com/YOUR_USERNAME/keeper-board-unity/issues](https://github.com/YOUR_USERNAME/keeper-board-unity/issues)
+- **Issues**: [https://github.com/YOUR_USERNAME/keeperboard/issues](https://github.com/YOUR_USERNAME/keeperboard/issues)
+- **Unity Package Issues**: [https://github.com/YOUR_USERNAME/keeperboard-unity/issues](https://github.com/YOUR_USERNAME/keeperboard-unity/issues)
 
 ---
 
-*Happy leaderboarding!*
+_Happy leaderboarding!_
