@@ -8,15 +8,15 @@
 
 ## Phases
 
-- [ ] Phase 1: Database Migration (Schema Changes)
-- [ ] Phase 2: Version Resolution Logic (Lazy Reset Engine)
-- [ ] Phase 3: Public API Updates (Score Submission + Leaderboard Query)
-- [ ] Phase 4: Dashboard API Updates (CRUD + Scores Management)
-- [ ] Phase 5: Dashboard UI — Create/Edit Leaderboard Form
-- [ ] Phase 6: Dashboard UI — Leaderboard Detail Page (Version Navigation)
-- [ ] Phase 7: SDK Updates (TypeScript Client)
-- [ ] Phase 8: Archive Cleanup + Retention
-- [ ] Phase 9: Integration Testing & Polish
+- [x] Phase 1: Database Migration (Schema Changes)
+- [x] Phase 2: Version Resolution Logic (Lazy Reset Engine)
+- [x] Phase 3: Public API Updates (Score Submission + Leaderboard Query)
+- [x] Phase 4: Dashboard API Updates (CRUD + Scores Management)
+- [x] Phase 5: Dashboard UI — Create/Edit Leaderboard Form
+- [x] Phase 6: Dashboard UI — Leaderboard Detail Page (Version Navigation)
+- [x] Phase 7: SDK Updates (TypeScript Client)
+- [x] Phase 8: Archive Cleanup + Retention
+- [x] Phase 9: Integration Testing & Polish
 
 ---
 

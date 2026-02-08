@@ -6,7 +6,7 @@ Potential features to add to KeeperBoard. Prioritized by value to indie game dev
 
 ## 1. Time-based Leaderboards (Daily/Weekly/Monthly/All-time)
 
-**Status:** Next up
+**Status:** ✅ Completed (Plan 3)
 
 **What it does:** Players compete for the best score within a time window. Leaderboards auto-reset on schedule.
 
@@ -15,11 +15,12 @@ Potential features to add to KeeperBoard. Prioritized by value to indie game dev
 - Gives new players a chance to compete
 - Very common in mobile games
 
-**Implementation notes:**
-- Each leaderboard can have a `reset_period`: none, daily, weekly, monthly
-- Scores have a `period_start` timestamp to group them
-- Query filters by current period
-- Historical periods can be archived or discarded
+**Implementation:**
+- Each leaderboard has a `reset_schedule`: none, daily, weekly, monthly
+- Scores are versioned — each reset period creates a new version
+- Lazy reset mechanism (no cron jobs needed)
+- Historical versions are queryable via API
+- Automatic cleanup based on retention policy (30 daily, 12 weekly, 12 monthly)
 
 ---
 
@@ -216,7 +217,7 @@ Potential features to add to KeeperBoard. Prioritized by value to indie game dev
 
 ## Priority Ranking
 
-1. **Time-based Leaderboards** — Universal value, most games benefit
+1. ~~**Time-based Leaderboards**~~ — ✅ Completed (Plan 3)
 2. **Webhooks** — High value for engaged developers
 3. **Score Validation** — Easy win, prevents common cheating
 4. **Embeddable Widget** — Marketing value, drives adoption
@@ -227,4 +228,4 @@ Potential features to add to KeeperBoard. Prioritized by value to indie game dev
 
 ---
 
-*Last updated: 2026-02-07*
+*Last updated: 2026-02-08*

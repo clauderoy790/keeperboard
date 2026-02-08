@@ -2,9 +2,12 @@
  * Version resolution engine for time-based leaderboards.
  * Implements "lazy reset": checks if current period has elapsed and advances version if so.
  * For 'none' (all-time) leaderboards, always returns version 1 with no reset info.
+ *
+ * Also handles automatic cleanup of old archived versions based on retention policy.
  */
 
 import { createAdminClient } from '@/lib/supabase/admin';
+import { VERSION_RETENTION } from '@/lib/constants/retention';
 
 export interface VersionResolution {
   version: number;
@@ -101,6 +104,9 @@ export async function resolveCurrentVersion(
       };
     }
   }
+
+  // Clean up old archived versions based on retention policy
+  await cleanupOldVersions(leaderboard.id, newVersion, leaderboard.reset_schedule);
 
   const nextReset = calculateNextReset(
     leaderboard.reset_schedule,
@@ -290,4 +296,46 @@ function calculatePeriodsElapsed(
   }
 
   return count;
+}
+
+/**
+ * Cleans up old archived versions based on retention policy.
+ * Called during lazy reset when a new version is created.
+ *
+ * @param leaderboardId - The leaderboard to clean up
+ * @param currentVersion - The new current version number
+ * @param resetSchedule - The reset schedule type (determines retention limit)
+ */
+async function cleanupOldVersions(
+  leaderboardId: string,
+  currentVersion: number,
+  resetSchedule: string
+): Promise<void> {
+  // Get retention limit for this schedule type
+  const retentionLimit =
+    VERSION_RETENTION[resetSchedule as keyof typeof VERSION_RETENTION];
+
+  // If no retention limit (e.g., 'none' schedule), don't delete anything
+  if (!retentionLimit) {
+    return;
+  }
+
+  // Calculate oldest version to keep
+  const oldestAllowedVersion = currentVersion - retentionLimit;
+
+  // No cleanup needed if we're within retention limits
+  if (oldestAllowedVersion <= 1) {
+    return;
+  }
+
+  // Delete all scores older than the retention limit
+  const admin = createAdminClient();
+  await admin
+    .from('scores')
+    .delete()
+    .eq('leaderboard_id', leaderboardId)
+    .lt('version', oldestAllowedVersion);
+
+  // No need to check error - deletion is best-effort
+  // If it fails, cleanup will be attempted again on next reset
 }

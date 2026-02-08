@@ -12,6 +12,7 @@ https://keeperboard.vercel.app/
 
 - **Multi-game support** — One deployment handles unlimited games
 - **Environment separation** — Separate API keys for dev, staging, prod
+- **Time-based leaderboards** — Daily, weekly, monthly resets with version history
 - **TypeScript SDK** — Simple client for browser-based games
 - **Admin dashboard** — Web UI for managing games, leaderboards, and scores
 - **CSV/JSON import** — Migrate scores from any source
@@ -88,11 +89,23 @@ const result = await client.submitScore(
 );
 console.log(`Rank: #${result.rank}`);
 
-// Get leaderboard
-const leaderboard = await client.getLeaderboard(10);
+// Get current leaderboard
+const leaderboard = await client.getLeaderboard({ limit: 10 });
 leaderboard.entries.forEach((entry) => {
   console.log(`#${entry.rank} ${entry.player_name}: ${entry.score}`);
 });
+
+// For time-based leaderboards, query historical versions
+if (leaderboard.version) {
+  console.log(`Current version: ${leaderboard.version}`);
+  console.log(`Next reset: ${leaderboard.next_reset}`);
+
+  // Get previous version
+  const historical = await client.getLeaderboard({
+    limit: 10,
+    version: leaderboard.version - 1
+  });
+}
 ```
 
 See [sdk/README.md](sdk/README.md) for full API documentation.
@@ -137,14 +150,16 @@ keeperboard/
 
 All endpoints require an API key via `X-API-Key` header (except health check).
 
-| Endpoint               | Method | Description                 |
-| ---------------------- | ------ | --------------------------- |
-| `/api/v1/health`       | GET    | Health check (no auth)      |
-| `/api/v1/scores`       | POST   | Submit a score              |
-| `/api/v1/leaderboard`  | GET    | Get leaderboard entries     |
-| `/api/v1/player/:guid` | GET    | Get player's score and rank |
-| `/api/v1/player/:guid` | PUT    | Update player name          |
-| `/api/v1/claim`        | POST   | Claim imported score        |
+| Endpoint               | Method | Description                 | Query Params |
+| ---------------------- | ------ | --------------------------- | ------------ |
+| `/api/v1/health`       | GET    | Health check (no auth)      | — |
+| `/api/v1/scores`       | POST   | Submit a score              | — |
+| `/api/v1/leaderboard`  | GET    | Get leaderboard entries     | `limit`, `offset`, `leaderboard_slug`, `version` |
+| `/api/v1/player/:guid` | GET    | Get player's score and rank | `leaderboard_slug` |
+| `/api/v1/player/:guid` | PUT    | Update player name          | `leaderboard_slug` |
+| `/api/v1/claim`        | POST   | Claim imported score        | — |
+
+**Time-based leaderboards:** Pass `?version=N` to query historical versions. Omit for current version.
 
 ## Documentation
 
@@ -163,9 +178,9 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 |------|-------------|---------|--------|
 | [Plan 1](docs/plans/keeperboard.md) | Initial Architecture | 2024-12-29 | Completed |
 | [Plan 2](docs/plans/2_keeperboard-phaser.md) | KeeperBoard Phaser Adaptation | 2024-12-30 | Completed |
-| [Plan 3](docs/plans/3_time-based-leaderboards.md) | Time-Based Leaderboards | 2026-02-08 | Phase 7/9 (Feb 8) |
+| [Plan 3](docs/plans/3_time-based-leaderboards.md) | Time-Based Leaderboards | 2026-02-08 | Completed |
 
-**Active:** Plan 3 - Time-Based Leaderboards (Phase 8 next)
+**Latest:** Plan 3 - Time-Based Leaderboards (Completed Feb 8, 2026)
 
 ## License
 
