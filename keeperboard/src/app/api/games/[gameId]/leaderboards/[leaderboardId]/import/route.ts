@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { resolveCurrentVersion } from '@/lib/api/version';
 
 interface RouteParams {
   params: Promise<{ gameId: string; leaderboardId: string }>;
@@ -40,10 +41,10 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
-    // Verify leaderboard exists
+    // Verify leaderboard exists and get reset info
     const { data: leaderboard } = await supabase
       .from('leaderboards')
-      .select('id')
+      .select('id, reset_schedule, reset_hour, current_version, current_period_start')
       .eq('id', leaderboardId)
       .eq('game_id', gameId)
       .single();
@@ -53,6 +54,19 @@ export async function POST(request: Request, { params }: RouteParams) {
         { error: 'Leaderboard not found' },
         { status: 404 }
       );
+    }
+
+    // Resolve current version (may trigger lazy reset)
+    let currentVersion = 1;
+    if (leaderboard.reset_schedule !== 'none') {
+      const versionInfo = await resolveCurrentVersion({
+        id: leaderboard.id,
+        reset_schedule: leaderboard.reset_schedule,
+        reset_hour: leaderboard.reset_hour,
+        current_version: leaderboard.current_version,
+        current_period_start: leaderboard.current_period_start,
+      });
+      currentVersion = versionInfo.version;
     }
 
     // Parse request body
@@ -106,6 +120,7 @@ export async function POST(request: Request, { params }: RouteParams) {
             .select('id, score')
             .eq('leaderboard_id', leaderboardId)
             .eq('player_guid', scoreData.player_guid)
+            .eq('version', currentVersion)
             .maybeSingle();
           existingScore = data;
         }
@@ -117,6 +132,7 @@ export async function POST(request: Request, { params }: RouteParams) {
             .select('id, score')
             .eq('leaderboard_id', leaderboardId)
             .eq('player_name', scoreData.player_name)
+            .eq('version', currentVersion)
             .is('player_guid', null)
             .maybeSingle();
           existingScore = data;
@@ -145,12 +161,13 @@ export async function POST(request: Request, { params }: RouteParams) {
             successCount++;
           }
         } else {
-          // Insert new score
+          // Insert new score with current version
           const { error } = await supabase.from('scores').insert({
             leaderboard_id: leaderboardId,
             player_guid: scoreData.player_guid || null,
             player_name: scoreData.player_name,
             score: scoreData.score,
+            version: currentVersion,
             is_migrated: true,
             migrated_from: importSource,
           });

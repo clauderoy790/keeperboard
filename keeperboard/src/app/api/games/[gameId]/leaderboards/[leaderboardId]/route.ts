@@ -36,10 +36,10 @@ export async function GET(
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
-    // Get leaderboard
+    // Get leaderboard with reset fields
     const { data: leaderboard, error: leaderboardError } = await supabase
       .from('leaderboards')
-      .select('*')
+      .select('id, game_id, environment_id, name, slug, sort_order, reset_schedule, reset_hour, current_version, current_period_start, created_at, updated_at')
       .eq('id', leaderboardId)
       .eq('game_id', gameId)
       .single();
@@ -51,11 +51,17 @@ export async function GET(
       );
     }
 
-    // Get score count
-    const { count } = await supabase
+    // Get score count (current version only for time-based boards)
+    let countQuery = supabase
       .from('scores')
       .select('*', { count: 'exact', head: true })
       .eq('leaderboard_id', leaderboardId);
+
+    if (leaderboard.reset_schedule !== 'none') {
+      countQuery = countQuery.eq('version', leaderboard.current_version);
+    }
+
+    const { count } = await countQuery;
 
     return NextResponse.json({
       leaderboard: {
@@ -111,7 +117,30 @@ export async function PUT(
 
     // Parse request body
     const body = await request.json();
-    const { name, slug, sort_order } = body;
+    const { name, slug, sort_order, reset_schedule, reset_hour } = body;
+
+    // Get current leaderboard to check reset_schedule immutability
+    const { data: currentLeaderboard } = await supabase
+      .from('leaderboards')
+      .select('reset_schedule')
+      .eq('id', leaderboardId)
+      .eq('game_id', gameId)
+      .single();
+
+    if (!currentLeaderboard) {
+      return NextResponse.json(
+        { error: 'Leaderboard not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if reset_schedule is being changed (immutable after creation)
+    if (reset_schedule !== undefined && reset_schedule !== currentLeaderboard.reset_schedule) {
+      return NextResponse.json(
+        { error: 'Cannot change reset schedule after creation. Create a new leaderboard instead.' },
+        { status: 400 }
+      );
+    }
 
     // Validate slug format if provided
     if (slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
@@ -129,11 +158,22 @@ export async function PUT(
       );
     }
 
+    // Validate reset_hour if provided (only meaningful if schedule !== 'none')
+    if (reset_hour !== undefined) {
+      if (!Number.isInteger(reset_hour) || reset_hour < 0 || reset_hour > 23) {
+        return NextResponse.json(
+          { error: 'Reset hour must be an integer between 0 and 23' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Build update object (only include provided fields)
     const updates: any = {};
     if (name !== undefined) updates.name = name;
     if (slug !== undefined) updates.slug = slug;
     if (sort_order !== undefined) updates.sort_order = sort_order;
+    if (reset_hour !== undefined) updates.reset_hour = reset_hour;
 
     // Use admin client to update leaderboard
     const adminClient = createAdminClient();

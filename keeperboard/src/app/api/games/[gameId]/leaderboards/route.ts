@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { calculatePeriodStart } from '@/lib/api/version';
 
 /**
  * GET /api/games/[gameId]/leaderboards
@@ -40,10 +41,10 @@ export async function GET(
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
-    // Build query
+    // Build query - include reset fields
     let query = supabase
       .from('leaderboards')
-      .select('*')
+      .select('id, game_id, environment_id, name, slug, sort_order, reset_schedule, reset_hour, current_version, current_period_start, created_at, updated_at')
       .eq('game_id', gameId);
 
     // Filter by environment if provided
@@ -60,13 +61,20 @@ export async function GET(
       throw new Error(leaderboardsError.message);
     }
 
-    // Get score counts for each leaderboard
+    // Get score counts for each leaderboard (current version only for time-based boards)
     const leaderboardsWithCounts = await Promise.all(
       (leaderboards || []).map(async (leaderboard) => {
-        const { count } = await supabase
+        let countQuery = supabase
           .from('scores')
           .select('*', { count: 'exact', head: true })
           .eq('leaderboard_id', leaderboard.id);
+
+        // For time-based leaderboards, only count current version scores
+        if (leaderboard.reset_schedule !== 'none') {
+          countQuery = countQuery.eq('version', leaderboard.current_version);
+        }
+
+        const { count } = await countQuery;
 
         return {
           ...leaderboard,
@@ -121,7 +129,7 @@ export async function POST(
 
     // Parse request body
     const body = await request.json();
-    const { name, slug, sort_order, environment_id } = body;
+    const { name, slug, sort_order, environment_id, reset_schedule, reset_hour } = body;
 
     // Validate input
     if (!name || !slug || !sort_order || !environment_id) {
@@ -147,6 +155,24 @@ export async function POST(
       );
     }
 
+    // Validate reset_schedule (default to 'none' if not provided)
+    const validatedResetSchedule = reset_schedule || 'none';
+    if (!['none', 'daily', 'weekly', 'monthly'].includes(validatedResetSchedule)) {
+      return NextResponse.json(
+        { error: 'Reset schedule must be one of: none, daily, weekly, monthly' },
+        { status: 400 }
+      );
+    }
+
+    // Validate reset_hour (default to 0 if not provided)
+    const validatedResetHour = reset_hour !== undefined ? reset_hour : 0;
+    if (!Number.isInteger(validatedResetHour) || validatedResetHour < 0 || validatedResetHour > 23) {
+      return NextResponse.json(
+        { error: 'Reset hour must be an integer between 0 and 23' },
+        { status: 400 }
+      );
+    }
+
     // Verify environment belongs to this game
     const { data: environment } = await supabase
       .from('environments')
@@ -165,6 +191,17 @@ export async function POST(
     // Use admin client for insert (bypasses RLS)
     const adminClient = createAdminClient();
 
+    // Calculate current_period_start for time-based leaderboards
+    let currentPeriodStart: string;
+    if (validatedResetSchedule !== 'none') {
+      // Align to proper period boundary (e.g., midnight UTC for daily, Monday for weekly, 1st of month for monthly)
+      const periodStartDate = calculatePeriodStart(validatedResetSchedule, validatedResetHour, new Date());
+      currentPeriodStart = periodStartDate.toISOString();
+    } else {
+      // For 'none' leaderboards, use current timestamp
+      currentPeriodStart = new Date().toISOString();
+    }
+
     // Create leaderboard
     const { data: leaderboard, error: createError } = await adminClient
       .from('leaderboards')
@@ -174,6 +211,10 @@ export async function POST(
         name,
         slug,
         sort_order,
+        reset_schedule: validatedResetSchedule,
+        reset_hour: validatedResetHour,
+        current_version: 1,
+        current_period_start: currentPeriodStart,
       })
       .select()
       .single();
