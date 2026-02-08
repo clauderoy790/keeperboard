@@ -135,30 +135,42 @@ export type Database = {
       leaderboards: {
         Row: {
           created_at: string | null
+          current_period_start: string
+          current_version: number
           environment_id: string
           game_id: string
           id: string
           name: string
+          reset_hour: number
+          reset_schedule: string
           slug: string
           sort_order: string
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          current_period_start?: string
+          current_version?: number
           environment_id: string
           game_id: string
           id?: string
           name?: string
+          reset_hour?: number
+          reset_schedule?: string
           slug?: string
           sort_order?: string
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          current_period_start?: string
+          current_version?: number
           environment_id?: string
           game_id?: string
           id?: string
           name?: string
+          reset_hour?: number
+          reset_schedule?: string
           slug?: string
           sort_order?: string
           updated_at?: string | null
@@ -192,6 +204,7 @@ export type Database = {
           player_name: string
           score: number
           updated_at: string | null
+          version: number
         }
         Insert: {
           created_at?: string | null
@@ -204,6 +217,7 @@ export type Database = {
           player_name: string
           score: number
           updated_at?: string | null
+          version?: number
         }
         Update: {
           created_at?: string | null
@@ -216,6 +230,7 @@ export type Database = {
           player_name?: string
           score?: number
           updated_at?: string | null
+          version?: number
         }
         Relationships: [
           {
