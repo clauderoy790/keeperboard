@@ -34,7 +34,7 @@ keeperboard/
 - [x] Phase 2: Version Resolution Logic (Lazy Reset Engine)
 - [x] Phase 3: Public API Updates (Score Submission + Leaderboard Query)
 - [x] Phase 4: Dashboard API Updates (CRUD + Scores Management)
-- [ ] Phase 5: Dashboard UI — Create/Edit Leaderboard Form
+- [x] Phase 5: Dashboard UI — Create/Edit Leaderboard Form
 - [ ] Phase 6: Dashboard UI — Leaderboard Detail Page (Version Navigation)
 - [ ] Phase 7: SDK Updates (TypeScript Client)
 - [ ] Phase 8: Archive Cleanup + Retention

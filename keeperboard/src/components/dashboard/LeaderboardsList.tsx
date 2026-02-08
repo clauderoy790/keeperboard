@@ -36,6 +36,8 @@ export default function LeaderboardsList({
     name: string;
     slug: string;
     sort_order: 'asc' | 'desc';
+    reset_schedule: 'none' | 'daily' | 'weekly' | 'monthly';
+    reset_hour: number;
   }) => {
     setCreating(true);
     setError(null);

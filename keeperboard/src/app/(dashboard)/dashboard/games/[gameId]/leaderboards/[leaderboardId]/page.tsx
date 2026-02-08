@@ -14,6 +14,10 @@ interface Leaderboard {
   name: string;
   slug: string;
   sort_order: 'asc' | 'desc';
+  reset_schedule: 'none' | 'daily' | 'weekly' | 'monthly';
+  reset_hour: number;
+  current_version: number;
+  current_period_start: string;
   score_count: number;
   created_at: string;
 }
@@ -63,6 +67,8 @@ export default function LeaderboardDetailPage({
     name: string;
     slug: string;
     sort_order: 'asc' | 'desc';
+    reset_schedule: 'none' | 'daily' | 'weekly' | 'monthly';
+    reset_hour: number;
   }) => {
     setUpdating(true);
     try {
@@ -233,10 +239,13 @@ export default function LeaderboardDetailPage({
                 name: leaderboard.name,
                 slug: leaderboard.slug,
                 sort_order: leaderboard.sort_order,
+                reset_schedule: leaderboard.reset_schedule,
+                reset_hour: leaderboard.reset_hour,
               }}
               onSubmit={handleUpdate}
               submitLabel="Save Changes"
               loading={updating}
+              isEditing={true}
             />
             <div className="mt-4">
               <Button
@@ -292,6 +301,37 @@ export default function LeaderboardDetailPage({
                 {new Date(leaderboard.created_at).toLocaleString()}
               </p>
             </div>
+            <div>
+              <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
+                Reset Schedule
+              </label>
+              <p className="text-sm font-mono text-neutral-400 mt-1">
+                {leaderboard.reset_schedule === 'none' && 'No Reset (All-Time)'}
+                {leaderboard.reset_schedule === 'daily' && 'Daily'}
+                {leaderboard.reset_schedule === 'weekly' && 'Weekly'}
+                {leaderboard.reset_schedule === 'monthly' && 'Monthly'}
+              </p>
+            </div>
+            {leaderboard.reset_schedule !== 'none' && (
+              <>
+                <div>
+                  <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
+                    Reset Time
+                  </label>
+                  <p className="text-sm font-mono text-neutral-400 mt-1">
+                    {String(leaderboard.reset_hour).padStart(2, '0')}:00 UTC
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
+                    Current Version
+                  </label>
+                  <p className="text-sm font-mono text-neutral-400 mt-1">
+                    Version {leaderboard.current_version}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         )}
       </Card>
