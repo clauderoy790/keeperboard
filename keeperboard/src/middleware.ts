@@ -39,6 +39,7 @@ export async function middleware(request: NextRequest) {
   const isAuth = url.pathname.startsWith('/login') || url.pathname.startsWith('/register');
   const isAuthCallback = url.pathname.startsWith('/auth/callback');
   const isPublicApi = url.pathname.startsWith('/api/v1');
+  const isDemoLogin = url.pathname.startsWith('/api/demo-login');
 
   // Allow public API routes without auth
   if (isPublicApi) {
@@ -47,6 +48,11 @@ export async function middleware(request: NextRequest) {
 
   // Allow auth callback
   if (isAuthCallback) {
+    return supabaseResponse;
+  }
+
+  // Allow demo login route without auth
+  if (isDemoLogin) {
     return supabaseResponse;
   }
 

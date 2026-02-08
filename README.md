@@ -1,24 +1,109 @@
 # KeeperBoard
 
-> Free, open-source leaderboard service for indie games. Works with Phaser.js, Unity, and any game that can make HTTP requests.
+Free, open-source leaderboard-as-a-service for indie game developers. Self-host your own leaderboard backend with a dashboard UI and REST API.
 
-## Status
+Works with **Phaser.js**, **Unity**, and any game that can make HTTP requests.
 
-✅ **Phase 13 Complete** — Ready for testing and deployment!
+## Features
 
-## Features (Planned)
+- **Multi-game support** — One deployment handles unlimited games
+- **Environment separation** — Separate API keys for dev, staging, prod
+- **TypeScript SDK** — Simple client for browser-based games
+- **Admin dashboard** — Web UI for managing games, leaderboards, and scores
+- **CSV/JSON import** — Migrate scores from any source
+- **Free tier friendly** — Built on Supabase + Vercel free tiers
 
-- **Multi-game support** - One deployment handles unlimited games
-- **Dev/Prod separation** - Separate API keys per environment
-- **JavaScript SDK** - TypeScript client for Phaser.js and web games
-- **Admin dashboard** - Web UI for managing games, leaderboards, and scores
-- **CSV/JSON import** - Bring in scores from any source
-- **Free tier friendly** - Built on Supabase + Vercel free tiers
+## Quick Start
 
-## Documentation
+### 1. Clone and install
 
-- [Architecture & API Design](docs/plans/keeperboard.md) - Schema, endpoints, auth
-- [Implementation Plan](docs/plans/2_keeperboard-phaser.md) - Active phased build guide
+```bash
+git clone https://github.com/your-username/keeper-board.git
+cd keeper-board/keeperboard
+npm install
+```
+
+### 2. Set up Supabase
+
+1. Create a free project at [supabase.com](https://supabase.com)
+2. Go to **SQL Editor** and run the schema files in order:
+   - `keeperboard/supabase/schema.sql`
+   - `keeperboard/supabase/rls-policies.sql`
+3. Go to **Settings > API** and copy your keys
+
+### 3. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your Supabase credentials:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+### 4. Run locally
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) — you're ready to go!
+
+## Using the SDK
+
+Install the SDK in your game project:
+
+```bash
+npm install keeperboard-sdk
+```
+
+Or copy the `sdk/src/` folder directly into your project.
+
+### Basic usage
+
+```typescript
+import { KeeperBoardClient, PlayerIdentity } from 'keeperboard-sdk';
+
+const client = new KeeperBoardClient({
+  apiUrl: 'https://your-deployment.vercel.app',
+  apiKey: 'kb_prod_your_api_key',
+});
+
+const identity = new PlayerIdentity();
+
+// Submit a score
+const result = await client.submitScore(
+  identity.getOrCreatePlayerGuid(),
+  'PlayerName',
+  1500
+);
+console.log(`Rank: #${result.rank}`);
+
+// Get leaderboard
+const leaderboard = await client.getLeaderboard(10);
+leaderboard.entries.forEach(entry => {
+  console.log(`#${entry.rank} ${entry.player_name}: ${entry.score}`);
+});
+```
+
+See [sdk/README.md](sdk/README.md) for full API documentation.
+
+## Deployment
+
+Deploy to Vercel with one click, or see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed instructions.
+
+### Vercel deployment
+
+1. Fork this repo
+2. Import to [Vercel](https://vercel.com)
+3. Set root directory to `keeperboard`
+4. Add environment variables
+5. Deploy
 
 ## Tech Stack
 
@@ -29,18 +114,45 @@
 | Auth | Supabase Auth |
 | Styling | Tailwind CSS 4 |
 | Hosting | Vercel |
-| Game Client | TypeScript SDK (fetch-based) |
+| SDK | TypeScript (fetch-based) |
 
-## Development Plans
+## Project Structure
 
-| Plan | Description | Created | Status |
-|------|-------------|---------|--------|
-| [Plan 1](docs/plans/keeperboard-implementation.md) | Original Unity-focused plan | Dec 2024 | Superseded |
-| [Plan 2](docs/plans/2_keeperboard-phaser.md) | Phaser.js adaptation | Feb 2026 | Completed (Feb 07) |
-| [Plan 3](docs/plans/3_supabase-keep-alive.md) | Supabase keep-alive system | Feb 2026 | Not started |
+```
+keeper-board/
+├── keeperboard/          # Next.js web app
+│   ├── src/app/api/v1/   # Public REST API
+│   ├── src/app/(auth)/   # Login/register pages
+│   └── src/app/(dashboard)/ # Admin dashboard
+├── sdk/                  # TypeScript client SDK
+├── docs/                 # Documentation
+└── test-game/            # Example Phaser.js game
+```
 
-**Latest:** Plan 2 - KeeperBoard Phaser Adaptation (Completed)
+## API Overview
+
+All endpoints require an API key via `X-API-Key` header (except health check).
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/health` | GET | Health check (no auth) |
+| `/api/v1/scores` | POST | Submit a score |
+| `/api/v1/leaderboard` | GET | Get leaderboard entries |
+| `/api/v1/player/:guid` | GET | Get player's score and rank |
+| `/api/v1/player/:guid` | PUT | Update player name |
+| `/api/v1/claim` | POST | Claim imported score |
+
+## Documentation
+
+- [SDK Reference](sdk/README.md) — Full TypeScript SDK docs
+- [Deployment Guide](docs/DEPLOYMENT.md) — Production setup
+- [Security](docs/SECURITY.md) — Security architecture
+- [API Collection](KeeperBoard_API.postman_collection.json) — Postman collection
+
+## Contributing
+
+Contributions are welcome! Please open an issue first to discuss what you'd like to change.
 
 ## License
 
-MIT
+[MIT](LICENSE)
