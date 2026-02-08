@@ -66,7 +66,6 @@ export type Database = {
           id: string
           is_default: boolean | null
           name: string
-          slug: string
         }
         Insert: {
           created_at?: string | null
@@ -74,7 +73,6 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           name: string
-          slug: string
         }
         Update: {
           created_at?: string | null
@@ -82,7 +80,6 @@ export type Database = {
           id?: string
           is_default?: boolean | null
           name?: string
-          slug?: string
         }
         Relationships: [
           {
@@ -100,7 +97,6 @@ export type Database = {
           description: string | null
           id: string
           name: string
-          slug: string
           updated_at: string | null
           user_id: string
         }
@@ -109,7 +105,6 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
-          slug: string
           updated_at?: string | null
           user_id: string
         }
@@ -118,7 +113,6 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
-          slug?: string
           updated_at?: string | null
           user_id?: string
         }

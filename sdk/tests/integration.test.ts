@@ -93,7 +93,6 @@ async function createTestFixtures(): Promise<TestFixtures> {
     .insert({
       user_id: userId,
       name: testGameName,
-      slug: `sdk-test-${testRunId}`,
     })
     .select()
     .single();

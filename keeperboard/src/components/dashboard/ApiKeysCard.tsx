@@ -15,7 +15,6 @@ interface ApiKey {
 interface Environment {
   id: string;
   name: string;
-  slug: string;
   is_default: boolean;
 }
 

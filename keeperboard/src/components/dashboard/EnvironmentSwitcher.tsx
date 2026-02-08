@@ -3,7 +3,6 @@
 interface Environment {
   id: string;
   name: string;
-  slug: string;
   is_default: boolean;
 }
 
@@ -28,8 +27,6 @@ export default function EnvironmentSwitcher({
     onEnvironmentChange(defaultEnv.id);
     return null;
   }
-
-  const selectedEnv = environments.find((e) => e.id === selectedEnvironmentId);
 
   return (
     <div className="flex items-center gap-3 mb-4">
@@ -76,11 +73,6 @@ export default function EnvironmentSwitcher({
           </svg>
         </div>
       </div>
-      {selectedEnv && (
-        <span className="text-xs font-mono text-neutral-500">
-          /{selectedEnv.slug}
-        </span>
-      )}
     </div>
   );
 }

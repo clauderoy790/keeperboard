@@ -10,7 +10,6 @@ import Link from 'next/link';
 interface Game {
   id: string;
   name: string;
-  slug: string;
   description: string | null;
   created_at: string;
   leaderboard_count: number;
@@ -39,7 +38,7 @@ export default function GamesPage() {
     }
   };
 
-  const handleCreateGame = async (formData: { name: string; slug: string; description: string }) => {
+  const handleCreateGame = async (formData: { name: string; description: string }) => {
     setCreating(true);
     try {
       const response = await fetch('/api/games', {
@@ -143,9 +142,6 @@ export default function GamesPage() {
                     <h3 className="text-xl font-mono font-bold text-cyan-400 mb-1">
                       {game.name}
                     </h3>
-                    <p className="text-sm font-mono text-neutral-500">
-                      /{game.slug}
-                    </p>
                   </div>
 
                   {game.description && (
