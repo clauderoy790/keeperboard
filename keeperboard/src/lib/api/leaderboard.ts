@@ -3,6 +3,10 @@ import { createAdminClient } from '@/lib/supabase/admin';
 export interface LeaderboardResolveResult {
   leaderboardId: string;
   sortOrder: 'asc' | 'desc';
+  resetSchedule: 'none' | 'daily' | 'weekly' | 'monthly';
+  resetHour: number;
+  currentVersion: number;
+  currentPeriodStart: string;
 }
 
 /**
@@ -25,7 +29,7 @@ export async function resolveLeaderboard(
 
   let query = supabase
     .from('leaderboards')
-    .select('id, sort_order')
+    .select('id, sort_order, reset_schedule, reset_hour, current_version, current_period_start')
     .eq('game_id', gameId)
     .eq('environment_id', environmentId);
 
@@ -50,5 +54,9 @@ export async function resolveLeaderboard(
   return {
     leaderboardId: data.id,
     sortOrder: data.sort_order === 'asc' ? 'asc' : 'desc',
+    resetSchedule: data.reset_schedule as 'none' | 'daily' | 'weekly' | 'monthly',
+    resetHour: data.reset_hour,
+    currentVersion: data.current_version,
+    currentPeriodStart: data.current_period_start,
   };
 }

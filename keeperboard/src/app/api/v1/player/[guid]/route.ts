@@ -3,6 +3,7 @@ import { successResponse, errorResponse } from '@/lib/utils/api-response';
 import { corsHeaders } from '@/lib/utils/cors';
 import { validateApiKey } from '@/lib/api/auth';
 import { resolveLeaderboard } from '@/lib/api/leaderboard';
+import { resolveCurrentVersion } from '@/lib/api/version';
 
 interface RouteParams {
   params: Promise<{ guid: string }>;
@@ -18,21 +19,31 @@ export async function GET(request: Request, { params }: RouteParams) {
     const leaderboardSlug = searchParams.get('leaderboard') || undefined;
 
     // Resolve leaderboard
-    const { leaderboardId } = await resolveLeaderboard(
+    const leaderboard = await resolveLeaderboard(
       gameId,
       environmentId,
       leaderboardSlug
     );
 
+    // Resolve current version (lazy reset)
+    const { version: currentVersion } = await resolveCurrentVersion({
+      id: leaderboard.leaderboardId,
+      reset_schedule: leaderboard.resetSchedule,
+      reset_hour: leaderboard.resetHour,
+      current_version: leaderboard.currentVersion,
+      current_period_start: leaderboard.currentPeriodStart,
+    });
+
     const { guid } = await params;
     const supabase = createAdminClient();
 
-    // Get player's score
+    // Get player's score in current version
     const { data: playerScore, error } = await supabase
       .from('scores')
       .select('id, player_guid, player_name, score')
-      .eq('leaderboard_id', leaderboardId)
+      .eq('leaderboard_id', leaderboard.leaderboardId)
       .eq('player_guid', guid)
+      .eq('version', currentVersion)
       .single();
 
     if (error || !playerScore) {
@@ -44,11 +55,12 @@ export async function GET(request: Request, { params }: RouteParams) {
       );
     }
 
-    // Calculate rank
+    // Calculate rank in current version
     const { count } = await supabase
       .from('scores')
       .select('*', { count: 'exact', head: true })
-      .eq('leaderboard_id', leaderboardId)
+      .eq('leaderboard_id', leaderboard.leaderboardId)
+      .eq('version', currentVersion)
       .gt('score', playerScore.score);
 
     const rank = (count ?? 0) + 1;
@@ -113,11 +125,20 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const leaderboardSlug = searchParams.get('leaderboard') || undefined;
 
     // Resolve leaderboard
-    const { leaderboardId } = await resolveLeaderboard(
+    const leaderboard = await resolveLeaderboard(
       gameId,
       environmentId,
       leaderboardSlug
     );
+
+    // Resolve current version (lazy reset)
+    const { version: currentVersion } = await resolveCurrentVersion({
+      id: leaderboard.leaderboardId,
+      reset_schedule: leaderboard.resetSchedule,
+      reset_hour: leaderboard.resetHour,
+      current_version: leaderboard.currentVersion,
+      current_period_start: leaderboard.currentPeriodStart,
+    });
 
     const { guid } = await params;
     const body = await request.json();
@@ -134,12 +155,13 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     const supabase = createAdminClient();
 
-    // Get existing score
+    // Get existing score in current version
     const { data: existingScore, error: fetchError } = await supabase
       .from('scores')
       .select('id, score')
-      .eq('leaderboard_id', leaderboardId)
+      .eq('leaderboard_id', leaderboard.leaderboardId)
       .eq('player_guid', guid)
+      .eq('version', currentVersion)
       .single();
 
     if (fetchError || !existingScore) {
@@ -162,11 +184,12 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     if (updateError) throw updateError;
 
-    // Calculate rank
+    // Calculate rank in current version
     const { count } = await supabase
       .from('scores')
       .select('*', { count: 'exact', head: true })
-      .eq('leaderboard_id', leaderboardId)
+      .eq('leaderboard_id', leaderboard.leaderboardId)
+      .eq('version', currentVersion)
       .gt('score', existingScore.score);
 
     const rank = (count ?? 0) + 1;

@@ -3,6 +3,7 @@ import { successResponse, errorResponse } from '@/lib/utils/api-response';
 import { corsHeaders } from '@/lib/utils/cors';
 import { validateApiKey } from '@/lib/api/auth';
 import { resolveLeaderboard } from '@/lib/api/leaderboard';
+import { resolveCurrentVersion } from '@/lib/api/version';
 
 interface ScoreSubmission {
   player_guid: string;
@@ -35,20 +36,30 @@ export async function POST(request: Request) {
     const leaderboardSlug = searchParams.get('leaderboard') || undefined;
 
     // Resolve leaderboard
-    const { leaderboardId } = await resolveLeaderboard(
+    const leaderboard = await resolveLeaderboard(
       gameId,
       environmentId,
       leaderboardSlug
     );
 
+    // Resolve current version (lazy reset)
+    const { version: currentVersion } = await resolveCurrentVersion({
+      id: leaderboard.leaderboardId,
+      reset_schedule: leaderboard.resetSchedule,
+      reset_hour: leaderboard.resetHour,
+      current_version: leaderboard.currentVersion,
+      current_period_start: leaderboard.currentPeriodStart,
+    });
+
     const supabase = createAdminClient();
 
-    // Check for existing score
+    // Check for existing score in current version
     const { data: existingScore } = await supabase
       .from('scores')
       .select('id, score')
-      .eq('leaderboard_id', leaderboardId)
+      .eq('leaderboard_id', leaderboard.leaderboardId)
       .eq('player_guid', player_guid)
+      .eq('version', currentVersion)
       .single();
 
     let isNewHighScore = false;
@@ -86,10 +97,11 @@ export async function POST(request: Request) {
       const { data: inserted, error: insertError } = await supabase
         .from('scores')
         .insert({
-          leaderboard_id: leaderboardId,
+          leaderboard_id: leaderboard.leaderboardId,
           player_guid,
           player_name,
           score,
+          version: currentVersion,
           metadata: (metadata as any) || null,
         })
         .select('id')
@@ -102,11 +114,12 @@ export async function POST(request: Request) {
       isNewHighScore = true;
     }
 
-    // Calculate rank (number of scores higher than this one + 1)
+    // Calculate rank (number of scores higher than this one + 1 in current version)
     const { count } = await supabase
       .from('scores')
       .select('*', { count: 'exact', head: true })
-      .eq('leaderboard_id', leaderboardId)
+      .eq('leaderboard_id', leaderboard.leaderboardId)
+      .eq('version', currentVersion)
       .gt('score', finalScore);
 
     const rank = (count ?? 0) + 1;

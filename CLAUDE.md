@@ -32,7 +32,7 @@ keeperboard/
 
 - [x] Phase 1: Database Migration (Schema Changes)
 - [x] Phase 2: Version Resolution Logic (Lazy Reset Engine)
-- [ ] Phase 3: Public API Updates (Score Submission + Leaderboard Query)
+- [x] Phase 3: Public API Updates (Score Submission + Leaderboard Query)
 - [ ] Phase 4: Dashboard API Updates (CRUD + Scores Management)
 - [ ] Phase 5: Dashboard UI — Create/Edit Leaderboard Form
 - [ ] Phase 6: Dashboard UI — Leaderboard Detail Page (Version Navigation)
