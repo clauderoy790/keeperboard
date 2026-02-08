@@ -6,6 +6,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import LeaderboardForm from '@/components/forms/LeaderboardForm';
 import ScoresTable from '@/components/dashboard/ScoresTable';
+import { calculateNextReset, calculatePeriodStartForVersion } from '@/lib/api/version';
 
 interface Leaderboard {
   id: string;
@@ -36,10 +37,38 @@ export default function LeaderboardDetailPage({
   const [deleting, setDeleting] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [liveScoreCount, setLiveScoreCount] = useState<number | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
+  const [oldestVersion, setOldestVersion] = useState(1);
+  const [nextResetTime, setNextResetTime] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchLeaderboard();
   }, []);
+
+  // Calculate next reset time for countdown
+  useEffect(() => {
+    if (
+      leaderboard &&
+      leaderboard.reset_schedule !== 'none' &&
+      leaderboard.current_period_start
+    ) {
+      const nextReset = calculateNextReset(
+        leaderboard.reset_schedule,
+        leaderboard.reset_hour,
+        leaderboard.current_period_start
+      );
+      setNextResetTime(nextReset);
+
+      // Update countdown every minute
+      const interval = setInterval(() => {
+        setNextResetTime(new Date(nextReset));
+      }, 60000);
+
+      return () => clearInterval(interval);
+    } else {
+      setNextResetTime(null);
+    }
+  }, [leaderboard]);
 
   const fetchLeaderboard = async () => {
     try {
@@ -170,6 +199,67 @@ export default function LeaderboardDetailPage({
 
   const handleScoreCountChange = (count: number) => {
     setLiveScoreCount(count);
+  };
+
+  // Helper: format countdown to next reset
+  const formatNextReset = (nextReset: Date): string => {
+    const now = new Date();
+    const diffMs = nextReset.getTime() - now.getTime();
+
+    if (diffMs <= 0) return 'Resetting soon...';
+
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours >= 24) {
+      const days = Math.floor(hours / 24);
+      return `in ${days}d ${hours % 24}h`;
+    }
+
+    return `in ${hours}h ${minutes}m`;
+  };
+
+  // Helper: get period range for a version
+  const getPeriodRange = (version: number): string => {
+    if (!leaderboard || leaderboard.reset_schedule === 'none') return '';
+
+    const periodStart = new Date(
+      calculatePeriodStartForVersion(
+        {
+          id: leaderboard.id,
+          reset_schedule: leaderboard.reset_schedule,
+          reset_hour: leaderboard.reset_hour,
+          current_version: leaderboard.current_version,
+          current_period_start: leaderboard.current_period_start,
+        },
+        version
+      )
+    );
+
+    const periodEnd = new Date(
+      calculateNextReset(
+        leaderboard.reset_schedule,
+        leaderboard.reset_hour,
+        periodStart.toISOString()
+      )
+    );
+
+    // Adjust end to show last second of period
+    periodEnd.setSeconds(periodEnd.getSeconds() - 1);
+
+    const formatDate = (date: Date) => {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    };
+
+    return `${formatDate(periodStart)} - ${formatDate(periodEnd)}`;
+  };
+
+  const handleVersionChange = (newVersion: number) => {
+    setSelectedVersion(newVersion);
   };
 
   if (loading) {
@@ -330,47 +420,101 @@ export default function LeaderboardDetailPage({
                     Version {leaderboard.current_version}
                   </p>
                 </div>
+                <div>
+                  <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
+                    Next Reset
+                  </label>
+                  <p className="text-sm font-mono text-neutral-400 mt-1">
+                    {nextResetTime ? formatNextReset(nextResetTime) : 'Calculating...'}
+                  </p>
+                </div>
               </>
             )}
           </div>
         )}
       </Card>
 
+      {/* Version Navigation (only for reset leaderboards) */}
+      {leaderboard.reset_schedule !== 'none' && (
+        <div className="flex items-center justify-center gap-4 py-4 px-6 bg-neutral-800/50 border border-cyan-500/20 rounded-lg">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              handleVersionChange((selectedVersion ?? leaderboard.current_version) - 1)
+            }
+            disabled={
+              (selectedVersion ?? leaderboard.current_version) <= oldestVersion
+            }
+          >
+            ← Previous
+          </Button>
+          <div className="text-center">
+            <div className="text-lg font-mono font-bold text-cyan-400">
+              Version {selectedVersion ?? leaderboard.current_version}
+            </div>
+            <div className="text-xs font-mono text-neutral-500 mt-1">
+              {getPeriodRange(selectedVersion ?? leaderboard.current_version)}
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              handleVersionChange((selectedVersion ?? leaderboard.current_version) + 1)
+            }
+            disabled={
+              (selectedVersion ?? leaderboard.current_version) >=
+              leaderboard.current_version
+            }
+          >
+            Next →
+          </Button>
+        </div>
+      )}
+
       {/* Scores Section */}
       <Card
         title={
           <div className="flex items-center justify-between w-full">
             <span>Scores ({scoreCount})</span>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() =>
-                  router.push(
-                    `/dashboard/games/${resolvedParams.gameId}/leaderboards/${resolvedParams.leaderboardId}/import`
-                  )
-                }
-              >
-                Import Scores
-              </Button>
-              {scoreCount > 0 && (
+            {selectedVersion === null && (
+              <div className="flex gap-2">
                 <Button
-                  variant="danger"
+                  variant="secondary"
                   size="sm"
-                  onClick={handleResetLeaderboard}
-                  loading={resetting}
+                  onClick={() =>
+                    router.push(
+                      `/dashboard/games/${resolvedParams.gameId}/leaderboards/${resolvedParams.leaderboardId}/import`
+                    )
+                  }
                 >
-                  Reset Leaderboard
+                  Import Scores
                 </Button>
-              )}
-            </div>
+                {scoreCount > 0 && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={handleResetLeaderboard}
+                    loading={resetting}
+                  >
+                    Reset Leaderboard
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         }
-        description="View and manage player scores"
+        description={
+          selectedVersion !== null && selectedVersion < leaderboard.current_version
+            ? 'Historical version (read-only)'
+            : 'View and manage player scores'
+        }
       >
         <ScoresTable
           gameId={resolvedParams.gameId}
           leaderboardId={resolvedParams.leaderboardId}
+          version={selectedVersion ?? undefined}
           onScoreCountChange={handleScoreCountChange}
         />
       </Card>
