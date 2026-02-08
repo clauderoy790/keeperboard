@@ -5,13 +5,21 @@
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
     "dist"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "leaderboard",
@@ -19,10 +27,20 @@
     "game",
     "scores",
     "typescript",
-    "sdk"
+    "sdk",
+    "keeperboard"
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR_USERNAME/keeper-board.git",
+    "directory": "sdk"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/keeper-board#readme",
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/keeper-board/issues"
+  },
   "devDependencies": {
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"

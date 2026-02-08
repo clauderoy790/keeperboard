@@ -1,28 +1,22 @@
 # KeeperBoard SDK
 
-TypeScript client SDK for [KeeperBoard](https://github.com/your-repo/keeper-board) — a free, open-source leaderboard-as-a-service for indie game developers.
+TypeScript client SDK for [KeeperBoard](https://github.com/YOUR_USERNAME/keeper-board) — a free, open-source leaderboard-as-a-service for indie game developers.
 
 Works with Phaser.js, vanilla JavaScript, and any TypeScript/JavaScript game running in the browser.
 
 ## Installation
 
-### Option 1: Copy into your project
+```bash
+npm install keeperboard-sdk
+```
 
-Copy the `sdk/src/` folder into your project and import directly:
+### Alternative: Copy source directly
+
+If you prefer not to use npm, copy the `src/` folder into your project:
 
 ```typescript
 import { KeeperBoardClient, PlayerIdentity } from './keeperboard/index';
 ```
-
-### Option 2: Build and use as a package
-
-```bash
-cd sdk
-npm install
-npm run build
-```
-
-Then copy `dist/` to your project or link locally.
 
 ## Quick Start
 
