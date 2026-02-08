@@ -31,15 +31,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get leaderboard slug from query params (optional)
+    // Get leaderboard name from query params (optional)
     const { searchParams } = new URL(request.url);
-    const leaderboardSlug = searchParams.get('leaderboard') || undefined;
+    const leaderboardName = searchParams.get('leaderboard') || undefined;
 
     // Resolve leaderboard
     const leaderboard = await resolveLeaderboard(
       gameId,
       environmentId,
-      leaderboardSlug
+      leaderboardName
     );
 
     // Resolve current version (lazy reset)

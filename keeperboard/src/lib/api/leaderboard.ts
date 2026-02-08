@@ -11,19 +11,19 @@ export interface LeaderboardResolveResult {
 
 /**
  * Resolves a leaderboard for a given game and environment.
- * If a specific leaderboard slug is provided, looks it up.
+ * If a specific leaderboard name is provided, looks it up (case-insensitive).
  * Otherwise, returns the first/default leaderboard for the game + environment.
  *
  * @param gameId - The game ID
  * @param environmentId - The environment ID
- * @param leaderboardSlug - Optional leaderboard slug
+ * @param leaderboardName - Optional leaderboard name
  * @returns LeaderboardResolveResult if found, or throws an error
  * @throws Error if leaderboard not found
  */
 export async function resolveLeaderboard(
   gameId: string,
   environmentId: string,
-  leaderboardSlug?: string
+  leaderboardName?: string
 ): Promise<LeaderboardResolveResult> {
   const supabase = createAdminClient();
 
@@ -33,9 +33,9 @@ export async function resolveLeaderboard(
     .eq('game_id', gameId)
     .eq('environment_id', environmentId);
 
-  if (leaderboardSlug) {
-    // Look up specific leaderboard by slug
-    query = query.eq('slug', leaderboardSlug);
+  if (leaderboardName) {
+    // Look up specific leaderboard by name (case-insensitive)
+    query = query.ilike('name', leaderboardName);
   } else {
     // Get first leaderboard (ordered by created_at)
     query = query.order('created_at', { ascending: true }).limit(1);
@@ -44,8 +44,8 @@ export async function resolveLeaderboard(
   const { data, error } = await query.single();
 
   if (error || !data) {
-    if (leaderboardSlug) {
-      throw new Error(`Leaderboard '${leaderboardSlug}' not found`);
+    if (leaderboardName) {
+      throw new Error(`Leaderboard '${leaderboardName}' not found`);
     } else {
       throw new Error('No leaderboards found for this game/environment');
     }

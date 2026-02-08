@@ -44,7 +44,7 @@ export async function GET(
     // Build query - include reset fields
     let query = supabase
       .from('leaderboards')
-      .select('id, game_id, environment_id, name, slug, sort_order, reset_schedule, reset_hour, current_version, current_period_start, created_at, updated_at')
+      .select('id, game_id, environment_id, name, sort_order, reset_schedule, reset_hour, current_version, current_period_start, created_at, updated_at')
       .eq('game_id', gameId);
 
     // Filter by environment if provided
@@ -129,20 +129,12 @@ export async function POST(
 
     // Parse request body
     const body = await request.json();
-    const { name, slug, sort_order, environment_id, reset_schedule, reset_hour } = body;
+    const { name, sort_order, environment_id, reset_schedule, reset_hour } = body;
 
     // Validate input
-    if (!name || !slug || !sort_order || !environment_id) {
+    if (!name || !sort_order || !environment_id) {
       return NextResponse.json(
-        { error: 'Name, slug, sort_order, and environment_id are required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate slug format (lowercase, hyphens only)
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-      return NextResponse.json(
-        { error: 'Slug must be lowercase letters, numbers, and hyphens only' },
+        { error: 'Name, sort_order, and environment_id are required' },
         { status: 400 }
       );
     }
@@ -209,7 +201,6 @@ export async function POST(
         game_id: gameId,
         environment_id,
         name,
-        slug,
         sort_order,
         reset_schedule: validatedResetSchedule,
         reset_hour: validatedResetHour,
@@ -225,7 +216,7 @@ export async function POST(
         return NextResponse.json(
           {
             error:
-              'A leaderboard with this slug already exists in this environment',
+              'A leaderboard with this name already exists in this environment',
           },
           { status: 409 }
         );

@@ -36,7 +36,7 @@ keeperboard/
 - [x] Phase 4: Dashboard API Updates (CRUD + Scores Management)
 - [x] Phase 5: Dashboard UI — Create/Edit Leaderboard Form
 - [x] Phase 6: Dashboard UI — Leaderboard Detail Page (Version Navigation)
-- [ ] Phase 7: SDK Updates (TypeScript Client)
+- [x] Phase 7: SDK Updates (TypeScript Client)
 - [ ] Phase 8: Archive Cleanup + Retention
 - [ ] Phase 9: Integration Testing & Polish
 

@@ -13,7 +13,6 @@ interface Leaderboard {
   game_id: string;
   environment_id: string;
   name: string;
-  slug: string;
   sort_order: 'asc' | 'desc';
   reset_schedule: 'none' | 'daily' | 'weekly' | 'monthly';
   reset_hour: number;
@@ -94,7 +93,6 @@ export default function LeaderboardDetailPage({
 
   const handleUpdate = async (formData: {
     name: string;
-    slug: string;
     sort_order: 'asc' | 'desc';
     reset_schedule: 'none' | 'daily' | 'weekly' | 'monthly';
     reset_hour: number;
@@ -284,10 +282,7 @@ export default function LeaderboardDetailPage({
           <h1 className="text-3xl font-mono font-bold text-cyan-400 tracking-wider uppercase mb-2">
             {leaderboard.name}
           </h1>
-          <div className="h-1 w-32 bg-gradient-to-r from-cyan-500 to-transparent mb-2" />
-          <p className="text-sm font-mono text-neutral-500">
-            /{leaderboard.slug}
-          </p>
+          <div className="h-1 w-32 bg-gradient-to-r from-cyan-500 to-transparent" />
         </div>
         <Button
           variant="ghost"
@@ -327,7 +322,6 @@ export default function LeaderboardDetailPage({
             <LeaderboardForm
               initialData={{
                 name: leaderboard.name,
-                slug: leaderboard.slug,
                 sort_order: leaderboard.sort_order,
                 reset_schedule: leaderboard.reset_schedule,
                 reset_hour: leaderboard.reset_hour,
@@ -355,14 +349,6 @@ export default function LeaderboardDetailPage({
               </label>
               <p className="text-lg font-mono text-cyan-400 font-semibold">
                 {leaderboard.name}
-              </p>
-            </div>
-            <div>
-              <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
-                Slug
-              </label>
-              <p className="text-lg font-mono text-neutral-300">
-                /{leaderboard.slug}
               </p>
             </div>
             <div>

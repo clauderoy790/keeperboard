@@ -14,15 +14,15 @@ export async function GET(request: Request, { params }: RouteParams) {
     // Validate API key
     const { gameId, environmentId, rateLimitHeaders } = await validateApiKey(request);
 
-    // Get leaderboard slug from query params (optional)
+    // Get leaderboard name from query params (optional)
     const { searchParams } = new URL(request.url);
-    const leaderboardSlug = searchParams.get('leaderboard') || undefined;
+    const leaderboardName = searchParams.get('leaderboard') || undefined;
 
     // Resolve leaderboard
     const leaderboard = await resolveLeaderboard(
       gameId,
       environmentId,
-      leaderboardSlug
+      leaderboardName
     );
 
     // Resolve current version (lazy reset)
@@ -120,15 +120,15 @@ export async function PUT(request: Request, { params }: RouteParams) {
     // Validate API key
     const { gameId, environmentId, rateLimitHeaders } = await validateApiKey(request);
 
-    // Get leaderboard slug from query params (optional)
+    // Get leaderboard name from query params (optional)
     const { searchParams } = new URL(request.url);
-    const leaderboardSlug = searchParams.get('leaderboard') || undefined;
+    const leaderboardName = searchParams.get('leaderboard') || undefined;
 
     // Resolve leaderboard
     const leaderboard = await resolveLeaderboard(
       gameId,
       environmentId,
-      leaderboardSlug
+      leaderboardName
     );
 
     // Resolve current version (lazy reset)

@@ -1,20 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 
 interface LeaderboardFormProps {
   initialData?: {
     name: string;
-    slug: string;
     sort_order: 'asc' | 'desc';
     reset_schedule?: 'none' | 'daily' | 'weekly' | 'monthly';
     reset_hour?: number;
   };
   onSubmit: (data: {
     name: string;
-    slug: string;
     sort_order: 'asc' | 'desc';
     reset_schedule: 'none' | 'daily' | 'weekly' | 'monthly';
     reset_hour: number;
@@ -22,14 +20,6 @@ interface LeaderboardFormProps {
   submitLabel?: string;
   loading?: boolean;
   isEditing?: boolean;
-}
-
-// Convert name to slug format (lowercase, hyphens only)
-function nameToSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
 }
 
 export default function LeaderboardForm({
@@ -40,7 +30,6 @@ export default function LeaderboardForm({
   isEditing = false,
 }: LeaderboardFormProps) {
   const [name, setName] = useState(initialData?.name || '');
-  const [slug, setSlug] = useState(initialData?.slug || '');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(
     initialData?.sort_order || 'desc'
   );
@@ -50,50 +39,20 @@ export default function LeaderboardForm({
   const [resetHour, setResetHour] = useState<number>(
     initialData?.reset_hour ?? 0
   );
-  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Auto-generate slug from name if not manually edited
-  useEffect(() => {
-    if (!slugManuallyEdited && name) {
-      setSlug(nameToSlug(name));
-    }
-  }, [name, slugManuallyEdited]);
-
-  const validateSlug = (value: string): boolean => {
-    return /^[a-z0-9-]+$/.test(value);
-  };
-
-  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSlug(value);
-    setSlugManuallyEdited(true);
-
-    if (value && !validateSlug(value)) {
-      setError('Slug must contain only lowercase letters, numbers, and hyphens');
-    } else {
-      setError(null);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!name || !slug) {
-      setError('Name and slug are required');
-      return;
-    }
-
-    if (!validateSlug(slug)) {
-      setError('Slug must contain only lowercase letters, numbers, and hyphens');
+    if (!name) {
+      setError('Name is required');
       return;
     }
 
     try {
       await onSubmit({
         name,
-        slug,
         sort_order: sortOrder,
         reset_schedule: resetSchedule,
         reset_hour: resetHour,
@@ -122,18 +81,7 @@ export default function LeaderboardForm({
         onChange={(e) => setName(e.target.value)}
         placeholder="High Scores"
         required
-        helperText="The display name for this leaderboard"
-      />
-
-      <Input
-        label="Slug"
-        type="text"
-        value={slug}
-        onChange={handleSlugChange}
-        placeholder="high-scores"
-        required
-        helperText="URL-friendly identifier (lowercase, hyphens only)"
-        error={error && error.includes('Slug') ? error : undefined}
+        helperText="The name used to identify this leaderboard in the API"
       />
 
       <div>

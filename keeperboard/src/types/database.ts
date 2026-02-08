@@ -143,7 +143,6 @@ export type Database = {
           name: string
           reset_hour: number
           reset_schedule: string
-          slug: string
           sort_order: string
           updated_at: string | null
         }
@@ -157,7 +156,6 @@ export type Database = {
           name?: string
           reset_hour?: number
           reset_schedule?: string
-          slug?: string
           sort_order?: string
           updated_at?: string | null
         }
@@ -171,7 +169,6 @@ export type Database = {
           name?: string
           reset_hour?: number
           reset_schedule?: string
-          slug?: string
           sort_order?: string
           updated_at?: string | null
         }

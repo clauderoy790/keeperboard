@@ -39,7 +39,7 @@ export async function GET(
     // Get leaderboard with reset fields
     const { data: leaderboard, error: leaderboardError } = await supabase
       .from('leaderboards')
-      .select('id, game_id, environment_id, name, slug, sort_order, reset_schedule, reset_hour, current_version, current_period_start, created_at, updated_at')
+      .select('id, game_id, environment_id, name, sort_order, reset_schedule, reset_hour, current_version, current_period_start, created_at, updated_at')
       .eq('id', leaderboardId)
       .eq('game_id', gameId)
       .single();
@@ -117,7 +117,7 @@ export async function PUT(
 
     // Parse request body
     const body = await request.json();
-    const { name, slug, sort_order, reset_schedule, reset_hour } = body;
+    const { name, sort_order, reset_schedule, reset_hour } = body;
 
     // Get current leaderboard to check reset_schedule immutability
     const { data: currentLeaderboard } = await supabase
@@ -138,14 +138,6 @@ export async function PUT(
     if (reset_schedule !== undefined && reset_schedule !== currentLeaderboard.reset_schedule) {
       return NextResponse.json(
         { error: 'Cannot change reset schedule after creation. Create a new leaderboard instead.' },
-        { status: 400 }
-      );
-    }
-
-    // Validate slug format if provided
-    if (slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-      return NextResponse.json(
-        { error: 'Slug must be lowercase letters, numbers, and hyphens only' },
         { status: 400 }
       );
     }
@@ -171,7 +163,6 @@ export async function PUT(
     // Build update object (only include provided fields)
     const updates: any = {};
     if (name !== undefined) updates.name = name;
-    if (slug !== undefined) updates.slug = slug;
     if (sort_order !== undefined) updates.sort_order = sort_order;
     if (reset_hour !== undefined) updates.reset_hour = reset_hour;
 
@@ -191,7 +182,7 @@ export async function PUT(
         return NextResponse.json(
           {
             error:
-              'A leaderboard with this slug already exists in this environment',
+              'A leaderboard with this name already exists in this environment',
           },
           { status: 409 }
         );

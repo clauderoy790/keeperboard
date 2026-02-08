@@ -14,14 +14,14 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100);
     const offset = parseInt(searchParams.get('offset') || '0');
-    const leaderboardSlug = searchParams.get('leaderboard') || undefined;
+    const leaderboardName = searchParams.get('leaderboard') || undefined;
     const versionParam = searchParams.get('version');
 
     // Resolve leaderboard
     const leaderboard = await resolveLeaderboard(
       gameId,
       environmentId,
-      leaderboardSlug
+      leaderboardName
     );
 
     const supabase = createAdminClient();
