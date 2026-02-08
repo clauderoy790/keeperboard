@@ -33,5 +33,5 @@ yarn-error.log*
 # Vercel
 .vercel
 
-# Unity (optional - remove if you want to track Unity projects)
-# Unity/Builds/
+# Unity builds (use GitHub Releases for distribution)
+Unity/Builds/
