@@ -1,14 +1,14 @@
 'use client';
 
 import { requestPasswordReset } from '../actions';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 
-export default function ResetPasswordPage() {
+function ResetPasswordPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -106,5 +106,27 @@ export default function ResetPasswordPage() {
         </Link>
       </p>
     </Card>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={(
+        <Card className="w-full max-w-md">
+          <div className="mb-6">
+            <h2 className="text-3xl font-mono font-bold text-cyan-400 tracking-wider uppercase mb-2">
+              Reset Password
+            </h2>
+            <div className="h-1 w-20 bg-gradient-to-r from-cyan-500 to-transparent" />
+            <p className="mt-4 text-neutral-400 font-mono text-sm">
+              Loading...
+            </p>
+          </div>
+        </Card>
+      )}
+    >
+      <ResetPasswordPageContent />
+    </Suspense>
   );
 }
