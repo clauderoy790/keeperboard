@@ -62,7 +62,30 @@ ALTER TABLE scores ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
 
 -- Update unique constraint: a player can have one score per leaderboard PER VERSION
 -- Must drop old constraint first, then add new one
-ALTER TABLE scores DROP CONSTRAINT scores_leaderboard_id_player_guid_key;
+-- NOTE: Verify the actual constraint name before running. Check with:
+--   SELECT constraint_name FROM information_schema.table_constraints
+--   WHERE table_name = 'scores' AND constraint_type = 'UNIQUE';
+-- The name below matches the Postgres default naming convention.
+-- If the name differs, update the DROP CONSTRAINT line accordingly.
+DO $$
+DECLARE
+  constraint_exists BOOLEAN;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE table_name = 'scores'
+      AND constraint_name = 'scores_leaderboard_id_player_guid_key'
+      AND constraint_type = 'UNIQUE'
+  ) INTO constraint_exists;
+
+  IF constraint_exists THEN
+    ALTER TABLE scores DROP CONSTRAINT scores_leaderboard_id_player_guid_key;
+  ELSE
+    -- Try the alternative naming convention
+    ALTER TABLE scores DROP CONSTRAINT IF EXISTS scores_leaderboard_id_player_guid_idx;
+  END IF;
+END $$;
+
 ALTER TABLE scores ADD CONSTRAINT scores_leaderboard_id_player_guid_version_key
   UNIQUE(leaderboard_id, player_guid, version);
 
@@ -133,6 +156,15 @@ This file must export the following functions:
 
 **Input:** A leaderboard object with fields: `id`, `reset_schedule`, `reset_hour`, `current_version`, `current_period_start`
 
+**Return type:**
+```typescript
+interface VersionResolution {
+  version: number;
+  periodStart: string | null;  // null for 'none' leaderboards
+  nextReset: string | null;    // null for 'none' leaderboards
+}
+```
+
 **Logic:**
 1. If `reset_schedule === 'none'`: return `{ version: 1, periodStart: null, nextReset: null }` immediately. No lazy reset needed.
 2. Calculate `periodEnd` based on `reset_schedule` and `current_period_start`:
@@ -156,9 +188,11 @@ This file must export the following functions:
 
 **Returns:** The start timestamp of the period that `referenceDate` falls within.
 
-- **daily:** same day at `resetHour:00:00` UTC. If referenceDate is before resetHour, use previous day.
-- **weekly:** Monday of that week at `resetHour:00:00` UTC
-- **monthly:** first day of that month at `resetHour:00:00` UTC
+- **daily:** same day at `resetHour:00:00` UTC. If referenceDate is before resetHour, use previous day at resetHour.
+- **weekly:** Monday of that week at `resetHour:00:00` UTC. Week boundary: Monday resetHour to next Monday resetHour. If referenceDate is Monday but before resetHour, it belongs to the PREVIOUS week. Use `getUTCDay()` where Monday=1. Example: if resetHour=0, then Monday 00:00:00 UTC is the start of the new week. If resetHour=14, then Monday 14:00:00 UTC is the start.
+- **monthly:** first day of that month at `resetHour:00:00` UTC. If referenceDate is the 1st but before resetHour, it belongs to the PREVIOUS month.
+
+**Boundary rule (applies to all types):** The period starts AT `resetHour:00:00.000` UTC. A timestamp exactly equal to the boundary belongs to the NEW period.
 
 #### `calculateNextReset(resetSchedule, resetHour, periodStart)`
 
@@ -208,7 +242,7 @@ export interface LeaderboardResolveResult {
   resetSchedule: 'none' | 'daily' | 'weekly' | 'monthly';
   resetHour: number;
   currentVersion: number;
-  currentPeriodStart: string;
+  currentPeriodStart: string; // always a string from DB; for 'none' boards this is just created_at
 }
 ```
 
@@ -255,7 +289,9 @@ For `reset_schedule != 'none'`:
 }
 ```
 
-**Calculating `oldest_version`:** Query `SELECT MIN(version) FROM scores WHERE leaderboard_id = X`. If no scores exist for older versions (they were cleaned up), this naturally gives the oldest available.
+**Note on `next_reset`:** This always refers to the next reset of the CURRENT period, regardless of which version is being queried. If viewing historical version 3 while current is version 6, `next_reset` is still about when version 6 ends. This is because the client needs to know when the active leaderboard will reset, not historical info. The `version` field tells the client which version's data they're looking at.
+
+**Calculating `oldest_version`:** Query `SELECT MIN(version) FROM scores WHERE leaderboard_id = X`. If no scores exist for older versions (they were cleaned up), this naturally gives the oldest available. **If no scores exist at all** (MIN returns null), default `oldest_version` to `current_version` (since there are no historical versions to browse).
 
 #### 4. `keeperboard/src/app/api/v1/player/[guid]/route.ts`
 
@@ -299,7 +335,8 @@ For `reset_schedule != 'none'`:
 - Accept new optional fields in request body: `reset_schedule` (default: `'none'`), `reset_hour` (default: `0`)
 - Validate `reset_schedule` is one of: `'none'`, `'daily'`, `'weekly'`, `'monthly'`
 - Validate `reset_hour` is integer 0-23
-- When inserting, include `reset_schedule`, `reset_hour`, `current_version: 1`, `current_period_start: new Date().toISOString()`
+- When inserting, include `reset_schedule`, `reset_hour`, `current_version: 1`
+- For `current_period_start`: if `reset_schedule !== 'none'`, calculate the aligned period start using `calculatePeriodStart(reset_schedule, reset_hour, new Date())` from `version.ts`. This ensures the first period starts at a proper boundary (e.g., midnight UTC for daily, Monday for weekly, 1st of month for monthly). For `reset_schedule === 'none'`, use `new Date().toISOString()`.
 - Return the new fields in the response
 
 **GET handler (list leaderboards):**
@@ -312,9 +349,10 @@ For `reset_schedule != 'none'`:
 - Include `reset_schedule`, `reset_hour`, `current_version`, `current_period_start` in select and response
 
 **PUT handler (update leaderboard):**
-- Allow updating `reset_schedule` and `reset_hour`
-- **Important restriction:** If changing `reset_schedule` from/to `'none'`, warn or handle carefully. For simplicity, allow it but document that changing schedule on a leaderboard with existing scores may cause confusing version gaps. A safe approach: only allow changing `reset_hour` if `reset_schedule` is not `'none'`. Disallow changing `reset_schedule` after creation (or allow only if no scores exist).
-- Update validation to handle new fields
+- Allow updating `reset_hour` (takes effect at next reset)
+- **`reset_schedule` is immutable after creation.** If the request body includes `reset_schedule` and it differs from the current value, return a 400 error: `"Cannot change reset schedule after creation. Create a new leaderboard instead."` This avoids complex edge cases with version recalculation and confusing score/version gaps.
+- If `reset_schedule` is included but matches the current value, silently ignore it (no error)
+- Update validation to handle `reset_hour` (0-23, only if schedule !== 'none')
 
 **DELETE handler:** No changes needed (cascade delete handles scores with versions).
 
@@ -398,8 +436,9 @@ interface LeaderboardFormData {
    - Style: Same dropdown style as other selects
 
 **For editing existing leaderboards:**
-- If leaderboard already has scores, the `reset_schedule` select should be disabled with a tooltip/helper text: `"Cannot change reset schedule after scores have been submitted"`
-- `reset_hour` can always be changed (takes effect at next reset)
+- `reset_schedule` select should always be disabled (immutable after creation) with helper text: `"Reset schedule cannot be changed after creation"`
+- `reset_hour` can be changed if `reset_schedule !== 'none'` (takes effect at next reset)
+- If `reset_schedule === 'none'`, hide the reset_hour field entirely (not relevant)
 
 ### What to test
 
