@@ -1,6 +1,6 @@
 {
-  "name": "keeperboard-sdk",
-  "version": "1.0.0",
+  "name": "keeperboard",
+  "version": "1.0.2",
   "description": "TypeScript client SDK for KeeperBoard leaderboard-as-a-service",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

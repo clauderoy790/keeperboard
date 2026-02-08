@@ -3,7 +3,7 @@
  * Matches the API response shapes from the KeeperBoard public API.
  */
 interface KeeperBoardConfig {
-    /** Base URL of the KeeperBoard API (e.g., "https://your-app.vercel.app") */
+    /** Base URL of the KeeperBoard API (e.g., "https://keeperboard.vercel.app") */
     apiUrl: string;
     /** API key from the KeeperBoard dashboard (e.g., "kb_dev_abc123...") */
     apiKey: string;
