@@ -163,7 +163,9 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 |------|-------------|---------|--------|
 | [Plan 1](docs/plans/keeperboard.md) | Initial Architecture | 2024-12-29 | Completed |
 | [Plan 2](docs/plans/2_keeperboard-phaser.md) | KeeperBoard Phaser Adaptation | 2024-12-30 | Completed |
-| [Plan 3](docs/plans/3_supabase-keep-alive.md) | Supabase Keep-Alive System | 2025-02-07 | Completed |
+| [Plan 3](docs/plans/3_time-based-leaderboards.md) | Time-Based Leaderboards | 2026-02-08 | Phase 0/9 (Feb 8) |
+
+**Active:** Plan 3 - Time-Based Leaderboards (Phase 1 next)
 
 ## License
 
