@@ -28,25 +28,13 @@ keeperboard/
 
 ## Active Plan
 
-**Plan 2:** [KeeperBoard Phaser Adaptation](docs/plans/2_keeperboard-phaser.md)
+**Plan 3:** [Supabase Keep-Alive System](docs/plans/3_supabase-keep-alive.md)
 
 ### Phase Status
 
-- [x] Phase 1: Project Setup
-- [x] Phase 2: Database Schema
-- [x] Phase 3: API Skeleton
-- [x] Phase 4: CSP Validation
-- [x] Phase 5: Authentication System
-- [x] Phase 6: Dashboard Layout & Navigation
-- [x] Phase 7: Games Management
-- [x] Phase 8: Environments & Leaderboards Management
-- [x] Phase 9: Full Public API
-- [x] Phase 10: TypeScript Client SDK
-- [x] Phase 11: Scores Management UI
-- [x] Phase 12: CSV/JSON Import
-- [x] Phase 13: Integration Testing & Polish
+- [x] Phase 1: SQL Function & GitHub Actions Workflow
 
-**Status:** Plan 2 Complete!
+**Status:** Plan 3 Complete!
 
 ## Key Decisions
 

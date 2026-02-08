@@ -157,6 +157,14 @@ All endpoints require an API key via `X-API-Key` header (except health check).
 
 Contributions are welcome! Please open an issue first to discuss what you'd like to change.
 
+## Development Plans
+
+| Plan | Description | Created | Status |
+|------|-------------|---------|--------|
+| [Plan 1](docs/plans/keeperboard.md) | Initial Architecture | 2024-12-29 | Completed |
+| [Plan 2](docs/plans/2_keeperboard-phaser.md) | KeeperBoard Phaser Adaptation | 2024-12-30 | Completed |
+| [Plan 3](docs/plans/3_supabase-keep-alive.md) | Supabase Keep-Alive System | 2025-02-07 | Completed |
+
 ## License
 
 [MIT](LICENSE)

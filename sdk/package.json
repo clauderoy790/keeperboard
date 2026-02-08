@@ -30,16 +30,16 @@
     "sdk",
     "keeperboard"
   ],
-  "author": "",
+  "author": "Claude Roy",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_USERNAME/keeperboard.git",
+    "url": "git@github.com:clauderoy790/keeperboard.git",
     "directory": "sdk"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/keeperboard#readme",
+  "homepage": "https://github.com/clauderoy790/keeperboard#readme",
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/keeperboard/issues"
+    "url": "https://github.com/clauderoy790/keeperboard/issues"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

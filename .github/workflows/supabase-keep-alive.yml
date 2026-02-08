@@ -1,0 +1,29 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # Every 3 days at midnight UTC (well within the 7-day pause window)
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: # Allow manual trigger for testing
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: KeeperBoard
+            url_secret: KEEPERBOARD_SUPABASE_URL
+            key_secret: KEEPERBOARD_SUPABASE_ANON_KEY
+          # To add another project, just add another entry:
+          # - name: MyOtherProject
+          #   url_secret: OTHER_PROJECT_SUPABASE_URL
+          #   key_secret: OTHER_PROJECT_SUPABASE_ANON_KEY
+    steps:
+      - name: Ping ${{ matrix.name }}
+        run: |
+          response=$(curl -sf -X POST \
+            "${{ secrets[matrix.url_secret] }}/rest/v1/rpc/keep_alive" \
+            -H "apikey: ${{ secrets[matrix.key_secret] }}" \
+            -H "Content-Type: application/json")
+          echo "${{ matrix.name }}: $response"
