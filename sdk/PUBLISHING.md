@@ -47,25 +47,34 @@ npm version minor
 npm version major
 ```
 
-This automatically:
+This updates `package.json` version and creates a git commit.
 
-- Updates `package.json` version
-- Creates a git commit
-- Creates a git tag
+> **Note:** `npm version` does NOT create git tags when the package is in a subdirectory of the repo (known npm behavior). You must create the tag manually in step 2.
 
-### 2. Publish to npm
+### 2. Create git tag
 
 ```bash
+# From repo root — use the version from sdk/package.json
+git tag v<VERSION>
+# e.g. git tag v1.0.3
+```
+
+### 3. Publish to npm
+
+```bash
+cd sdk
 npm publish
 ```
 
 The `prepublishOnly` script will automatically build before publishing.
 
-### 3. Push the version tag
+### 4. Push commit and tag
 
 ```bash
 git push && git push --tags
 ```
+
+> Publish to npm **before** pushing tags. If publish fails, you can delete the local tag and fix the issue without a stale tag on the remote.
 
 ## Verifying Publication
 
