@@ -80,12 +80,12 @@ git push && git push --tags
 
 After publishing, verify at:
 
-- https://www.npmjs.com/package/keeperboard-sdk
+- https://www.npmjs.com/package/keeperboard
 
 Test installation:
 
 ```bash
-npm install keeperboard-sdk
+npm install keeperboard
 ```
 
 ## Version Guidelines
