@@ -6,10 +6,10 @@
 // ----- Configuration -----
 
 export interface KeeperBoardConfig {
-  /** Base URL of the KeeperBoard API (e.g., "https://keeperboard.vercel.app") */
-  apiUrl: string;
   /** API key from the KeeperBoard dashboard (e.g., "kb_dev_abc123...") */
   apiKey: string;
+  /** @internal Base URL override for testing. Do not use in production. */
+  apiUrl?: string;
 }
 
 // ----- Request Types -----

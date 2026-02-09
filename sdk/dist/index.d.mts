@@ -3,10 +3,10 @@
  * Matches the API response shapes from the KeeperBoard public API.
  */
 interface KeeperBoardConfig {
-    /** Base URL of the KeeperBoard API (e.g., "https://keeperboard.vercel.app") */
-    apiUrl: string;
     /** API key from the KeeperBoard dashboard (e.g., "kb_dev_abc123...") */
     apiKey: string;
+    /** @internal Base URL override for testing. Do not use in production. */
+    apiUrl?: string;
 }
 interface ScoreSubmission {
     /** Unique player identifier (UUID or custom string) */
@@ -100,6 +100,7 @@ declare class KeeperBoardError extends Error {
  */
 
 declare class KeeperBoardClient {
+    private static readonly DEFAULT_API_URL;
     private readonly apiUrl;
     private readonly apiKey;
     constructor(config: KeeperBoardConfig);

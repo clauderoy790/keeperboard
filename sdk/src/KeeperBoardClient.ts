@@ -16,11 +16,14 @@ import type {
 import { KeeperBoardError } from './types';
 
 export class KeeperBoardClient {
+  private static readonly DEFAULT_API_URL = 'https://keeperboard.vercel.app';
+
   private readonly apiUrl: string;
   private readonly apiKey: string;
 
   constructor(config: KeeperBoardConfig) {
-    this.apiUrl = config.apiUrl.replace(/\/$/, '');
+    const url = config.apiUrl ?? KeeperBoardClient.DEFAULT_API_URL;
+    this.apiUrl = url.replace(/\/$/, '');
     this.apiKey = config.apiKey;
   }
 

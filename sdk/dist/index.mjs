@@ -9,9 +9,10 @@ var KeeperBoardError = class extends Error {
 };
 
 // src/KeeperBoardClient.ts
-var KeeperBoardClient = class {
+var _KeeperBoardClient = class _KeeperBoardClient {
   constructor(config) {
-    this.apiUrl = config.apiUrl.replace(/\/$/, "");
+    const url = config.apiUrl ?? _KeeperBoardClient.DEFAULT_API_URL;
+    this.apiUrl = url.replace(/\/$/, "");
     this.apiKey = config.apiKey;
   }
   async submitScore(playerGuid, playerName, score, leaderboard, metadata) {
@@ -129,6 +130,8 @@ var KeeperBoardClient = class {
     return json.data;
   }
 };
+_KeeperBoardClient.DEFAULT_API_URL = "https://keeperboard.vercel.app";
+var KeeperBoardClient = _KeeperBoardClient;
 
 // src/PlayerIdentity.ts
 var DEFAULT_KEY_PREFIX = "keeperboard_";

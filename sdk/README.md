@@ -34,7 +34,6 @@ import { KeeperBoardClient, PlayerIdentity } from 'keeperboard';
 
 // Create the API client
 const client = new KeeperBoardClient({
-  apiUrl: 'https://keeperboard.vercel.app',
   apiKey: 'kb_prod_your_api_key_here',
 });
 
@@ -83,7 +82,6 @@ if (player && player.rank > 10) {
 
 ```typescript
 const client = new KeeperBoardClient({
-  apiUrl: string, // Your KeeperBoard API URL
   apiKey: string, // API key from dashboard
 });
 ```
@@ -323,7 +321,6 @@ const endless = await client.getLeaderboard('Endless Mode', 50);
 import { KeeperBoardClient, PlayerIdentity } from 'keeperboard';
 
 const client = new KeeperBoardClient({
-  apiUrl: 'https://keeperboard.vercel.app',
   apiKey: 'kb_prod_your_api_key',
 });
 

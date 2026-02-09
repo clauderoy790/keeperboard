@@ -20,9 +20,8 @@ import {
 // CONFIGURATION
 // ============================================================================
 
-// Initialize the client with your API URL and key
+// Initialize the client with your API key
 const keeperboard = new KeeperBoardClient({
-  apiUrl: 'https://keeperboard.vercel.app', // Replace with your KeeperBoard URL
   apiKey: 'kb_dev_your_api_key_here', // Replace with your API key from dashboard
 });
 
