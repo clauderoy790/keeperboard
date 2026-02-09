@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
-import { KeeperBoardClient, PlayerIdentity } from 'keeperboard-sdk';
-import type { LeaderboardEntry } from 'keeperboard-sdk';
+import { KeeperBoardClient, PlayerIdentity } from 'keeperboard';
+import type { LeaderboardEntry } from 'keeperboard';
 
 // Game state
 let client: KeeperBoardClient | null = null;
@@ -49,9 +49,15 @@ const testResults = document.getElementById('test-results')!;
 // Initialize
 document.getElementById('start-game')!.addEventListener('click', startGame);
 document.getElementById('restart-game')!.addEventListener('click', restartGame);
-document.getElementById('view-leaderboard')!.addEventListener('click', showLeaderboard);
-document.getElementById('hide-leaderboard')!.addEventListener('click', hideLeaderboard);
-document.getElementById('test-all-methods')!.addEventListener('click', testAllMethods);
+document
+  .getElementById('view-leaderboard')!
+  .addEventListener('click', showLeaderboard);
+document
+  .getElementById('hide-leaderboard')!
+  .addEventListener('click', hideLeaderboard);
+document
+  .getElementById('test-all-methods')!
+  .addEventListener('click', testAllMethods);
 
 function createGame(this: Phaser.Scene) {
   // Create a simple clickable target
@@ -86,10 +92,12 @@ function createGame(this: Phaser.Scene) {
   });
 
   // Add score text
-  scoreText = this.add.text(400, 50, 'Click the target!', {
-    fontSize: '32px',
-    color: '#ffffff',
-  }).setOrigin(0.5);
+  scoreText = this.add
+    .text(400, 50, 'Click the target!', {
+      fontSize: '32px',
+      color: '#ffffff',
+    })
+    .setOrigin(0.5);
 }
 
 function updateGame() {
@@ -97,9 +105,15 @@ function updateGame() {
 }
 
 async function startGame() {
-  const apiUrl = (document.getElementById('api-url') as HTMLInputElement).value.trim();
-  const apiKey = (document.getElementById('api-key') as HTMLInputElement).value.trim();
-  playerName = (document.getElementById('player-name') as HTMLInputElement).value.trim();
+  const apiUrl = (
+    document.getElementById('api-url') as HTMLInputElement
+  ).value.trim();
+  const apiKey = (
+    document.getElementById('api-key') as HTMLInputElement
+  ).value.trim();
+  playerName = (
+    document.getElementById('player-name') as HTMLInputElement
+  ).value.trim();
 
   if (!apiUrl || !apiKey || !playerName) {
     showStatus(setupStatus, 'Please fill in all fields', 'error');
@@ -166,12 +180,24 @@ async function endGame() {
       const result = await client.submitScore(playerGuid, playerName, score);
 
       if (result.is_new_high_score) {
-        showStatus(gameStatus, `🎉 New high score! Rank: #${result.rank}`, 'success');
+        showStatus(
+          gameStatus,
+          `🎉 New high score! Rank: #${result.rank}`,
+          'success',
+        );
       } else {
-        showStatus(gameStatus, `Score submitted! Rank: #${result.rank}`, 'success');
+        showStatus(
+          gameStatus,
+          `Score submitted! Rank: #${result.rank}`,
+          'success',
+        );
       }
     } catch (error: any) {
-      showStatus(gameStatus, `Error submitting score: ${error.message}`, 'error');
+      showStatus(
+        gameStatus,
+        `Error submitting score: ${error.message}`,
+        'error',
+      );
     }
   }
 }
@@ -205,13 +231,17 @@ function displayLeaderboard(entries: LeaderboardEntry[]) {
     return;
   }
 
-  const html = entries.map(entry => `
+  const html = entries
+    .map(
+      (entry) => `
     <div class="leaderboard-entry">
       <span class="rank">#${entry.rank}</span>
       <span class="player-name">${entry.player_name}</span>
       <span class="score">${entry.score}</span>
     </div>
-  `).join('');
+  `,
+    )
+    .join('');
 
   leaderboardContent.innerHTML = html;
 }
@@ -233,7 +263,9 @@ async function testAllMethods() {
     // Test 2: Submit score
     results.push('✅ submitScore()');
     const submitResult = await client.submitScore(playerGuid, playerName, 999);
-    results.push(`   → Rank: #${submitResult.rank}, New high: ${submitResult.is_new_high_score}`);
+    results.push(
+      `   → Rank: #${submitResult.rank}, New high: ${submitResult.is_new_high_score}`,
+    );
 
     // Test 3: Get leaderboard
     results.push('✅ getLeaderboard()');
@@ -270,7 +302,11 @@ async function testAllMethods() {
   }
 }
 
-function showStatus(element: HTMLElement, message: string, type: 'success' | 'error') {
+function showStatus(
+  element: HTMLElement,
+  message: string,
+  type: 'success' | 'error',
+) {
   element.textContent = message;
   element.className = `status ${type}`;
   element.style.whiteSpace = 'pre-line';

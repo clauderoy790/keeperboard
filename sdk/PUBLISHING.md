@@ -109,11 +109,11 @@ If you publish by mistake:
 
 ```bash
 # Within 72 hours of publish
-npm unpublish keeperboard-sdk@1.0.1
+npm unpublish keeperboard@1.0.1
 ```
 
 After 72 hours, you cannot unpublish. You can only deprecate:
 
 ```bash
-npm deprecate keeperboard-sdk@1.0.1 "This version has a bug, use 1.0.2"
+npm deprecate keeperboard@1.0.1 "This version has a bug, use 1.0.2"
 ```

@@ -7,7 +7,7 @@ Works with Phaser.js, vanilla JavaScript, and any TypeScript/JavaScript game run
 ## Installation
 
 ```bash
-npm install keeperboard-sdk
+npm install keeperboard
 ```
 
 ### Alternative: Copy source directly
@@ -30,7 +30,7 @@ import { KeeperBoardClient, PlayerIdentity } from './keeperboard/index';
 ### 2. Initialize the client
 
 ```typescript
-import { KeeperBoardClient, PlayerIdentity } from 'keeperboard-sdk';
+import { KeeperBoardClient, PlayerIdentity } from 'keeperboard';
 
 // Create the API client
 const client = new KeeperBoardClient({
@@ -83,8 +83,8 @@ if (player && player.rank > 10) {
 
 ```typescript
 const client = new KeeperBoardClient({
-  apiUrl: string,  // Your KeeperBoard API URL
-  apiKey: string,  // API key from dashboard
+  apiUrl: string, // Your KeeperBoard API URL
+  apiKey: string, // API key from dashboard
 });
 ```
 
@@ -116,13 +116,10 @@ await client.submitScore('player-uuid', 'PlayerName', 2500, 'Weekly Best');
 Submit with optional metadata.
 
 ```typescript
-await client.submitScore(
-  'player-uuid',
-  'PlayerName',
-  2500,
-  'Weekly Best',
-  { level: 10, character: 'warrior' }
-);
+await client.submitScore('player-uuid', 'PlayerName', 2500, 'Weekly Best', {
+  level: 10,
+  character: 'warrior',
+});
 ```
 
 ---
@@ -278,7 +275,7 @@ identity.clear();
 All methods throw `KeeperBoardError` on failure:
 
 ```typescript
-import { KeeperBoardError } from 'keeperboard-sdk';
+import { KeeperBoardError } from 'keeperboard';
 
 try {
   await client.submitScore(playerGuid, name, score);
@@ -323,7 +320,7 @@ const endless = await client.getLeaderboard('Endless Mode', 50);
 ## Phaser.js Integration Example
 
 ```typescript
-import { KeeperBoardClient, PlayerIdentity } from 'keeperboard-sdk';
+import { KeeperBoardClient, PlayerIdentity } from 'keeperboard';
 
 const client = new KeeperBoardClient({
   apiUrl: 'https://keeperboard.vercel.app',
@@ -353,7 +350,10 @@ class GameOverScene extends Phaser.Scene {
 
     if (result.is_new_high_score) {
       this.add
-        .text(400, 250, 'NEW HIGH SCORE!', { fontSize: '24px', color: '#ffff00' })
+        .text(400, 250, 'NEW HIGH SCORE!', {
+          fontSize: '24px',
+          color: '#ffff00',
+        })
         .setOrigin(0.5);
     }
 
@@ -369,7 +369,7 @@ class GameOverScene extends Phaser.Scene {
           400,
           350 + index * 30,
           `#${entry.rank} ${entry.player_name}: ${entry.score}`,
-          { fontSize: '18px', color }
+          { fontSize: '18px', color },
         )
         .setOrigin(0.5);
     });

@@ -708,7 +708,7 @@ The SDK lives inside this repo (not a separate npm package for now). Games impor
    - Export KeeperBoardClient, PlayerIdentity, all types
 
    `sdk/package.json`:
-   - Name: `keeperboard-sdk`
+   - Name: `keeperboard`
    - Main entry point
    - TypeScript compilation to ESM + CJS
 

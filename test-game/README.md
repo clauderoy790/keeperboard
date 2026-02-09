@@ -12,6 +12,7 @@ A simple Phaser.js click-counter game to test the KeeperBoard SDK integration.
 ## Setup
 
 1. **Install dependencies:**
+
    ```bash
    npm install
    ```
@@ -54,28 +55,32 @@ Click "Test All SDK Methods" on the leaderboard screen to run a comprehensive te
 This test game demonstrates:
 
 1. **Initialization:**
+
    ```typescript
-   import { KeeperBoardClient, PlayerIdentity } from 'keeperboard-sdk';
+   import { KeeperBoardClient, PlayerIdentity } from 'keeperboard';
 
    const client = new KeeperBoardClient({ apiUrl, apiKey });
    const identity = new PlayerIdentity();
    ```
 
 2. **Player Identity:**
+
    ```typescript
    const playerGuid = identity.getOrCreatePlayerGuid();
    ```
 
 3. **Score Submission:**
+
    ```typescript
    const result = await client.submitScore(playerGuid, playerName, score);
    console.log(`Rank: #${result.rank}, New high: ${result.is_new_high_score}`);
    ```
 
 4. **Leaderboard Display:**
+
    ```typescript
    const { entries } = await client.getLeaderboard(10);
-   entries.forEach(entry => {
+   entries.forEach((entry) => {
      console.log(`#${entry.rank} ${entry.player_name}: ${entry.score}`);
    });
    ```
@@ -96,8 +101,9 @@ This test game demonstrates:
 ## Production Notes
 
 In a production game:
+
 - Store the API URL in environment variables
-- Use production API keys (kb_production_...)
+- Use production API keys (kb*production*...)
 - Add error handling and retry logic
 - Consider caching leaderboard data
 - Add loading states and better UX

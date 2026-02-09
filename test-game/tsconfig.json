@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "keeperboard-sdk": ["../sdk/src/index.ts"]
+      "keeperboard": ["../sdk/src/index.ts"]
     }
   },
   "include": ["src/**/*"],

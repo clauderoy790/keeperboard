@@ -64,7 +64,7 @@ Open [http://localhost:3000](http://localhost:3000) — you're ready to go!
 Install the SDK in your game project:
 
 ```bash
-npm install keeperboard-sdk
+npm install keeperboard
 ```
 
 Or copy the `sdk/src/` folder directly into your project.
@@ -72,7 +72,7 @@ Or copy the `sdk/src/` folder directly into your project.
 ### Basic usage
 
 ```typescript
-import { KeeperBoardClient, PlayerIdentity } from 'keeperboard-sdk';
+import { KeeperBoardClient, PlayerIdentity } from 'keeperboard-';
 
 const client = new KeeperBoardClient({
   apiUrl: 'https://keeperboard.vercel.app',

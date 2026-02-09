@@ -4,7 +4,7 @@ import path from 'path';
 export default defineConfig({
   resolve: {
     alias: {
-      'keeperboard-sdk': path.resolve(__dirname, '../sdk/src/index.ts'),
+      keeperboard: path.resolve(__dirname, '../sdk/src/index.ts'),
     },
   },
   server: {
