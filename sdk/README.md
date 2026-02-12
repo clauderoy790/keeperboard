@@ -1,8 +1,6 @@
 # KeeperBoard SDK
 
-TypeScript client SDK for [KeeperBoard](https://github.com/clauderoy790/keeperboard) — a free, open-source leaderboard-as-a-service for indie game developers.
-
-Works with Phaser.js, vanilla JavaScript, and any TypeScript/JavaScript game running in the browser.
+TypeScript client for [KeeperBoard](https://keeperboard.vercel.app) leaderboard-as-a-service. Works in browsers and Node.js.
 
 ## Installation
 
@@ -10,287 +8,222 @@ Works with Phaser.js, vanilla JavaScript, and any TypeScript/JavaScript game run
 npm install keeperboard
 ```
 
-### Alternative: Copy source directly
-
-If you prefer not to use npm, copy the `src/` folder into your project:
+## Quick Start (15 lines)
 
 ```typescript
-import { KeeperBoardClient, PlayerIdentity } from './keeperboard/index';
-```
+import { KeeperBoardSession } from 'keeperboard';
 
-## Quick Start
-
-### 1. Get your API key
-
-1. Sign up at your KeeperBoard dashboard
-2. Create a game
-3. Create an environment (dev/prod)
-4. Generate an API key for that environment
-
-### 2. Initialize the client
-
-```typescript
-import { KeeperBoardClient, PlayerIdentity } from 'keeperboard';
-
-// Create the API client
-const client = new KeeperBoardClient({
-  apiKey: 'kb_prod_your_api_key_here',
+const session = new KeeperBoardSession({
+  apiKey: 'kb_dev_your_api_key',
+  leaderboard: 'main',
+  cache: { ttlMs: 30000 },  // Optional: 30s cache
+  retry: { maxAgeMs: 86400000 },  // Optional: 24h retry queue
 });
 
-// Helper for persistent player identity
-const identity = new PlayerIdentity();
-```
+// Submit a score
+const result = await session.submitScore(1500);
+if (result.success) {
+  console.log(`Rank #${result.rank}, New high: ${result.isNewHighScore}`);
+}
 
-### 3. Submit a score
-
-```typescript
-const playerGuid = identity.getOrCreatePlayerGuid();
-
-// Submit to default leaderboard
-const result = await client.submitScore(playerGuid, 'PlayerName', 1500);
-
-console.log(`Rank: #${result.rank}`);
-console.log(`New high score: ${result.is_new_high_score}`);
-```
-
-### 4. Display the leaderboard
-
-```typescript
-// Get top 10
-const leaderboard = await client.getLeaderboard();
-
-leaderboard.entries.forEach((entry) => {
-  console.log(`#${entry.rank} ${entry.player_name}: ${entry.score}`);
+// Get leaderboard with player's rank
+const snapshot = await session.getSnapshot({ limit: 10 });
+snapshot.entries.forEach(e => {
+  console.log(`#${e.rank} ${e.playerName}: ${e.score}`, e.isCurrentPlayer ? '(you)' : '');
 });
 ```
 
-### 5. Show player's rank (even if not in top 10)
+## Two API Layers
+
+| Layer | Use case | Identity | Cache | Retry |
+|-------|----------|----------|-------|-------|
+| **KeeperBoardSession** | Browser games | Auto-managed | Built-in | Built-in |
+| **KeeperBoardClient** | Server-side, advanced | Manual | No | No |
+
+Most browser games should use `KeeperBoardSession`. Use `KeeperBoardClient` for server-side code or when you need full control.
+
+---
+
+## KeeperBoardSession API
+
+### Constructor
 
 ```typescript
-const player = await client.getPlayerRank(playerGuid);
+const session = new KeeperBoardSession({
+  apiKey: 'kb_dev_xxx',           // Required
+  leaderboard: 'main',            // Required - session is bound to one board
+  defaultPlayerName: 'ANON',      // Optional (default: 'ANON')
+  identity: { keyPrefix: 'app_' }, // Optional localStorage prefix
+  cache: { ttlMs: 30000 },        // Optional TTL cache for getSnapshot()
+  retry: { maxAgeMs: 86400000 },  // Optional retry queue for failed submissions
+});
+```
 
-if (player && player.rank > 10) {
-  console.log(`You are ranked #${player.rank} with ${player.score} points`);
+### Identity (auto-managed)
+
+```typescript
+session.getPlayerGuid();     // Get or create persistent GUID
+session.getPlayerName();     // Get stored name or default
+session.setPlayerName(name); // Store name locally (doesn't update server)
+
+// Validate a name (pure function)
+const validated = session.validateName('  Ace Pilot! ');
+// Returns 'ACEPILOT' or null if invalid
+```
+
+### Core Methods
+
+```typescript
+// Submit score (identity auto-injected)
+const result = await session.submitScore(1500, { level: 5 });
+// Returns: { success: true, rank: 3, isNewHighScore: true }
+//      or: { success: false, error: 'Network error' }
+
+// Get snapshot (leaderboard + player rank combined)
+const snapshot = await session.getSnapshot({ limit: 10 });
+// Returns: {
+//   entries: [{ rank, playerGuid, playerName, score, isCurrentPlayer }],
+//   totalCount: 150,
+//   playerRank: { rank: 42, score: 1200, ... } | null  // Only if outside top N
+// }
+
+// Update player name on server
+const success = await session.updatePlayerName('MAVERICK');
+```
+
+### Retry Queue
+
+```typescript
+// Check for pending scores from previous failed submissions
+if (session.hasPendingScore()) {
+  await session.retryPendingScore();
 }
 ```
 
-## API Reference
+### Cache
 
-### KeeperBoardClient
+```typescript
+// Pre-fetch in background (e.g., on menu load)
+session.prefetch();
 
-#### Constructor
+// getSnapshot() automatically uses cache when fresh
+```
+
+### Escape Hatch
+
+```typescript
+// Access underlying client for advanced operations
+const client = session.getClient();
+await client.claimScore({ playerGuid: '...', playerName: '...' });
+```
+
+---
+
+## KeeperBoardClient API
+
+Low-level client with options-object methods and camelCase responses.
+
+### Constructor
 
 ```typescript
 const client = new KeeperBoardClient({
-  apiKey: string, // API key from dashboard
+  apiKey: 'kb_dev_xxx',
+  defaultLeaderboard: 'main',  // Optional - used when leaderboard not specified
 });
 ```
 
-> **Note:** The API key determines which game and environment you're accessing. You don't need to pass environment or game IDs — they're implicit in the key.
-
----
-
-### Score Submission
-
-#### `submitScore(playerGuid, playerName, score)`
-
-Submit a score to the default leaderboard. Only updates if higher than existing score.
+### Methods
 
 ```typescript
-const result = await client.submitScore('player-uuid', 'PlayerName', 2500);
-// Returns: { id, player_guid, player_name, score, rank, is_new_high_score }
-```
-
-#### `submitScore(playerGuid, playerName, score, leaderboard)`
-
-Submit to a specific leaderboard by name.
-
-```typescript
-await client.submitScore('player-uuid', 'PlayerName', 2500, 'Weekly Best');
-```
-
-#### `submitScore(playerGuid, playerName, score, leaderboard, metadata)`
-
-Submit with optional metadata.
-
-```typescript
-await client.submitScore('player-uuid', 'PlayerName', 2500, 'Weekly Best', {
-  level: 10,
-  character: 'warrior',
+// Submit score
+const result = await client.submitScore({
+  playerGuid: 'abc-123',
+  playerName: 'ACE',
+  score: 1500,
+  metadata: { level: 5 },      // Optional
+  leaderboard: 'weekly',       // Optional - overrides defaultLeaderboard
 });
-```
+// Returns: ScoreResult { id, playerGuid, playerName, score, rank, isNewHighScore }
 
----
+// Get leaderboard
+const lb = await client.getLeaderboard({
+  leaderboard: 'main',  // Optional
+  limit: 25,            // Optional (default 10, max 100)
+  offset: 0,            // Optional pagination
+  version: 3,           // Optional - for time-based boards
+});
+// Returns: LeaderboardResult { entries, totalCount, resetSchedule, version?, ... }
 
-### Leaderboard
+// Get player rank
+const player = await client.getPlayerRank({
+  playerGuid: 'abc-123',
+  leaderboard: 'main',  // Optional
+});
+// Returns: PlayerResult | null
 
-#### `getLeaderboard()`
+// Update player name
+const updated = await client.updatePlayerName({
+  playerGuid: 'abc-123',
+  newName: 'MAVERICK',
+  leaderboard: 'main',  // Optional
+});
 
-Get the default leaderboard (top 10 entries).
+// Claim migrated score (for imported data without GUIDs)
+const claim = await client.claimScore({
+  playerGuid: 'abc-123',
+  playerName: 'OldPlayer',
+  leaderboard: 'main',  // Optional
+});
 
-```typescript
-const lb = await client.getLeaderboard();
-// Returns: { entries, total_count, reset_schedule }
-```
-
-#### `getLeaderboard(name)`
-
-Get a specific leaderboard by name.
-
-```typescript
-const lb = await client.getLeaderboard('Weekly Best');
-```
-
-#### `getLeaderboard(name, limit)`
-
-Get with a custom limit (max 100).
-
-```typescript
-const lb = await client.getLeaderboard('Weekly Best', 50);
-```
-
-#### `getLeaderboard(name, limit, offset)`
-
-Get with pagination.
-
-```typescript
-// Page 2 (entries 11-20)
-const lb = await client.getLeaderboard('Weekly Best', 10, 10);
-```
-
----
-
-### Leaderboard Versions (Time-Based)
-
-For leaderboards with reset schedules (daily/weekly/monthly), you can query historical versions.
-
-#### `getLeaderboardVersion(name, version)`
-
-Get a specific version of a time-based leaderboard.
-
-```typescript
-// Get last week's scores (version 3)
-const lastWeek = await client.getLeaderboardVersion('Weekly Best', 3);
-```
-
-#### `getLeaderboardVersion(name, version, limit, offset)`
-
-Get historical version with pagination.
-
-```typescript
-const lb = await client.getLeaderboardVersion('Weekly Best', 3, 25, 0);
-```
-
----
-
-### Player
-
-#### `getPlayerRank(playerGuid)`
-
-Get a player's rank and score. Returns `null` if player has no score.
-
-```typescript
-const player = await client.getPlayerRank('player-uuid');
-
-if (player) {
-  console.log(`Rank: #${player.rank}, Score: ${player.score}`);
-}
-```
-
-#### `getPlayerRank(playerGuid, leaderboard)`
-
-Get player's rank on a specific leaderboard.
-
-```typescript
-const player = await client.getPlayerRank('player-uuid', 'Weekly Best');
-```
-
-#### `updatePlayerName(playerGuid, newName)`
-
-Update a player's display name.
-
-```typescript
-await client.updatePlayerName('player-uuid', 'NewPlayerName');
-```
-
----
-
-### Claim (for migrated scores)
-
-#### `claimScore(playerGuid, playerName)`
-
-Claim a migrated score by matching player name. Used when scores were imported without player GUIDs.
-
-```typescript
-const result = await client.claimScore('new-player-guid', 'ImportedPlayerName');
-console.log(`Claimed score: ${result.score}, Rank: #${result.rank}`);
-```
-
----
-
-### Health Check
-
-#### `healthCheck()`
-
-Check if the API is healthy. Does not require an API key.
-
-```typescript
+// Health check (no auth required)
 const health = await client.healthCheck();
-console.log(`API Version: ${health.version}`);
 ```
 
 ---
 
-### PlayerIdentity
+## Name Validation
 
-Helper for managing persistent player identity in localStorage.
+Standalone function for validating player names:
 
 ```typescript
-const identity = new PlayerIdentity({
-  keyPrefix: 'mygame_', // optional, default: 'keeperboard_'
+import { validateName } from 'keeperboard';
+
+validateName('  Ace Pilot! ');        // 'ACEPILOT'
+validateName('x');                     // null (too short)
+validateName('verylongname123456');   // 'VERYLONGNAME' (truncated to 12)
+
+// Custom options
+validateName('hello', {
+  minLength: 3,
+  maxLength: 8,
+  uppercase: false,
+  allowedPattern: /[^a-z]/g,
 });
-
-// Get or create a persistent player GUID
-const guid = identity.getOrCreatePlayerGuid();
-
-// Store/retrieve player name
-identity.setPlayerName('PlayerName');
-const name = identity.getPlayerName();
-
-// Check if identity exists
-if (identity.hasIdentity()) {
-  // returning player
-}
-
-// Clear identity (e.g., for "Sign Out")
-identity.clear();
 ```
 
 ---
 
-### Error Handling
-
-All methods throw `KeeperBoardError` on failure:
+## Error Handling
 
 ```typescript
 import { KeeperBoardError } from 'keeperboard';
 
 try {
-  await client.submitScore(playerGuid, name, score);
+  await client.submitScore({ ... });
 } catch (error) {
   if (error instanceof KeeperBoardError) {
-    console.error(`Error [${error.code}]: ${error.message}`);
-
     switch (error.code) {
       case 'INVALID_API_KEY':
-        // Check your API key
+        console.error('Check your API key');
         break;
       case 'NOT_FOUND':
-        // Player or leaderboard not found
+        console.error('Leaderboard not found');
         break;
       case 'INVALID_REQUEST':
-        // Check request parameters
+        console.error('Bad request:', error.message);
         break;
+      default:
+        console.error('API error:', error.message);
     }
   }
 }
@@ -298,91 +231,79 @@ try {
 
 ---
 
-## Multiple Leaderboards
-
-If your game has multiple leaderboards (e.g., per-level or per-mode):
+## Phaser.js Integration
 
 ```typescript
-// Submit to different leaderboards
-await client.submitScore(guid, name, score, 'Level 1');
-await client.submitScore(guid, name, score, 'Endless Mode');
-await client.submitScore(guid, name, score, 'Weekly Challenge');
+import { KeeperBoardSession } from 'keeperboard';
 
-// Get specific leaderboards
-const level1 = await client.getLeaderboard('Level 1');
-const endless = await client.getLeaderboard('Endless Mode', 50);
-```
-
----
-
-## Phaser.js Integration Example
-
-```typescript
-import { KeeperBoardClient, PlayerIdentity } from 'keeperboard';
-
-const client = new KeeperBoardClient({
-  apiKey: 'kb_prod_your_api_key',
+// Initialize once at game start
+const leaderboard = new KeeperBoardSession({
+  apiKey: import.meta.env.VITE_KEEPERBOARD_API_KEY,
+  leaderboard: 'main',
+  cache: { ttlMs: 30000 },
+  retry: { maxAgeMs: 86400000 },
 });
 
-const identity = new PlayerIdentity();
-
-class GameOverScene extends Phaser.Scene {
-  private score: number = 0;
-
-  init(data: { score: number }) {
-    this.score = data.score;
-  }
-
+// In BootScene - prefetch and retry
+class BootScene extends Phaser.Scene {
   async create() {
-    const playerGuid = identity.getOrCreatePlayerGuid();
-    const playerName = identity.getPlayerName() ?? 'Anonymous';
-
-    // Submit score
-    const result = await client.submitScore(playerGuid, playerName, this.score);
-
-    // Display rank
-    this.add
-      .text(400, 200, `Your Rank: #${result.rank}`, { fontSize: '32px' })
-      .setOrigin(0.5);
-
-    if (result.is_new_high_score) {
-      this.add
-        .text(400, 250, 'NEW HIGH SCORE!', {
-          fontSize: '24px',
-          color: '#ffff00',
-        })
-        .setOrigin(0.5);
-    }
-
-    // Display top 10
-    const leaderboard = await client.getLeaderboard();
-
-    leaderboard.entries.forEach((entry, index) => {
-      const isMe = entry.player_guid === playerGuid;
-      const color = isMe ? '#00ff00' : '#ffffff';
-
-      this.add
-        .text(
-          400,
-          350 + index * 30,
-          `#${entry.rank} ${entry.player_name}: ${entry.score}`,
-          { fontSize: '18px', color },
-        )
-        .setOrigin(0.5);
-    });
-
-    // Show player's rank if not in top 10
-    const player = await client.getPlayerRank(playerGuid);
-    if (player && player.rank > 10) {
-      this.add
-        .text(400, 660, `... #${player.rank} ${playerName}: ${player.score}`, {
-          fontSize: '18px',
-          color: '#00ff00',
-        })
-        .setOrigin(0.5);
-    }
+    leaderboard.prefetch();
+    await leaderboard.retryPendingScore();
+    this.scene.start('MenuScene');
   }
 }
+
+// In GameOverScene
+class GameOverScene extends Phaser.Scene {
+  async create() {
+    const result = await leaderboard.submitScore(this.score);
+    if (result.success) {
+      this.showRank(result.rank, result.isNewHighScore);
+    }
+
+    const snapshot = await leaderboard.getSnapshot({ limit: 10 });
+    this.displayLeaderboard(snapshot.entries);
+  }
+}
+```
+
+---
+
+## Utilities
+
+### PlayerIdentity
+
+Standalone helper for localStorage identity management:
+
+```typescript
+import { PlayerIdentity } from 'keeperboard';
+
+const identity = new PlayerIdentity({ keyPrefix: 'myapp_' });
+const guid = identity.getOrCreatePlayerGuid();
+identity.setPlayerName('ACE');
+```
+
+### Cache
+
+Generic TTL cache with deduplication:
+
+```typescript
+import { Cache } from 'keeperboard';
+
+const cache = new Cache<Data>(30000); // 30s TTL
+const data = await cache.getOrFetch(() => fetchData());
+```
+
+### RetryQueue
+
+localStorage-based retry for failed operations:
+
+```typescript
+import { RetryQueue } from 'keeperboard';
+
+const queue = new RetryQueue('myapp_retry', 86400000); // 24h max age
+queue.save(1500, { level: 5 });
+const pending = queue.get(); // { score: 1500, metadata: {...} } or null
 ```
 
 ---
@@ -393,34 +314,17 @@ class GameOverScene extends Phaser.Scene {
 # Install dependencies
 npm install
 
+# Run tests (requires local KeeperBoard server + Supabase)
+npm test
+
 # Type check
 npm run typecheck
 
 # Build
 npm run build
-
-# Run tests (requires .env with Supabase credentials)
-npm test
-
-# Clean
-npm run clean
 ```
 
-### Running Tests
-
-Copy `.env.example` to `.env` and fill in your Supabase credentials:
-
-```bash
-cp .env.example .env
-```
-
-Then run:
-
-```bash
-npm test
-```
-
----
+See [MIGRATION.md](./MIGRATION.md) for upgrading from v1.x.
 
 ## License
 

@@ -1,106 +1,240 @@
 /**
  * Type definitions for KeeperBoard SDK.
- * Matches the API response shapes from the KeeperBoard public API.
+ *
+ * Public types use camelCase. Internal types (prefixed with Api*) match the
+ * snake_case shapes returned by the KeeperBoard REST API and are used only
+ * for deserialization inside the client.
  */
 
-// ----- Configuration -----
+// =============================================
+// Configuration
+// =============================================
 
 export interface KeeperBoardConfig {
   /** API key from the KeeperBoard dashboard (e.g., "kb_dev_abc123...") */
   apiKey: string;
+  /** Default leaderboard name — used when no leaderboard is specified in method calls */
+  defaultLeaderboard?: string;
   /** @internal Base URL override for testing. Do not use in production. */
   apiUrl?: string;
 }
 
-// ----- Request Types -----
+// =============================================
+// Options Objects (method parameters)
+// =============================================
 
-export interface ScoreSubmission {
-  /** Unique player identifier (UUID or custom string) */
-  player_guid: string;
-  /** Player display name */
-  player_name: string;
-  /** Score value */
+export interface SubmitScoreOptions {
+  playerGuid: string;
+  playerName: string;
   score: number;
-  /** Optional metadata to attach to the score */
+  /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
+  leaderboard?: string;
   metadata?: Record<string, unknown>;
 }
 
-// ----- Response Types -----
+export interface GetLeaderboardOptions {
+  /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
+  leaderboard?: string;
+  /** Max entries to return (1–100, default 10). */
+  limit?: number;
+  /** Offset for pagination (default 0). */
+  offset?: number;
+  /** Fetch a specific version of a time-based leaderboard. */
+  version?: number;
+}
+
+export interface GetPlayerRankOptions {
+  playerGuid: string;
+  /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
+  leaderboard?: string;
+}
+
+export interface UpdatePlayerNameOptions {
+  playerGuid: string;
+  newName: string;
+  /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
+  leaderboard?: string;
+}
+
+export interface ClaimScoreOptions {
+  playerGuid: string;
+  playerName: string;
+  /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
+  leaderboard?: string;
+}
+
+// =============================================
+// Public Response Types (camelCase)
+// =============================================
+
+export interface ScoreResult {
+  id: string;
+  playerGuid: string;
+  playerName: string;
+  score: number;
+  rank: number;
+  isNewHighScore: boolean;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  playerGuid: string;
+  playerName: string;
+  score: number;
+}
 
 /** Reset schedule options for leaderboards */
 export type ResetSchedule = 'none' | 'daily' | 'weekly' | 'monthly';
 
-export interface ScoreResponse {
-  /** Score ID in the database */
+export interface LeaderboardResult {
+  entries: LeaderboardEntry[];
+  totalCount: number;
+  resetSchedule: ResetSchedule;
+  /** Current version number — only present when resetSchedule is not 'none'. */
+  version?: number;
+  /** Oldest available version number — only present when resetSchedule is not 'none'. */
+  oldestVersion?: number;
+  /** ISO timestamp of when the next reset occurs — only present when resetSchedule is not 'none'. */
+  nextReset?: string;
+}
+
+export interface PlayerResult {
   id: string;
-  /** Player's unique identifier */
-  player_guid: string;
-  /** Player's display name */
-  player_name: string;
-  /** Current score value */
+  playerGuid: string;
+  playerName: string;
   score: number;
-  /** Player's rank on the leaderboard */
   rank: number;
-  /** Whether this submission resulted in a new high score */
+}
+
+export interface ClaimResult {
+  claimed: boolean;
+  score: number;
+  rank: number;
+  playerName: string;
+}
+
+export interface HealthResult {
+  service: string;
+  version: string;
+  timestamp: string;
+}
+
+// =============================================
+// Session Types
+// =============================================
+
+export interface SessionConfig {
+  /** API key from the KeeperBoard dashboard */
+  apiKey: string;
+  /** Leaderboard name (required — the session is bound to one board) */
+  leaderboard: string;
+  /** PlayerIdentity config for localStorage key prefix */
+  identity?: { keyPrefix?: string };
+  /** Default player name when none has been set (default: "ANON") */
+  defaultPlayerName?: string;
+  /** TTL cache configuration for getSnapshot() */
+  cache?: { ttlMs: number };
+  /** Retry queue configuration for failed score submissions */
+  retry?: { maxAgeMs?: number };
+  /** @internal Base URL override for testing. */
+  apiUrl?: string;
+}
+
+export type SessionScoreResult =
+  | { success: true; rank: number; isNewHighScore: boolean }
+  | { success: false; error: string };
+
+export interface SnapshotEntry {
+  rank: number;
+  playerGuid: string;
+  playerName: string;
+  score: number;
+  isCurrentPlayer: boolean;
+}
+
+export interface SnapshotResult {
+  entries: SnapshotEntry[];
+  totalCount: number;
+  /** Player's own rank info — included only when the player is outside the top N. */
+  playerRank: PlayerResult | null;
+}
+
+// =============================================
+// Name Validation
+// =============================================
+
+export interface NameValidationOptions {
+  /** Minimum length after sanitization (default 2). */
+  minLength?: number;
+  /** Maximum length — input is truncated to this (default 12). */
+  maxLength?: number;
+  /** Convert to uppercase (default true). */
+  uppercase?: boolean;
+  /** Regex of allowed characters applied after case conversion (default /[^A-Z0-9_]/g removes non-matching). */
+  allowedPattern?: RegExp;
+}
+
+// =============================================
+// @internal — API Response Types (snake_case)
+// =============================================
+
+/** @internal */
+export interface ScoreSubmission {
+  player_guid: string;
+  player_name: string;
+  score: number;
+  metadata?: Record<string, unknown>;
+}
+
+/** @internal */
+export interface ApiScoreResponse {
+  id: string;
+  player_guid: string;
+  player_name: string;
+  score: number;
+  rank: number;
   is_new_high_score: boolean;
 }
 
-export interface LeaderboardEntry {
-  /** Position on the leaderboard (1-indexed) */
+/** @internal */
+export interface ApiLeaderboardEntry {
   rank: number;
-  /** Player's unique identifier */
   player_guid: string;
-  /** Player's display name */
   player_name: string;
-  /** Score value */
   score: number;
 }
 
-export interface LeaderboardResponse {
-  /** Array of leaderboard entries */
-  entries: LeaderboardEntry[];
-  /** Total number of scores in this version/period */
+/** @internal */
+export interface ApiLeaderboardResponse {
+  entries: ApiLeaderboardEntry[];
   total_count: number;
-  /** The reset schedule of this leaderboard */
   reset_schedule: ResetSchedule;
-  /** Current version number — only present when reset_schedule is not 'none' */
   version?: number;
-  /** Oldest available version number — only present when reset_schedule is not 'none' */
   oldest_version?: number;
-  /** ISO timestamp of when the next reset occurs — only present when reset_schedule is not 'none' */
   next_reset?: string;
 }
 
-export interface PlayerResponse {
-  /** Score ID in the database */
+/** @internal */
+export interface ApiPlayerResponse {
   id: string;
-  /** Player's unique identifier */
   player_guid: string;
-  /** Player's display name */
   player_name: string;
-  /** Player's score */
   score: number;
-  /** Player's rank on the leaderboard */
   rank: number;
 }
 
-export interface ClaimResponse {
-  /** Whether the score was successfully claimed */
+/** @internal */
+export interface ApiClaimResponse {
   claimed: boolean;
-  /** The claimed score value */
   score: number;
-  /** Player's rank after claiming */
   rank: number;
-  /** The player name that was matched */
   player_name: string;
 }
 
-export interface HealthResponse {
-  /** Service name */
+/** @internal */
+export interface ApiHealthResponse {
   service: string;
-  /** API version */
   version: string;
-  /** Server timestamp */
   timestamp: string;
 }
 
@@ -131,3 +265,18 @@ export class KeeperBoardError extends Error {
     this.name = 'KeeperBoardError';
   }
 }
+
+// =============================================
+// Legacy type aliases (v1 compat — deprecated)
+// =============================================
+
+/** @deprecated Use `ApiScoreResponse` (internal) or `ScoreResult` (public). */
+export type ScoreResponse = ApiScoreResponse;
+/** @deprecated Use `ApiLeaderboardResponse` (internal) or `LeaderboardResult` (public). */
+export type LeaderboardResponse = ApiLeaderboardResponse;
+/** @deprecated Use `ApiPlayerResponse` (internal) or `PlayerResult` (public). */
+export type PlayerResponse = ApiPlayerResponse;
+/** @deprecated Use `ApiClaimResponse` (internal) or `ClaimResult` (public). */
+export type ClaimResponse = ApiClaimResponse;
+/** @deprecated Use `ApiHealthResponse` (internal) or `HealthResult` (public). */
+export type HealthResponse = ApiHealthResponse;

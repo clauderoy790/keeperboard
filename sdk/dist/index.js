@@ -20,9 +20,13 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/index.ts
 var index_exports = {};
 __export(index_exports, {
+  Cache: () => Cache,
   KeeperBoardClient: () => KeeperBoardClient,
   KeeperBoardError: () => KeeperBoardError,
-  PlayerIdentity: () => PlayerIdentity
+  KeeperBoardSession: () => KeeperBoardSession,
+  PlayerIdentity: () => PlayerIdentity,
+  RetryQueue: () => RetryQueue,
+  validateName: () => validateName
 });
 module.exports = __toCommonJS(index_exports);
 
@@ -42,51 +46,87 @@ var _KeeperBoardClient = class _KeeperBoardClient {
     const url = config.apiUrl ?? _KeeperBoardClient.DEFAULT_API_URL;
     this.apiUrl = url.replace(/\/$/, "");
     this.apiKey = config.apiKey;
+    this.defaultLeaderboard = config.defaultLeaderboard;
   }
-  async submitScore(playerGuid, playerName, score, leaderboard, metadata) {
+  // ============================================
+  // SCORE SUBMISSION
+  // ============================================
+  /**
+   * Submit a score. Only updates if the new score is higher than the existing one.
+   *
+   * @example
+   * const result = await client.submitScore({
+   *   playerGuid: 'abc-123',
+   *   playerName: 'ACE',
+   *   score: 1500,
+   * });
+   * console.log(result.rank, result.isNewHighScore);
+   */
+  async submitScore(options) {
+    const leaderboard = options.leaderboard ?? this.defaultLeaderboard;
     const params = new URLSearchParams();
-    if (leaderboard) {
-      params.set("leaderboard", leaderboard);
-    }
+    if (leaderboard) params.set("leaderboard", leaderboard);
     const url = `${this.apiUrl}/api/v1/scores${params.toString() ? "?" + params.toString() : ""}`;
     const body = {
-      player_guid: playerGuid,
-      player_name: playerName,
-      score,
-      ...metadata && { metadata }
+      player_guid: options.playerGuid,
+      player_name: options.playerName,
+      score: options.score,
+      ...options.metadata && { metadata: options.metadata }
     };
-    return this.request(url, {
+    const raw = await this.request(url, {
       method: "POST",
       body: JSON.stringify(body)
     });
+    return this.mapScoreResponse(raw);
   }
-  async getLeaderboard(name, limit = 10, offset = 0) {
+  // ============================================
+  // LEADERBOARD
+  // ============================================
+  /**
+   * Get a leaderboard. Supports pagination and version-based lookups for
+   * time-based boards.
+   *
+   * @example
+   * // Top 10 on default board
+   * const lb = await client.getLeaderboard();
+   *
+   * // Top 25 on a specific board
+   * const lb = await client.getLeaderboard({ leaderboard: 'Weekly', limit: 25 });
+   *
+   * // Historical version
+   * const lb = await client.getLeaderboard({ leaderboard: 'Weekly', version: 3 });
+   */
+  async getLeaderboard(options) {
+    const leaderboard = options?.leaderboard ?? this.defaultLeaderboard;
+    const limit = options?.limit ?? 10;
+    const offset = options?.offset ?? 0;
     const params = new URLSearchParams();
     params.set("limit", String(Math.min(limit, 100)));
     params.set("offset", String(offset));
-    if (name) {
-      params.set("leaderboard", name);
-    }
+    if (leaderboard) params.set("leaderboard", leaderboard);
+    if (options?.version !== void 0) params.set("version", String(options.version));
     const url = `${this.apiUrl}/api/v1/leaderboard?${params.toString()}`;
-    return this.request(url, { method: "GET" });
+    const raw = await this.request(url, { method: "GET" });
+    return this.mapLeaderboardResponse(raw);
   }
-  async getLeaderboardVersion(name, version, limit = 10, offset = 0) {
+  // ============================================
+  // PLAYER
+  // ============================================
+  /**
+   * Get a player's rank and score. Returns `null` if the player has no score.
+   *
+   * @example
+   * const player = await client.getPlayerRank({ playerGuid: 'abc-123' });
+   * if (player) console.log(`Rank #${player.rank}`);
+   */
+  async getPlayerRank(options) {
+    const leaderboard = options.leaderboard ?? this.defaultLeaderboard;
     const params = new URLSearchParams();
-    params.set("leaderboard", name);
-    params.set("version", String(version));
-    params.set("limit", String(Math.min(limit, 100)));
-    params.set("offset", String(offset));
-    const url = `${this.apiUrl}/api/v1/leaderboard?${params.toString()}`;
-    return this.request(url, { method: "GET" });
-  }
-  async getPlayerRank(playerGuid, leaderboard) {
-    const params = new URLSearchParams();
-    if (leaderboard) {
-      params.set("leaderboard", leaderboard);
-    }
-    const url = `${this.apiUrl}/api/v1/player/${encodeURIComponent(playerGuid)}${params.toString() ? "?" + params.toString() : ""}`;
+    if (leaderboard) params.set("leaderboard", leaderboard);
+    const url = `${this.apiUrl}/api/v1/player/${encodeURIComponent(options.playerGuid)}${params.toString() ? "?" + params.toString() : ""}`;
     try {
-      return await this.request(url, { method: "GET" });
+      const raw = await this.request(url, { method: "GET" });
+      return this.mapPlayerResponse(raw);
     } catch (error) {
       if (error instanceof KeeperBoardError && error.code === "NOT_FOUND") {
         return null;
@@ -94,37 +134,52 @@ var _KeeperBoardClient = class _KeeperBoardClient {
       throw error;
     }
   }
-  async updatePlayerName(playerGuid, newName, leaderboard) {
+  /**
+   * Update a player's display name.
+   *
+   * @example
+   * const player = await client.updatePlayerName({
+   *   playerGuid: 'abc-123',
+   *   newName: 'MAVERICK',
+   * });
+   */
+  async updatePlayerName(options) {
+    const leaderboard = options.leaderboard ?? this.defaultLeaderboard;
     const params = new URLSearchParams();
-    if (leaderboard) {
-      params.set("leaderboard", leaderboard);
-    }
-    const url = `${this.apiUrl}/api/v1/player/${encodeURIComponent(playerGuid)}${params.toString() ? "?" + params.toString() : ""}`;
-    return this.request(url, {
+    if (leaderboard) params.set("leaderboard", leaderboard);
+    const url = `${this.apiUrl}/api/v1/player/${encodeURIComponent(options.playerGuid)}${params.toString() ? "?" + params.toString() : ""}`;
+    const raw = await this.request(url, {
       method: "PUT",
-      body: JSON.stringify({ player_name: newName })
+      body: JSON.stringify({ player_name: options.newName })
     });
+    return this.mapPlayerResponse(raw);
   }
-  async claimScore(playerGuid, playerName, leaderboard) {
+  // ============================================
+  // CLAIM (for migrated scores)
+  // ============================================
+  /**
+   * Claim a migrated score by matching player name.
+   * Used when scores were imported without player GUIDs.
+   */
+  async claimScore(options) {
+    const leaderboard = options.leaderboard ?? this.defaultLeaderboard;
     const params = new URLSearchParams();
-    if (leaderboard) {
-      params.set("leaderboard", leaderboard);
-    }
+    if (leaderboard) params.set("leaderboard", leaderboard);
     const url = `${this.apiUrl}/api/v1/claim${params.toString() ? "?" + params.toString() : ""}`;
-    return this.request(url, {
+    const raw = await this.request(url, {
       method: "POST",
       body: JSON.stringify({
-        player_guid: playerGuid,
-        player_name: playerName
+        player_guid: options.playerGuid,
+        player_name: options.playerName
       })
     });
+    return this.mapClaimResponse(raw);
   }
   // ============================================
   // HEALTH CHECK
   // ============================================
   /**
-   * Check if the API is healthy.
-   * This endpoint does not require an API key.
+   * Check if the API is healthy. Does not require an API key.
    */
   async healthCheck() {
     const url = `${this.apiUrl}/api/v1/health`;
@@ -137,6 +192,51 @@ var _KeeperBoardClient = class _KeeperBoardClient {
       throw new KeeperBoardError(json.error, json.code, response.status);
     }
     return json.data;
+  }
+  // ============================================
+  // RESPONSE MAPPERS (snake_case → camelCase)
+  // ============================================
+  mapScoreResponse(raw) {
+    return {
+      id: raw.id,
+      playerGuid: raw.player_guid,
+      playerName: raw.player_name,
+      score: raw.score,
+      rank: raw.rank,
+      isNewHighScore: raw.is_new_high_score
+    };
+  }
+  mapLeaderboardResponse(raw) {
+    return {
+      entries: raw.entries.map((e) => ({
+        rank: e.rank,
+        playerGuid: e.player_guid,
+        playerName: e.player_name,
+        score: e.score
+      })),
+      totalCount: raw.total_count,
+      resetSchedule: raw.reset_schedule,
+      version: raw.version,
+      oldestVersion: raw.oldest_version,
+      nextReset: raw.next_reset
+    };
+  }
+  mapPlayerResponse(raw) {
+    return {
+      id: raw.id,
+      playerGuid: raw.player_guid,
+      playerName: raw.player_name,
+      score: raw.score,
+      rank: raw.rank
+    };
+  }
+  mapClaimResponse(raw) {
+    return {
+      claimed: raw.claimed,
+      score: raw.score,
+      rank: raw.rank,
+      playerName: raw.player_name
+    };
   }
   // ============================================
   // INTERNAL
@@ -248,9 +348,337 @@ var PlayerIdentity = class {
     });
   }
 };
+
+// src/Cache.ts
+var Cache = class {
+  constructor(ttlMs) {
+    this.fetchedAt = 0;
+    this.inflight = null;
+    this.pendingRefresh = null;
+    this.ttlMs = ttlMs;
+  }
+  /**
+   * Get cached value if fresh, otherwise fetch via the provided function.
+   * Deduplicates concurrent calls — only one fetch runs at a time.
+   */
+  async getOrFetch(fetchFn) {
+    if (this.isFresh()) {
+      return this.data;
+    }
+    if (this.inflight) {
+      return this.inflight;
+    }
+    this.inflight = fetchFn().then((result) => {
+      this.data = result;
+      this.fetchedAt = Date.now();
+      this.inflight = null;
+      return result;
+    }).catch((err) => {
+      this.inflight = null;
+      throw err;
+    });
+    return this.inflight;
+  }
+  /**
+   * Trigger a background refresh without awaiting the result.
+   * Returns immediately. If a fetch is already in flight, schedules
+   * the refresh to run after the current one completes.
+   */
+  refreshInBackground(fetchFn) {
+    if (this.inflight) {
+      this.pendingRefresh = fetchFn;
+      return;
+    }
+    this.startBackgroundFetch(fetchFn);
+  }
+  startBackgroundFetch(fetchFn) {
+    this.inflight = fetchFn().then((result) => {
+      this.data = result;
+      this.fetchedAt = Date.now();
+      this.inflight = null;
+      if (this.pendingRefresh) {
+        const pending = this.pendingRefresh;
+        this.pendingRefresh = null;
+        this.startBackgroundFetch(pending);
+      }
+      return result;
+    }).catch((err) => {
+      this.inflight = null;
+      this.pendingRefresh = null;
+      throw err;
+    });
+    this.inflight.catch(() => {
+    });
+  }
+  /** Invalidate the cache, forcing the next getOrFetch to re-fetch. */
+  invalidate() {
+    this.fetchedAt = 0;
+  }
+  /** Get the cached value without fetching. Returns undefined if empty or stale. */
+  get() {
+    return this.isFresh() ? this.data : void 0;
+  }
+  /** Get the cached value even if stale. Returns undefined only if never fetched. */
+  getStale() {
+    return this.data;
+  }
+  /** Check if the cache has fresh (non-expired) data. */
+  isFresh() {
+    return this.data !== void 0 && Date.now() - this.fetchedAt < this.ttlMs;
+  }
+};
+
+// src/RetryQueue.ts
+var DEFAULT_MAX_AGE_MS = 24 * 60 * 60 * 1e3;
+var RetryQueue = class {
+  constructor(storageKey, maxAgeMs = DEFAULT_MAX_AGE_MS) {
+    this.storageKey = storageKey;
+    this.maxAgeMs = maxAgeMs;
+  }
+  /** Save a failed score for later retry. */
+  save(score, metadata) {
+    try {
+      const pending = { score, metadata, timestamp: Date.now() };
+      localStorage.setItem(this.storageKey, JSON.stringify(pending));
+    } catch {
+    }
+  }
+  /**
+   * Get the pending score, or null if none exists or it has expired.
+   * Automatically clears expired entries.
+   */
+  get() {
+    try {
+      const raw = localStorage.getItem(this.storageKey);
+      if (!raw) return null;
+      const pending = JSON.parse(raw);
+      if (Date.now() - pending.timestamp > this.maxAgeMs) {
+        this.clear();
+        return null;
+      }
+      return { score: pending.score, metadata: pending.metadata };
+    } catch {
+      return null;
+    }
+  }
+  /** Check if there's a pending score. */
+  hasPending() {
+    return this.get() !== null;
+  }
+  /** Clear the pending score. */
+  clear() {
+    try {
+      localStorage.removeItem(this.storageKey);
+    } catch {
+    }
+  }
+};
+
+// src/validation.ts
+var DEFAULTS = {
+  minLength: 2,
+  maxLength: 12,
+  uppercase: true,
+  allowedPattern: /[^A-Z0-9_]/g
+};
+function validateName(input, options) {
+  const opts = { ...DEFAULTS, ...options };
+  let name = input.trim();
+  if (opts.uppercase) {
+    name = name.toUpperCase();
+  }
+  const pattern = options?.allowedPattern ?? (opts.uppercase ? /[^A-Z0-9_]/g : /[^A-Za-z0-9_]/g);
+  name = name.replace(pattern, "");
+  name = name.substring(0, opts.maxLength);
+  if (name.length < opts.minLength) {
+    return null;
+  }
+  return name;
+}
+
+// src/KeeperBoardSession.ts
+var KeeperBoardSession = class {
+  constructor(config) {
+    this.cachedLimit = 0;
+    // Track the limit used for cached data
+    this.isSubmitting = false;
+    this.client = new KeeperBoardClient({
+      apiKey: config.apiKey,
+      defaultLeaderboard: config.leaderboard,
+      apiUrl: config.apiUrl
+    });
+    this.identity = new PlayerIdentity(config.identity);
+    this.leaderboard = config.leaderboard;
+    this.defaultPlayerName = config.defaultPlayerName ?? "ANON";
+    this.cache = config.cache ? new Cache(config.cache.ttlMs) : null;
+    this.retryQueue = config.retry ? new RetryQueue(
+      `keeperboard_retry_${config.leaderboard}`,
+      config.retry.maxAgeMs
+    ) : null;
+  }
+  // ============================================
+  // IDENTITY
+  // ============================================
+  /** Get or create a persistent player GUID. */
+  getPlayerGuid() {
+    return this.identity.getOrCreatePlayerGuid();
+  }
+  /** Get the stored player name, falling back to defaultPlayerName. */
+  getPlayerName() {
+    return this.identity.getPlayerName() ?? this.defaultPlayerName;
+  }
+  /** Store a player name locally. Does NOT update the server — call updatePlayerName() for that. */
+  setPlayerName(name) {
+    this.identity.setPlayerName(name);
+  }
+  /** Validate a name using configurable rules. Returns sanitized string or null. */
+  validateName(input, options) {
+    return validateName(input, options);
+  }
+  // ============================================
+  // CORE API
+  // ============================================
+  /**
+   * Submit a score. Identity and leaderboard are auto-injected.
+   * Returns a discriminated union: `{ success: true, rank, isNewHighScore }` or `{ success: false, error }`.
+   *
+   * If retry is enabled, failed submissions are saved to localStorage for later retry.
+   * Prevents concurrent double-submissions.
+   */
+  async submitScore(score, metadata) {
+    if (this.isSubmitting) {
+      return { success: false, error: "Submission in progress" };
+    }
+    this.isSubmitting = true;
+    try {
+      const result = await this.client.submitScore({
+        playerGuid: this.getPlayerGuid(),
+        playerName: this.getPlayerName(),
+        score,
+        metadata
+      });
+      this.retryQueue?.clear();
+      if (this.cache) {
+        this.cache.invalidate();
+        this.cachedLimit = 0;
+        this.cache.refreshInBackground(() => this.fetchSnapshot());
+      }
+      return {
+        success: true,
+        rank: result.rank,
+        isNewHighScore: result.isNewHighScore
+      };
+    } catch (error) {
+      this.retryQueue?.save(score, metadata);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      };
+    } finally {
+      this.isSubmitting = false;
+    }
+  }
+  /**
+   * Get a combined snapshot: leaderboard entries (with `isCurrentPlayer` flag)
+   * plus the current player's rank if they're outside the top N.
+   *
+   * Uses cache if enabled and fresh. If a larger limit is requested than
+   * what's cached, the cache is invalidated and fresh data is fetched.
+   */
+  async getSnapshot(options) {
+    const limit = options?.limit ?? 10;
+    if (this.cache) {
+      if (limit > this.cachedLimit) {
+        this.cache.invalidate();
+      }
+      const result = await this.cache.getOrFetch(() => this.fetchSnapshot(limit));
+      this.cachedLimit = limit;
+      return result;
+    }
+    return this.fetchSnapshot(limit);
+  }
+  /**
+   * Update the player's name on the server and locally.
+   * Returns true on success, false on failure.
+   */
+  async updatePlayerName(newName) {
+    try {
+      await this.client.updatePlayerName({
+        playerGuid: this.getPlayerGuid(),
+        newName
+      });
+      this.identity.setPlayerName(newName);
+      if (this.cache) {
+        this.cache.invalidate();
+        this.cachedLimit = 0;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  /**
+   * Retry submitting a pending score (from a previous failed submission).
+   * Call this on app startup.
+   */
+  async retryPendingScore() {
+    const pending = this.retryQueue?.get();
+    if (!pending) return null;
+    const result = await this.submitScore(pending.score, pending.metadata);
+    if (result.success) {
+      this.retryQueue?.clear();
+    }
+    return result;
+  }
+  /** Check if there's a pending score in the retry queue. */
+  hasPendingScore() {
+    return this.retryQueue?.hasPending() ?? false;
+  }
+  /**
+   * Pre-fetch snapshot data in the background for instant display later.
+   * No-op if cache is disabled or already fresh.
+   */
+  prefetch() {
+    if (!this.cache) return;
+    if (this.cache.isFresh()) return;
+    this.cache.refreshInBackground(() => this.fetchSnapshot());
+  }
+  /** Escape hatch: access the underlying KeeperBoardClient. */
+  getClient() {
+    return this.client;
+  }
+  // ============================================
+  // INTERNAL
+  // ============================================
+  async fetchSnapshot(limit = 10) {
+    const playerGuid = this.getPlayerGuid();
+    const [leaderboard, playerRank] = await Promise.all([
+      this.client.getLeaderboard({ limit }),
+      this.client.getPlayerRank({ playerGuid })
+    ]);
+    const entries = leaderboard.entries.map((e) => ({
+      rank: e.rank,
+      playerGuid: e.playerGuid,
+      playerName: e.playerName,
+      score: e.score,
+      isCurrentPlayer: e.playerGuid === playerGuid
+    }));
+    const playerInEntries = entries.some((e) => e.isCurrentPlayer);
+    const effectivePlayerRank = playerRank && !playerInEntries ? playerRank : null;
+    return {
+      entries,
+      totalCount: leaderboard.totalCount,
+      playerRank: effectivePlayerRank
+    };
+  }
+};
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  Cache,
   KeeperBoardClient,
   KeeperBoardError,
-  PlayerIdentity
+  KeeperBoardSession,
+  PlayerIdentity,
+  RetryQueue,
+  validateName
 });

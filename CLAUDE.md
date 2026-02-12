@@ -28,21 +28,25 @@ keeperboard/
 
 ## Active Plan
 
+None — all plans completed.
+
+## Completed Plans
+
+**Plan 4:** [SDK v2.0.0 - Developer Experience Overhaul](docs/plans/4_sdk-v2.md) — ✅ Completed
+
+- [x] Phase 1: camelCase Types & Client Modernization
+- [x] Phase 2: Name Validation Utility
+- [x] Phase 3: KeeperBoardSession — Identity & Core API
+- [x] Phase 4: Cache Layer
+- [x] Phase 5: Retry Queue & Submission Guard
+- [x] Phase 6: Documentation & Examples
+- [x] Phase 7: Package Release & test-game Update
+
 **Plan 3:** [Time-Based Leaderboards](docs/plans/3_time-based-leaderboards.md) — ✅ Completed
 
-- [x] Phase 1: Database Migration (Schema Changes)
-- [x] Phase 2: Version Resolution Logic (Lazy Reset Engine)
-- [x] Phase 3: Public API Updates (Score Submission + Leaderboard Query)
-- [x] Phase 4: Dashboard API Updates (CRUD + Scores Management)
-- [x] Phase 5: Dashboard UI — Create/Edit Leaderboard Form
-- [x] Phase 6: Dashboard UI — Leaderboard Detail Page (Version Navigation)
-- [x] Phase 7: SDK Updates (TypeScript Client)
-- [x] Phase 8: Archive Cleanup + Retention
-- [x] Phase 9: Integration Testing & Polish
+**Plan 2:** KeeperBoard Phaser Adaptation — ✅ Completed
 
-**Previous Plans:**
-- Plan 2 — KeeperBoard Phaser Adaptation (Completed)
-- Plan 1 — Initial Architecture (Completed)
+**Plan 1:** Initial Architecture — ✅ Completed
 
 *Note: Keep-alive pings are now managed centrally via [Claudium](https://github.com/clauderoy790/claudium).*
 

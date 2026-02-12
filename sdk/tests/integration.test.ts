@@ -58,11 +58,9 @@ async function createTestFixtures(): Promise<TestFixtures> {
   const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!);
 
   // 1. Create or get a test user
-  // We'll use a fixed test user email
   const testEmail = 'sdk-test@keeperboard.test';
   let userId: string;
 
-  // Check if user exists
   const { data: existingUser } = await supabase
     .from('users')
     .select('id')
@@ -72,7 +70,6 @@ async function createTestFixtures(): Promise<TestFixtures> {
   if (existingUser) {
     userId = existingUser.id;
   } else {
-    // Create auth user first, then the profile will be auto-created by trigger
     const { data: authUser, error: authError } =
       await supabase.auth.admin.createUser({
         email: testEmail,
@@ -83,7 +80,6 @@ async function createTestFixtures(): Promise<TestFixtures> {
     if (authError) throw new Error(`Failed to create test user: ${authError.message}`);
     userId = authUser.user.id;
 
-    // Wait for trigger to create user profile
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
@@ -140,10 +136,11 @@ async function createTestFixtures(): Promise<TestFixtures> {
 
   if (lbError) throw new Error(`Failed to create leaderboard: ${lbError.message}`);
 
-  // 6. Create SDK client
+  // 6. Create SDK client with defaultLeaderboard
   const client = new KeeperBoardClient({
     apiUrl: API_URL,
     apiKey: apiKeyRaw,
+    defaultLeaderboard: testLeaderboardName,
   });
 
   return {
@@ -158,34 +155,25 @@ async function createTestFixtures(): Promise<TestFixtures> {
 }
 
 async function cleanupTestFixtures(f: TestFixtures): Promise<void> {
-  // Delete in reverse order of dependencies
-  // Scores are cascade-deleted with leaderboard
-
-  // Delete leaderboard
   await f.supabase
     .from('leaderboards')
     .delete()
     .eq('id', f.leaderboardId);
 
-  // Delete API key
   await f.supabase
     .from('api_keys')
     .delete()
     .eq('game_id', f.gameId);
 
-  // Delete environments (cascade from game won't work, need explicit delete)
   await f.supabase
     .from('environments')
     .delete()
     .eq('game_id', f.gameId);
 
-  // Delete game
   await f.supabase
     .from('games')
     .delete()
     .eq('id', f.gameId);
-
-  // Note: We don't delete the test user to avoid issues with auth
 }
 
 // ============================================
@@ -218,93 +206,99 @@ describe('KeeperBoard SDK Integration Tests', () => {
   });
 
   // ----------------------------------------
-  // Submit Score
+  // Submit Score (options object + camelCase response)
   // ----------------------------------------
 
   describe('submitScore()', () => {
     const playerGuid = `player-${testRunId}-1`;
 
     it('should submit a new score', async () => {
-      const result = await fixtures.client.submitScore(
+      const result = await fixtures.client.submitScore({
         playerGuid,
-        'TestPlayer1',
-        1000,
-        testLeaderboardName
-      );
+        playerName: 'TestPlayer1',
+        score: 1000,
+      });
 
-      expect(result.player_guid).toBe(playerGuid);
-      expect(result.player_name).toBe('TestPlayer1');
+      expect(result.playerGuid).toBe(playerGuid);
+      expect(result.playerName).toBe('TestPlayer1');
       expect(result.score).toBe(1000);
       expect(result.rank).toBe(1);
-      expect(result.is_new_high_score).toBe(true);
+      expect(result.isNewHighScore).toBe(true);
     });
 
     it('should update score if higher', async () => {
-      const result = await fixtures.client.submitScore(
+      const result = await fixtures.client.submitScore({
         playerGuid,
-        'TestPlayer1',
-        2000,
-        testLeaderboardName
-      );
+        playerName: 'TestPlayer1',
+        score: 2000,
+      });
 
       expect(result.score).toBe(2000);
-      expect(result.is_new_high_score).toBe(true);
+      expect(result.isNewHighScore).toBe(true);
     });
 
     it('should not update score if lower', async () => {
-      const result = await fixtures.client.submitScore(
+      const result = await fixtures.client.submitScore({
         playerGuid,
-        'TestPlayer1',
-        500,
-        testLeaderboardName
-      );
+        playerName: 'TestPlayer1',
+        score: 500,
+      });
 
-      expect(result.score).toBe(2000); // Still the old high score
-      expect(result.is_new_high_score).toBe(false);
+      expect(result.score).toBe(2000);
+      expect(result.isNewHighScore).toBe(false);
     });
 
     it('should calculate correct rank with multiple players', async () => {
-      // Add more players
-      await fixtures.client.submitScore(
-        `player-${testRunId}-2`,
-        'TestPlayer2',
-        3000,
-        testLeaderboardName
-      );
-      await fixtures.client.submitScore(
-        `player-${testRunId}-3`,
-        'TestPlayer3',
-        1500,
-        testLeaderboardName
-      );
+      await fixtures.client.submitScore({
+        playerGuid: `player-${testRunId}-2`,
+        playerName: 'TestPlayer2',
+        score: 3000,
+      });
+      await fixtures.client.submitScore({
+        playerGuid: `player-${testRunId}-3`,
+        playerName: 'TestPlayer3',
+        score: 1500,
+      });
 
-      // Player1 (2000) should be rank 2 now
-      const result = await fixtures.client.submitScore(
+      const result = await fixtures.client.submitScore({
         playerGuid,
-        'TestPlayer1',
-        100, // Lower score, won't update
-        testLeaderboardName
-      );
+        playerName: 'TestPlayer1',
+        score: 100,
+      });
+
+      expect(result.rank).toBe(2);
+    });
+
+    it('should accept explicit leaderboard override', async () => {
+      const result = await fixtures.client.submitScore({
+        playerGuid,
+        playerName: 'TestPlayer1',
+        score: 100,
+        leaderboard: testLeaderboardName,
+      });
 
       expect(result.rank).toBe(2);
     });
   });
 
   // ----------------------------------------
-  // Get Leaderboard
+  // Get Leaderboard (options object + camelCase response)
   // ----------------------------------------
 
   describe('getLeaderboard()', () => {
-    it('should return leaderboard entries', async () => {
-      const lb = await fixtures.client.getLeaderboard(testLeaderboardName);
+    it('should return leaderboard entries with camelCase fields', async () => {
+      const lb = await fixtures.client.getLeaderboard();
 
       expect(lb.entries).toHaveLength(3);
-      expect(lb.total_count).toBe(3);
-      expect(lb.reset_schedule).toBe('none');
+      expect(lb.totalCount).toBe(3);
+      expect(lb.resetSchedule).toBe('none');
 
-      // Should be sorted by score descending
+      // camelCase entry fields
       expect(lb.entries[0].score).toBe(3000);
       expect(lb.entries[0].rank).toBe(1);
+      expect(lb.entries[0].playerGuid).toBeDefined();
+      expect(lb.entries[0].playerName).toBeDefined();
+
       expect(lb.entries[1].score).toBe(2000);
       expect(lb.entries[1].rank).toBe(2);
       expect(lb.entries[2].score).toBe(1500);
@@ -312,70 +306,73 @@ describe('KeeperBoard SDK Integration Tests', () => {
     });
 
     it('should respect limit parameter', async () => {
-      const lb = await fixtures.client.getLeaderboard(testLeaderboardName, 2);
+      const lb = await fixtures.client.getLeaderboard({ limit: 2 });
 
       expect(lb.entries).toHaveLength(2);
-      expect(lb.total_count).toBe(3); // Total is still 3
+      expect(lb.totalCount).toBe(3);
     });
 
     it('should respect offset parameter', async () => {
-      const lb = await fixtures.client.getLeaderboard(testLeaderboardName, 10, 1);
+      const lb = await fixtures.client.getLeaderboard({ limit: 10, offset: 1 });
 
-      expect(lb.entries).toHaveLength(2); // 3 total, skip 1
-      expect(lb.entries[0].rank).toBe(2); // Starts at rank 2
+      expect(lb.entries).toHaveLength(2);
+      expect(lb.entries[0].rank).toBe(2);
+    });
+
+    it('should use defaultLeaderboard from config', async () => {
+      // Already tested implicitly — all calls above use defaultLeaderboard
+      const lb = await fixtures.client.getLeaderboard();
+      expect(lb.entries.length).toBeGreaterThan(0);
     });
   });
 
   // ----------------------------------------
-  // Get Player Rank
+  // Get Player Rank (options object + camelCase response)
   // ----------------------------------------
 
   describe('getPlayerRank()', () => {
     it('should return player rank and score', async () => {
-      const player = await fixtures.client.getPlayerRank(
-        `player-${testRunId}-1`,
-        testLeaderboardName
-      );
+      const player = await fixtures.client.getPlayerRank({
+        playerGuid: `player-${testRunId}-1`,
+      });
 
       expect(player).not.toBeNull();
       expect(player!.score).toBe(2000);
       expect(player!.rank).toBe(2);
-      expect(player!.player_name).toBe('TestPlayer1');
+      expect(player!.playerName).toBe('TestPlayer1');
+      expect(player!.playerGuid).toBe(`player-${testRunId}-1`);
     });
 
     it('should return null for non-existent player', async () => {
-      const player = await fixtures.client.getPlayerRank(
-        'non-existent-player-guid',
-        testLeaderboardName
-      );
+      const player = await fixtures.client.getPlayerRank({
+        playerGuid: 'non-existent-player-guid',
+      });
 
       expect(player).toBeNull();
     });
   });
 
   // ----------------------------------------
-  // Update Player Name
+  // Update Player Name (options object + camelCase response)
   // ----------------------------------------
 
   describe('updatePlayerName()', () => {
     it('should update player name', async () => {
-      const result = await fixtures.client.updatePlayerName(
-        `player-${testRunId}-1`,
-        'UpdatedPlayerName',
-        testLeaderboardName
-      );
+      const result = await fixtures.client.updatePlayerName({
+        playerGuid: `player-${testRunId}-1`,
+        newName: 'UpdatedPlayerName',
+      });
 
-      expect(result.player_name).toBe('UpdatedPlayerName');
-      expect(result.score).toBe(2000); // Score unchanged
+      expect(result.playerName).toBe('UpdatedPlayerName');
+      expect(result.score).toBe(2000);
     });
 
     it('should throw error for non-existent player', async () => {
       await expect(
-        fixtures.client.updatePlayerName(
-          'non-existent-player',
-          'NewName',
-          testLeaderboardName
-        )
+        fixtures.client.updatePlayerName({
+          playerGuid: 'non-existent-player',
+          newName: 'NewName',
+        })
       ).rejects.toThrow(KeeperBoardError);
     });
   });
@@ -402,7 +399,9 @@ describe('KeeperBoard SDK Integration Tests', () => {
 
     it('should throw for non-existent leaderboard', async () => {
       try {
-        await fixtures.client.getLeaderboard('Non-Existent Leaderboard');
+        await fixtures.client.getLeaderboard({
+          leaderboard: 'Non-Existent Leaderboard',
+        });
         expect.fail('Should have thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(KeeperBoardError);

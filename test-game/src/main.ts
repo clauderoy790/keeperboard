@@ -121,7 +121,7 @@ async function startGame() {
   }
 
   try {
-    // Initialize SDK
+    // Initialize SDK (v2 API)
     client = new KeeperBoardClient({ apiUrl, apiKey });
     identity = new PlayerIdentity();
 
@@ -173,13 +173,17 @@ async function endGame() {
 
   showStatus(gameStatus, `Game Over! Final Score: ${score}`, 'success');
 
-  // Submit score to KeeperBoard
+  // Submit score to KeeperBoard (v2 API with options object)
   if (client && identity) {
     try {
       const playerGuid = identity.getOrCreatePlayerGuid();
-      const result = await client.submitScore(playerGuid, playerName, score);
+      const result = await client.submitScore({
+        playerGuid,
+        playerName,
+        score,
+      });
 
-      if (result.is_new_high_score) {
+      if (result.isNewHighScore) {
         showStatus(
           gameStatus,
           `🎉 New high score! Rank: #${result.rank}`,
@@ -213,7 +217,8 @@ async function showLeaderboard() {
   if (!client) return;
 
   try {
-    const result = await client.getLeaderboard(10);
+    // v2 API: options object, camelCase response
+    const result = await client.getLeaderboard({ limit: 10 });
     displayLeaderboard(result.entries);
   } catch (error: any) {
     leaderboardContent.innerHTML = `<p class="error">Error loading leaderboard: ${error.message}</p>`;
@@ -231,12 +236,13 @@ function displayLeaderboard(entries: LeaderboardEntry[]) {
     return;
   }
 
+  // v2 API: camelCase fields (playerName instead of player_name)
   const html = entries
     .map(
       (entry) => `
     <div class="leaderboard-entry">
       <span class="rank">#${entry.rank}</span>
-      <span class="player-name">${entry.player_name}</span>
+      <span class="player-name">${entry.playerName}</span>
       <span class="score">${entry.score}</span>
     </div>
   `,
@@ -260,36 +266,47 @@ async function testAllMethods() {
     results.push('✅ healthCheck()');
     await client.healthCheck();
 
-    // Test 2: Submit score
+    // Test 2: Submit score (v2 API)
     results.push('✅ submitScore()');
-    const submitResult = await client.submitScore(playerGuid, playerName, 999);
+    const submitResult = await client.submitScore({
+      playerGuid,
+      playerName,
+      score: 999,
+    });
     results.push(
-      `   → Rank: #${submitResult.rank}, New high: ${submitResult.is_new_high_score}`,
+      `   → Rank: #${submitResult.rank}, New high: ${submitResult.isNewHighScore}`,
     );
 
-    // Test 3: Get leaderboard
+    // Test 3: Get leaderboard (v2 API)
     results.push('✅ getLeaderboard()');
-    const leaderboard = await client.getLeaderboard(5);
+    const leaderboard = await client.getLeaderboard({ limit: 5 });
     results.push(`   → Found ${leaderboard.entries.length} entries`);
 
-    // Test 4: Get player
-    results.push('✅ getPlayer()');
-    const player = await client.getPlayer(playerGuid);
-    results.push(`   → Score: ${player.score}, Rank: #${player.rank}`);
+    // Test 4: Get player rank (v2 API - renamed from getPlayer)
+    results.push('✅ getPlayerRank()');
+    const player = await client.getPlayerRank({ playerGuid });
+    if (player) {
+      results.push(`   → Score: ${player.score}, Rank: #${player.rank}`);
+    } else {
+      results.push(`   → Player not found`);
+    }
 
-    // Test 5: Update player name
+    // Test 5: Update player name (v2 API)
     results.push('✅ updatePlayerName()');
     const newName = `${playerName}_updated`;
-    const updateResult = await client.updatePlayerName(playerGuid, newName);
-    results.push(`   → Updated to: ${updateResult.player_name}`);
+    const updateResult = await client.updatePlayerName({
+      playerGuid,
+      newName,
+    });
+    results.push(`   → Updated to: ${updateResult.playerName}`);
 
     // Restore original name
-    await client.updatePlayerName(playerGuid, playerName);
+    await client.updatePlayerName({ playerGuid, newName: playerName });
 
-    // Test 6: Claim score (will likely fail since we don't have migrated scores)
+    // Test 6: Claim score (v2 API - will likely fail since we don't have migrated scores)
     results.push('⚠️ claimScore() - expecting failure (no migrated scores)');
     try {
-      await client.claimScore(playerGuid, 'NonexistentPlayer');
+      await client.claimScore({ playerGuid, playerName: 'NonexistentPlayer' });
       results.push('   → Unexpectedly succeeded');
     } catch (error: any) {
       results.push(`   → Expected failure: ${error.message}`);
