@@ -139,8 +139,6 @@ interface NameValidationOptions {
     minLength?: number;
     /** Maximum length — input is truncated to this (default 12). */
     maxLength?: number;
-    /** Convert to uppercase (default true). */
-    uppercase?: boolean;
     /** Regex of allowed characters applied after case conversion (default /[^A-Z0-9_]/g removes non-matching). */
     allowedPattern?: RegExp;
 }
@@ -424,14 +422,13 @@ declare class PlayerIdentity {
  * Validate and sanitize a player name.
  *
  * 1. Trims whitespace
- * 2. Optionally converts to uppercase (default: yes)
- * 3. Strips characters not matching `allowedPattern`
- * 4. Truncates to `maxLength`
- * 5. Returns `null` if result is shorter than `minLength`
+ * 2. Strips characters not matching `allowedPattern`
+ * 3. Truncates to `maxLength`
+ * 4. Returns `null` if result is shorter than `minLength`
  *
  * @example
- * validateName('  Ace Pilot! ')  // 'ACE_PILOT' → wait, no spaces allowed → 'ACEPILOT'
- * validateName('ab')             // 'AB'
+ * validateName('  Ace Pilot! ')  // 'AcePilot'
+ * validateName('ab')             // 'ab'
  * validateName('x')              // null (too short)
  */
 declare function validateName(input: string, options?: NameValidationOptions): string | null;

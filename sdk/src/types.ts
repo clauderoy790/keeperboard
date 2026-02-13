@@ -166,8 +166,6 @@ export interface NameValidationOptions {
   minLength?: number;
   /** Maximum length — input is truncated to this (default 12). */
   maxLength?: number;
-  /** Convert to uppercase (default true). */
-  uppercase?: boolean;
   /** Regex of allowed characters applied after case conversion (default /[^A-Z0-9_]/g removes non-matching). */
   allowedPattern?: RegExp;
 }

@@ -8,8 +8,8 @@ import { validateName } from '../src/validation';
 
 describe('validateName()', () => {
   describe('default options', () => {
-    it('should uppercase and strip invalid characters', () => {
-      expect(validateName('Ace Pilot!')).toBe('ACEPILOT');
+    it('should strip invalid characters', () => {
+      expect(validateName('Ace Pilot!')).toBe('AcePilot');
     });
 
     it('should trim whitespace', () => {
@@ -17,15 +17,15 @@ describe('validateName()', () => {
     });
 
     it('should allow underscores', () => {
-      expect(validateName('ace_pilot')).toBe('ACE_PILOT');
+      expect(validateName('ace_pilot')).toBe('ace_pilot');
     });
 
     it('should allow numbers', () => {
-      expect(validateName('player123')).toBe('PLAYER123');
+      expect(validateName('player123')).toBe('player123');
     });
 
     it('should truncate to 12 characters', () => {
-      expect(validateName('verylongplayername')).toBe('VERYLONGPLAY');
+      expect(validateName('verylongplayername')).toBe('verylongplay');
     });
 
     it('should return null for names shorter than 2 chars after sanitization', () => {
@@ -35,7 +35,7 @@ describe('validateName()', () => {
     });
 
     it('should accept exactly 2 characters', () => {
-      expect(validateName('ab')).toBe('AB');
+      expect(validateName('ab')).toBe('ab');
     });
 
     it('should handle empty string', () => {
@@ -47,27 +47,29 @@ describe('validateName()', () => {
     });
 
     it('should strip emojis and special characters', () => {
-      expect(validateName('🎮Player🎮')).toBe('PLAYER');
+      expect(validateName('🎮Player🎮')).toBe('Player');
+    });
+
+    it('should preserve case', () => {
+      expect(validateName('CamelCase')).toBe('CamelCase');
+      expect(validateName('lowercase')).toBe('lowercase');
+      expect(validateName('UPPERCASE')).toBe('UPPERCASE');
     });
   });
 
   describe('custom options', () => {
     it('should respect minLength', () => {
       expect(validateName('abc', { minLength: 5 })).toBeNull();
-      expect(validateName('abcde', { minLength: 5 })).toBe('ABCDE');
+      expect(validateName('abcde', { minLength: 5 })).toBe('abcde');
     });
 
     it('should respect maxLength', () => {
-      expect(validateName('abcdef', { maxLength: 4 })).toBe('ABCD');
-    });
-
-    it('should respect uppercase: false', () => {
-      expect(validateName('AcePilot', { uppercase: false })).toBe('AcePilot');
+      expect(validateName('abcdef', { maxLength: 4 })).toBe('abcd');
     });
 
     it('should respect custom allowedPattern', () => {
       // Allow only lowercase letters
-      const opts = { uppercase: false, allowedPattern: /[^a-z]/g };
+      const opts = { allowedPattern: /[^a-z]/g };
       expect(validateName('AcePilot123', opts)).toBe('ceilot');
     });
 
@@ -75,9 +77,8 @@ describe('validateName()', () => {
       const result = validateName('Hello World!', {
         minLength: 1,
         maxLength: 5,
-        uppercase: true,
       });
-      expect(result).toBe('HELLO');
+      expect(result).toBe('Hello');
     });
   });
 });

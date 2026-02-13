@@ -720,16 +720,12 @@ var RetryQueue = class {
 var DEFAULTS = {
   minLength: 2,
   maxLength: 12,
-  uppercase: true,
-  allowedPattern: /[^A-Z0-9_]/g
+  allowedPattern: /[^A-Za-z0-9_]/g
 };
 function validateName(input, options) {
   const opts = { ...DEFAULTS, ...options };
   let name = input.trim();
-  if (opts.uppercase) {
-    name = name.toUpperCase();
-  }
-  const pattern = options?.allowedPattern ?? (opts.uppercase ? /[^A-Z0-9_]/g : /[^A-Za-z0-9_]/g);
+  const pattern = options?.allowedPattern ?? /[^A-Za-z0-9_]/g;
   name = name.replace(pattern, "");
   name = name.substring(0, opts.maxLength);
   if (name.length < opts.minLength) {
