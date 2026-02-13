@@ -130,8 +130,6 @@ export interface SessionConfig {
   leaderboard: string;
   /** PlayerIdentity config for localStorage key prefix */
   identity?: { keyPrefix?: string };
-  /** Default player name when none has been set (default: "ANON") */
-  defaultPlayerName?: string;
   /** TTL cache configuration for getSnapshot() */
   cache?: { ttlMs: number };
   /** Retry queue configuration for failed score submissions */

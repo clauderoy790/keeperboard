@@ -46,9 +46,6 @@ const session = new KeeperBoardSession({
   identity: {
     keyPrefix: 'mygame_', // localStorage keys: mygame_player_guid, mygame_player_name
   },
-
-  // Optional: default name for new players
-  defaultPlayerName: 'GUEST',
 });
 
 // ============================================================================
@@ -60,9 +57,14 @@ function identityExamples(): void {
   const guid = session.getPlayerGuid();
   console.log('Player GUID:', guid);
 
-  // Get current name (falls back to defaultPlayerName if not set)
+  // Get current name (auto-generated if first time, e.g., BOLDFALCON)
   const name = session.getPlayerName();
   console.log('Player name:', name);
+
+  // Check if player chose their name or has auto-generated one
+  if (!session.hasExplicitPlayerName()) {
+    console.log('Player has auto-generated name - show name input prompt?');
+  }
 
   // Set name locally (does NOT update server)
   session.setPlayerName('ACE_PILOT');

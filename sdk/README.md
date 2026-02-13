@@ -52,7 +52,6 @@ Most browser games should use `KeeperBoardSession`. Use `KeeperBoardClient` for 
 const session = new KeeperBoardSession({
   apiKey: 'kb_dev_xxx',           // Required
   leaderboard: 'main',            // Required - session is bound to one board
-  defaultPlayerName: 'ANON',      // Optional (default: 'ANON')
   identity: { keyPrefix: 'app_' }, // Optional localStorage prefix
   cache: { ttlMs: 30000 },        // Optional TTL cache for getSnapshot()
   retry: { maxAgeMs: 86400000 },  // Optional retry queue for failed submissions
@@ -61,10 +60,13 @@ const session = new KeeperBoardSession({
 
 ### Identity (auto-managed)
 
+Player names are auto-generated on first access (e.g., `BOLDFALCON`, `SWIFTPANDA`). Players can override with `setPlayerName()`.
+
 ```typescript
 session.getPlayerGuid();     // Get or create persistent GUID
-session.getPlayerName();     // Get stored name or default
+session.getPlayerName();     // Get stored name (auto-generated if first time)
 session.setPlayerName(name); // Store name locally (doesn't update server)
+session.hasExplicitPlayerName(); // true if player chose their name
 
 // Validate a name (pure function)
 const validated = session.validateName('  Ace Pilot! ');
@@ -270,6 +272,16 @@ class GameOverScene extends Phaser.Scene {
 ---
 
 ## Utilities
+
+### generatePlayerName
+
+Generate random AdjectiveNoun player names:
+
+```typescript
+import { generatePlayerName } from 'keeperboard';
+
+const name = generatePlayerName(); // 'BOLDFALCON', 'SWIFTPANDA', etc.
+```
 
 ### PlayerIdentity
 

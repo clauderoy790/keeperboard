@@ -32,6 +32,14 @@ None — all plans completed.
 
 ## Completed Plans
 
+**Plan 5:** [Auto-Generated Random Player Names](docs/plans/5_random-player-names.md) — ✅ Completed
+
+- [x] Phase 1: Name Generator
+- [x] Phase 2: PlayerIdentity Updates
+- [x] Phase 3: Session & Types
+- [x] Phase 4: Tests
+- [x] Phase 5: Docs & Examples
+
 **Plan 4:** [SDK v2.0.0 - Developer Experience Overhaul](docs/plans/4_sdk-v2.md) — ✅ Completed
 
 - [x] Phase 1: camelCase Types & Client Modernization

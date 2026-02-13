@@ -32,6 +32,9 @@ export type { PlayerIdentityConfig } from './PlayerIdentity';
 // Validation
 export { validateName } from './validation';
 
+// Name generation
+export { generatePlayerName } from './nameGenerator';
+
 // Cache
 export { Cache } from './Cache';
 
