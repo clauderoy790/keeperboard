@@ -4,10 +4,6 @@ import { containsProfanity } from './index';
 /**
  * Names that SHOULD be blocked (profanity).
  * Add new test cases here when discovered.
- *
- * Note: We use word boundaries (default) to prevent false positives like
- * "Assassin" being blocked. This means compound words like "FuckBoy" won't
- * be caught, but that's an acceptable trade-off.
  */
 const SHOULD_BLOCK: string[] = [
   // Basic profanity (standalone words)
@@ -34,6 +30,14 @@ const SHOULD_BLOCK: string[] = [
   // With spaces (these should still be caught)
   'fuck you',
   'shit head',
+
+  // Slurs embedded in names (caught by ALWAYS_BLOCK list)
+  'vaginarf',
+  'xXvaginaXx',
+  'penisMan',
+  'niggaplz',
+  'faggot99',
+  'retardKing',
 ];
 
 /**
