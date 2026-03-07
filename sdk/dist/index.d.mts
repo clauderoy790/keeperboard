@@ -93,6 +93,7 @@ interface HealthResult {
     version: string;
     timestamp: string;
 }
+type ErrorCode = 'PROFANITY_DETECTED' | 'RATE_LIMITED' | 'INVALID_REQUEST' | 'NOT_FOUND' | 'INTERNAL_ERROR';
 interface SessionConfig {
     /** API key from the KeeperBoard dashboard */
     apiKey: string;
@@ -120,6 +121,14 @@ type SessionScoreResult = {
 } | {
     success: false;
     error: string;
+    errorCode?: ErrorCode;
+};
+type UpdateNameResult = {
+    success: true;
+} | {
+    success: false;
+    error: string;
+    errorCode?: ErrorCode;
 };
 interface SnapshotEntry {
     rank: number;
@@ -334,9 +343,9 @@ declare class KeeperBoardSession {
     }): Promise<SnapshotResult>;
     /**
      * Update the player's name on the server and locally.
-     * Returns true on success, false on failure.
+     * Returns `{ success: true }` on success, or `{ success: false, error, errorCode }` on failure.
      */
-    updatePlayerName(newName: string): Promise<boolean>;
+    updatePlayerName(newName: string): Promise<UpdateNameResult>;
     /**
      * Retry submitting a pending score (from a previous failed submission).
      * Call this on app startup.
@@ -510,4 +519,4 @@ declare class RetryQueue {
     clear(): void;
 }
 
-export { Cache, type ClaimResponse, type ClaimResult, type ClaimScoreOptions, type GetLeaderboardOptions, type GetPlayerRankOptions, type HealthResponse, type HealthResult, KeeperBoardClient, type KeeperBoardConfig, KeeperBoardError, KeeperBoardSession, type LeaderboardEntry, type LeaderboardResponse, type LeaderboardResult, type NameValidationOptions, PlayerIdentity, type PlayerIdentityConfig, type PlayerResponse, type PlayerResult, type ResetSchedule, RetryQueue, type ScoreResponse, type ScoreResult, type ScoreSubmission, type SessionConfig, type SessionScoreResult, type SnapshotEntry, type SnapshotResult, type SubmitScoreOptions, type UpdatePlayerNameOptions, generatePlayerName, validateName };
+export { Cache, type ClaimResponse, type ClaimResult, type ClaimScoreOptions, type ErrorCode, type GetLeaderboardOptions, type GetPlayerRankOptions, type HealthResponse, type HealthResult, KeeperBoardClient, type KeeperBoardConfig, KeeperBoardError, KeeperBoardSession, type LeaderboardEntry, type LeaderboardResponse, type LeaderboardResult, type NameValidationOptions, PlayerIdentity, type PlayerIdentityConfig, type PlayerResponse, type PlayerResult, type ResetSchedule, RetryQueue, type ScoreResponse, type ScoreResult, type ScoreSubmission, type SessionConfig, type SessionScoreResult, type SnapshotEntry, type SnapshotResult, type SubmitScoreOptions, type UpdateNameResult, type UpdatePlayerNameOptions, generatePlayerName, validateName };

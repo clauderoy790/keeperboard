@@ -15,11 +15,14 @@ import { validateName } from './validation';
 import type {
   SessionConfig,
   SessionScoreResult,
+  UpdateNameResult,
   SnapshotResult,
   SnapshotEntry,
   PlayerResult,
   NameValidationOptions,
+  ErrorCode,
 } from './types';
+import { KeeperBoardError } from './types';
 
 export class KeeperBoardSession {
   private readonly client: KeeperBoardClient;
@@ -128,12 +131,19 @@ export class KeeperBoardSession {
         isNewHighScore: result.isNewHighScore,
       };
     } catch (error) {
-      // Save to retry queue if enabled
-      this.retryQueue?.save(score, metadata);
+      // Don't retry profanity errors — they won't succeed on retry
+      const errorCode = error instanceof KeeperBoardError
+        ? (error.code as ErrorCode)
+        : undefined;
+
+      if (errorCode !== 'PROFANITY_DETECTED') {
+        this.retryQueue?.save(score, metadata);
+      }
 
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
+        errorCode,
       };
     } finally {
       this.isSubmitting = false;
@@ -166,9 +176,9 @@ export class KeeperBoardSession {
 
   /**
    * Update the player's name on the server and locally.
-   * Returns true on success, false on failure.
+   * Returns `{ success: true }` on success, or `{ success: false, error, errorCode }` on failure.
    */
-  async updatePlayerName(newName: string): Promise<boolean> {
+  async updatePlayerName(newName: string): Promise<UpdateNameResult> {
     try {
       await this.client.updatePlayerName({
         playerGuid: this.getPlayerGuid(),
@@ -182,9 +192,17 @@ export class KeeperBoardSession {
         this.cachedLimit = 0;
       }
 
-      return true;
-    } catch {
-      return false;
+      return { success: true };
+    } catch (error) {
+      const errorCode = error instanceof KeeperBoardError
+        ? (error.code as ErrorCode)
+        : undefined;
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorCode,
+      };
     }
   }
 

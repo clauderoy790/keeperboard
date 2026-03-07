@@ -2,6 +2,23 @@
 
 All notable changes to the KeeperBoard SDK are documented here.
 
+## [2.1.0] - 2026-03-07
+
+### Added
+
+- `ErrorCode` type for structured error handling: `'PROFANITY_DETECTED' | 'RATE_LIMITED' | 'INVALID_REQUEST' | 'NOT_FOUND' | 'INTERNAL_ERROR'`
+- `errorCode` field in `SessionScoreResult` failure case
+- `UpdateNameResult` type — `updatePlayerName()` now returns a result object instead of boolean
+
+### Changed
+
+- `KeeperBoardSession.updatePlayerName()` now returns `UpdateNameResult` instead of `boolean`
+  - Success: `{ success: true }`
+  - Failure: `{ success: false, error: string, errorCode?: ErrorCode }`
+- Profanity errors (`PROFANITY_DETECTED`) are not added to the retry queue since they won't succeed on retry
+
+---
+
 ## [2.0.0] - 2026-02-11
 
 ### Breaking Changes

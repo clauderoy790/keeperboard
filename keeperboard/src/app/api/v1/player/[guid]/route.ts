@@ -144,9 +144,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     const { guid } = await params;
     const body = await request.json();
-    const { player_name } = body;
+    const player_name = typeof body.player_name === 'string' ? body.player_name.trim() : null;
 
-    if (!player_name || typeof player_name !== 'string') {
+    if (!player_name) {
       return errorResponse(
         'Missing required field: player_name',
         'INVALID_REQUEST',

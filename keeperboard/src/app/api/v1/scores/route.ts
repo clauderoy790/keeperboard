@@ -21,7 +21,8 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body = (await request.json()) as ScoreSubmission;
-    const { player_guid, player_name, score, metadata } = body;
+    const { player_guid, score, metadata } = body;
+    const player_name = body.player_name?.trim();
 
     // Basic validation
     if (!player_guid || !player_name || typeof score !== 'number') {

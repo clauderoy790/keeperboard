@@ -67,8 +67,12 @@ export type {
 
   // Session types
   SessionScoreResult,
+  UpdateNameResult,
   SnapshotEntry,
   SnapshotResult,
+
+  // Error types
+  ErrorCode,
 
   // Validation
   NameValidationOptions,

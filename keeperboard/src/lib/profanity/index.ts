@@ -15,6 +15,9 @@ const config: ProfanityCheckerConfig = {
   detectLeetspeak: true,
   leetspeakLevel: 'aggressive',
   normalizeUnicode: true,
+  // wordBoundaries defaults to true - prevents false positives like "Assassin"
+  // Trade-off: compound words like "FuckBoy" won't be caught, but that's
+  // better than blocking legitimate words
   ignoreWords: ALLOWED_WORDS.map(w => w.toLowerCase()),
   cacheResults: true,
   maxCacheSize: 500,

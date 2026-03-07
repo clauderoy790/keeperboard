@@ -181,9 +181,9 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 | [Plan 3](docs/plans/3_time-based-leaderboards.md) | Time-Based Leaderboards | 2026-02-08 | Completed |
 | [Plan 4](docs/plans/4_sdk-v2.md) | SDK v2.0.0 - Developer Experience | 2026-02-10 | Completed |
 | [Plan 5](docs/plans/5_random-player-names.md) | Auto-Generated Player Names | 2026-02-15 | Completed |
-| [Plan 6](docs/plans/6_profanity-filter.md) | Profanity Filter for Player Names | 2026-03-07 | Phase 4/7 (Mar 7) |
+| [Plan 6](docs/plans/6_profanity-filter.md) | Profanity Filter for Player Names | 2026-03-07 | Phase 6/7 (Mar 7) |
 
-**Active:** Plan 6 - Profanity Filter (Phase 5 next)
+**Active:** Plan 6 - Profanity Filter (Phase 7 next)
 
 ## License
 
