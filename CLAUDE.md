@@ -28,7 +28,15 @@ keeperboard/
 
 ## Active Plan
 
-None — all plans completed.
+**Plan 6:** [Profanity Filter for Player Names](docs/plans/6_profanity-filter.md)
+
+- [x] Phase 1: Database Migration
+- [x] Phase 2: Profanity Filter Utility
+- [x] Phase 3: API Integration
+- [x] Phase 4: Dashboard UI
+- [x] Phase 5: Unit Tests
+- [x] Phase 6: SDK Update
+- [x] Phase 7: Game Integration (flight747)
 
 ## Completed Plans
 

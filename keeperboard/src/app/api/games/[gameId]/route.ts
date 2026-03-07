@@ -58,7 +58,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
   try {
     const body = await request.json();
-    const { name, description } = body;
+    const { name, description, profanityFilterEnabled } = body;
 
     // Use admin client to bypass RLS
     const adminSupabase = createAdminClient();
@@ -83,6 +83,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       .update({
         ...(name && { name }),
         ...(description !== undefined && { description }),
+        ...(profanityFilterEnabled !== undefined && { profanity_filter_enabled: profanityFilterEnabled }),
       })
       .eq('id', gameId)
       .select()

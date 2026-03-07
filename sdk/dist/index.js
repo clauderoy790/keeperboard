@@ -810,10 +810,14 @@ var KeeperBoardSession = class {
         isNewHighScore: result.isNewHighScore
       };
     } catch (error) {
-      this.retryQueue?.save(score, metadata);
+      const errorCode = error instanceof KeeperBoardError ? error.code : void 0;
+      if (errorCode !== "PROFANITY_DETECTED") {
+        this.retryQueue?.save(score, metadata);
+      }
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
+        errorCode
       };
     } finally {
       this.isSubmitting = false;
@@ -840,7 +844,7 @@ var KeeperBoardSession = class {
   }
   /**
    * Update the player's name on the server and locally.
-   * Returns true on success, false on failure.
+   * Returns `{ success: true }` on success, or `{ success: false, error, errorCode }` on failure.
    */
   async updatePlayerName(newName) {
     try {
@@ -853,9 +857,14 @@ var KeeperBoardSession = class {
         this.cache.invalidate();
         this.cachedLimit = 0;
       }
-      return true;
-    } catch {
-      return false;
+      return { success: true };
+    } catch (error) {
+      const errorCode = error instanceof KeeperBoardError ? error.code : void 0;
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        errorCode
+      };
     }
   }
   /**

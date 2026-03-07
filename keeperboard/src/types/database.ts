@@ -97,6 +97,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          profanity_filter_enabled: boolean
           updated_at: string | null
           user_id: string
         }
@@ -105,6 +106,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          profanity_filter_enabled?: boolean
           updated_at?: string | null
           user_id: string
         }
@@ -113,6 +115,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          profanity_filter_enabled?: boolean
           updated_at?: string | null
           user_id?: string
         }

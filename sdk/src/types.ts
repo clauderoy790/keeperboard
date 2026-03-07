@@ -120,6 +120,17 @@ export interface HealthResult {
 }
 
 // =============================================
+// Error Codes
+// =============================================
+
+export type ErrorCode =
+  | 'PROFANITY_DETECTED'
+  | 'RATE_LIMITED'
+  | 'INVALID_REQUEST'
+  | 'NOT_FOUND'
+  | 'INTERNAL_ERROR';
+
+// =============================================
 // Session Types
 // =============================================
 
@@ -140,7 +151,11 @@ export interface SessionConfig {
 
 export type SessionScoreResult =
   | { success: true; rank: number; isNewHighScore: boolean }
-  | { success: false; error: string };
+  | { success: false; error: string; errorCode?: ErrorCode };
+
+export type UpdateNameResult =
+  | { success: true }
+  | { success: false; error: string; errorCode?: ErrorCode };
 
 export interface SnapshotEntry {
   rank: number;
