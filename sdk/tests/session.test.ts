@@ -545,9 +545,9 @@ describe('KeeperBoardSession', () => {
         leaderboard: 'main',
       });
 
-      const success = await session.updatePlayerName('NewName');
+      const result = await session.updatePlayerName('NewName');
 
-      expect(success).toBe(true);
+      expect(result.success).toBe(true);
       expect(mockSetPlayerName).toHaveBeenCalledWith('NewName');
       expect(mockUpdatePlayerName).toHaveBeenCalledWith({
         playerGuid: 'test-player-guid',
@@ -555,7 +555,7 @@ describe('KeeperBoardSession', () => {
       });
     });
 
-    it('should return false on failure without updating local name', async () => {
+    it('should return failure result without updating local name', async () => {
       mockUpdatePlayerName.mockRejectedValue(new Error('Server error'));
       mockPlayerName = 'OriginalName';
 
@@ -564,9 +564,12 @@ describe('KeeperBoardSession', () => {
         leaderboard: 'main',
       });
 
-      const success = await session.updatePlayerName('NewName');
+      const result = await session.updatePlayerName('NewName');
 
-      expect(success).toBe(false);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toBe('Server error');
+      }
       // setPlayerName should NOT have been called on failure
       expect(mockSetPlayerName).not.toHaveBeenCalled();
     });
