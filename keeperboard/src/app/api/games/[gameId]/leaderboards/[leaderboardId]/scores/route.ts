@@ -110,7 +110,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         break;
       case 'score':
       default:
-        query = query.order('score', { ascending: !ascending }); // Higher scores first by default
+        query = query.order('score', { ascending });
         break;
     }
 
@@ -124,18 +124,27 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     // Calculate ranks for each score (within the same version)
+    // For DESC (higher = better): count scores higher than current
+    // For ASC (lower = better): count scores lower than current
     const scoresWithRanks = await Promise.all(
       (scores || []).map(async (score) => {
-        const { count: higherCount } = await supabase
+        let rankQuery = supabase
           .from('scores')
           .select('*', { count: 'exact', head: true })
           .eq('leaderboard_id', leaderboardId)
-          .eq('version', targetVersion)
-          .gt('score', score.score);
+          .eq('version', targetVersion);
+
+        // For ASC order (lower = better), count scores LOWER than current
+        // For DESC order (higher = better), count scores HIGHER than current
+        rankQuery = ascending
+          ? rankQuery.lt('score', score.score)
+          : rankQuery.gt('score', score.score);
+
+        const { count: betterCount } = await rankQuery;
 
         return {
           ...score,
-          rank: (higherCount ?? 0) + 1,
+          rank: (betterCount ?? 0) + 1,
         };
       })
     );
