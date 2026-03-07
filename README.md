@@ -179,8 +179,11 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 | [Plan 1](docs/plans/keeperboard.md) | Initial Architecture | 2024-12-29 | Completed |
 | [Plan 2](docs/plans/2_keeperboard-phaser.md) | KeeperBoard Phaser Adaptation | 2024-12-30 | Completed |
 | [Plan 3](docs/plans/3_time-based-leaderboards.md) | Time-Based Leaderboards | 2026-02-08 | Completed |
+| [Plan 4](docs/plans/4_sdk-v2.md) | SDK v2.0.0 - Developer Experience | 2026-02-10 | Completed |
+| [Plan 5](docs/plans/5_random-player-names.md) | Auto-Generated Player Names | 2026-02-15 | Completed |
+| [Plan 6](docs/plans/6_profanity-filter.md) | Profanity Filter for Player Names | 2026-03-07 | Phase 1/7 (Mar 7) |
 
-**Latest:** Plan 3 - Time-Based Leaderboards (Completed Feb 8, 2026)
+**Active:** Plan 6 - Profanity Filter (Phase 2 next)
 
 ## License
 
