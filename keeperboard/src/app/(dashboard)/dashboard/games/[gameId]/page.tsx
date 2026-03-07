@@ -14,6 +14,7 @@ interface Game {
   id: string;
   name: string;
   description: string | null;
+  profanity_filter_enabled: boolean;
   created_at: string;
   user_id: string;
 }
@@ -137,7 +138,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ gameId: s
     }
   };
 
-  const handleUpdateGame = async (formData: { name: string; description: string }) => {
+  const handleUpdateGame = async (formData: { name: string; description: string; profanityFilterEnabled: boolean }) => {
     setUpdating(true);
     try {
       const response = await fetch(`/api/games/${resolvedParams.gameId}`, {
@@ -233,6 +234,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ gameId: s
               initialData={{
                 name: game.name,
                 description: game.description || '',
+                profanityFilterEnabled: game.profanity_filter_enabled,
               }}
               onSubmit={handleUpdateGame}
               submitLabel="Save Changes"

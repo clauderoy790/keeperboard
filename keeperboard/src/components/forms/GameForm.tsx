@@ -8,8 +8,9 @@ interface GameFormProps {
   initialData?: {
     name: string;
     description?: string;
+    profanityFilterEnabled?: boolean;
   };
-  onSubmit: (data: { name: string; description: string }) => Promise<void>;
+  onSubmit: (data: { name: string; description: string; profanityFilterEnabled: boolean }) => Promise<void>;
   submitLabel?: string;
   loading?: boolean;
 }
@@ -22,6 +23,9 @@ export default function GameForm({
 }: GameFormProps) {
   const [name, setName] = useState(initialData?.name || '');
   const [description, setDescription] = useState(initialData?.description || '');
+  const [profanityFilterEnabled, setProfanityFilterEnabled] = useState(
+    initialData?.profanityFilterEnabled ?? true
+  );
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,7 +38,7 @@ export default function GameForm({
     }
 
     try {
-      await onSubmit({ name, description });
+      await onSubmit({ name, description, profanityFilterEnabled });
     } catch (err: any) {
       setError(err.message || 'Failed to save game');
     }
@@ -86,6 +90,24 @@ export default function GameForm({
           <span className="absolute bottom-0 left-0 w-2 h-2 border-l-2 border-b-2 border-cyan-500/40 pointer-events-none" />
           <span className="absolute bottom-0 right-0 w-2 h-2 border-r-2 border-b-2 border-cyan-500/40 pointer-events-none" />
         </div>
+      </div>
+
+      {/* Profanity Filter Toggle */}
+      <div className="space-y-2">
+        <label className="flex items-center gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={profanityFilterEnabled}
+            onChange={(e) => setProfanityFilterEnabled(e.target.checked)}
+            className="w-5 h-5 accent-cyan-500 cursor-pointer"
+          />
+          <span className="text-cyan-400 text-sm font-mono uppercase tracking-wider group-hover:text-cyan-300 transition-colors">
+            Enable Profanity Filter
+          </span>
+        </label>
+        <p className="text-neutral-500 text-xs font-mono pl-8">
+          Block inappropriate player names from leaderboards (recommended)
+        </p>
       </div>
 
       <Button

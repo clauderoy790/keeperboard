@@ -4,6 +4,8 @@ import { corsHeaders } from '@/lib/utils/cors';
 import { validateApiKey } from '@/lib/api/auth';
 import { resolveLeaderboard } from '@/lib/api/leaderboard';
 import { resolveCurrentVersion } from '@/lib/api/version';
+import { getGameSettings } from '@/lib/api/game';
+import { containsProfanity } from '@/lib/profanity';
 
 interface ScoreSubmission {
   player_guid: string;
@@ -26,6 +28,17 @@ export async function POST(request: Request) {
       return errorResponse(
         'Missing required fields: player_guid, player_name, score',
         'INVALID_REQUEST',
+        400,
+        corsHeaders
+      );
+    }
+
+    // Check profanity if enabled for this game
+    const gameSettings = await getGameSettings(gameId);
+    if (gameSettings.profanityFilterEnabled && containsProfanity(player_name)) {
+      return errorResponse(
+        'Name contains inappropriate content',
+        'PROFANITY_DETECTED',
         400,
         corsHeaders
       );
