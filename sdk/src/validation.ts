@@ -8,7 +8,7 @@ import type { NameValidationOptions } from './types';
 const DEFAULTS: Required<NameValidationOptions> = {
   minLength: 2,
   maxLength: 12,
-  allowedPattern: /[^A-Za-z0-9_]/g,
+  allowedPattern: /[^A-Za-z0-9_ ]/g,  // Letters, numbers, underscore, space
 };
 
 /**
@@ -31,9 +31,10 @@ export function validateName(
   const opts = { ...DEFAULTS, ...options };
 
   let name = input.trim();
-  const pattern = options?.allowedPattern ?? /[^A-Za-z0-9_]/g;
+  const pattern = options?.allowedPattern ?? /[^A-Za-z0-9_ ]/g;
 
   name = name.replace(pattern, '');
+  name = name.replace(/ +/g, ' ').trim();  // Collapse multiple spaces, trim again
   name = name.substring(0, opts.maxLength);
 
   if (name.length < opts.minLength) {

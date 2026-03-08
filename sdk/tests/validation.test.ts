@@ -8,12 +8,17 @@ import { validateName } from '../src/validation';
 
 describe('validateName()', () => {
   describe('default options', () => {
-    it('should strip invalid characters', () => {
-      expect(validateName('Ace Pilot!')).toBe('AcePilot');
+    it('should strip invalid characters but keep spaces', () => {
+      expect(validateName('Ace Pilot!')).toBe('Ace Pilot');
     });
 
     it('should trim whitespace', () => {
       expect(validateName('  ACE  ')).toBe('ACE');
+    });
+
+    it('should collapse multiple spaces to single space', () => {
+      expect(validateName('Far    Seer')).toBe('Far Seer');
+      expect(validateName('A   B   C')).toBe('A B C');
     });
 
     it('should allow underscores', () => {

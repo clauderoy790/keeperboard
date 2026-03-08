@@ -144,7 +144,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     const { guid } = await params;
     const body = await request.json();
-    const player_name = typeof body.player_name === 'string' ? body.player_name.trim() : null;
+    const player_name = typeof body.player_name === 'string'
+      ? body.player_name.trim().replace(/ +/g, ' ')  // Normalize spaces
+      : null;
 
     if (!player_name) {
       return errorResponse(
