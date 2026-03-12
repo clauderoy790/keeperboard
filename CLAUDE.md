@@ -32,7 +32,7 @@ keeperboard/
 
 - [x] Phase 1: Database Schema & Game Settings
 - [x] Phase 2: Run Token Endpoints
-- [ ] Phase 3: HMAC Signature Validation (Server)
+- [x] Phase 3: HMAC Signature Validation (Server)
 - [ ] Phase 4: Dashboard - Anti-Cheat Settings & Elapsed Time UI
 - [ ] Phase 5: SDK - Run Token Support
 - [ ] Phase 6: SDK - Multi-Step HMAC Signing

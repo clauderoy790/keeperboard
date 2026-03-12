@@ -3,9 +3,12 @@ import { successResponse, errorResponse } from '@/lib/utils/api-response';
 import { corsHeaders } from '@/lib/utils/cors';
 import { validateApiKey } from '@/lib/api/auth';
 import { resolveLeaderboard } from '@/lib/api/leaderboard';
+import { getAntiCheatSettings } from '@/lib/api/game';
+import { validateSignature, validateTimestamp } from '@/lib/api/signature';
 
 interface StartRunRequest {
   player_guid: string;
+  timestamp?: number;
 }
 
 /**
@@ -36,7 +39,7 @@ export async function POST(request: Request) {
 
     // Parse request body
     const body = (await request.json()) as StartRunRequest;
-    const { player_guid } = body;
+    const { player_guid, timestamp } = body;
 
     // Basic validation
     if (!player_guid) {
@@ -58,6 +61,64 @@ export async function POST(request: Request) {
       environmentId,
       leaderboardName
     );
+
+    // Check if signing is enabled
+    const antiCheat = await getAntiCheatSettings(gameId, leaderboard.leaderboardId);
+
+    if (antiCheat.signingEnabled) {
+      // Require timestamp when signing is enabled
+      if (!timestamp || typeof timestamp !== 'number') {
+        return errorResponse(
+          'Missing or invalid timestamp (required when signing is enabled)',
+          'INVALID_REQUEST',
+          400,
+          corsHeaders
+        );
+      }
+
+      // Validate timestamp freshness and replay protection
+      const timestampError = validateTimestamp(timestamp, player_guid);
+      if (timestampError) {
+        return errorResponse(timestampError, 'INVALID_TIMESTAMP', 400, corsHeaders);
+      }
+
+      // Require signature header
+      const signature = request.headers.get('X-Signature');
+      if (!signature) {
+        return errorResponse(
+          'Missing X-Signature header (required when signing is enabled)',
+          'MISSING_SIGNATURE',
+          401,
+          corsHeaders
+        );
+      }
+
+      // Validate signature
+      if (!antiCheat.signingSecret) {
+        console.error('Signing enabled but no secret configured for game:', gameId);
+        return errorResponse(
+          'Server configuration error',
+          'INTERNAL_ERROR',
+          500,
+          corsHeaders
+        );
+      }
+
+      const isValid = validateSignature(
+        { playerGuid: player_guid, timestamp },
+        signature,
+        antiCheat.signingSecret
+      );
+
+      if (!isValid) {
+        return errorResponse(
+          'Invalid signature',
+          'INVALID_SIGNATURE',
+          401,
+          corsHeaders
+        );
+      }
+    }
 
     // Create game run record
     const supabase = createAdminClient();
