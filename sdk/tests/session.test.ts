@@ -10,6 +10,8 @@ const mockSubmitScore = vi.fn();
 const mockGetLeaderboard = vi.fn();
 const mockGetPlayerRank = vi.fn();
 const mockUpdatePlayerName = vi.fn();
+const mockStartRun = vi.fn();
+const mockFinishRun = vi.fn();
 
 // Create mock identity functions
 let mockPlayerGuid = 'test-player-guid';
@@ -39,6 +41,8 @@ vi.mock('../src/KeeperBoardClient', () => ({
       getLeaderboard: mockGetLeaderboard,
       getPlayerRank: mockGetPlayerRank,
       updatePlayerName: mockUpdatePlayerName,
+      startRun: mockStartRun,
+      finishRun: mockFinishRun,
     };
   },
 }));
@@ -95,6 +99,18 @@ describe('KeeperBoardSession', () => {
       playerName: 'NewName',
       rank: 1,
       score: 1000,
+    });
+
+    mockStartRun.mockResolvedValue({
+      runId: 'test-run-id',
+      startedAt: '2026-03-11T10:00:00Z',
+      expiresAt: '2026-03-11T10:30:00Z',
+    });
+
+    mockFinishRun.mockResolvedValue({
+      scoreId: 'test-score-id',
+      rank: 1,
+      isNewHighScore: true,
     });
   });
 
@@ -295,6 +311,114 @@ describe('KeeperBoardSession', () => {
 
       // Only one API call should have been made
       expect(mockSubmitScore).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // ============================================
+  // RUN TOKENS (ANTI-CHEAT)
+  // ============================================
+
+  describe('run tokens', () => {
+    it('startRun() should call client with auto-injected identity', async () => {
+      const session = new KeeperBoardSession({
+        apiKey: 'test-key',
+        leaderboard: 'main',
+      });
+
+      const result = await session.startRun();
+
+      expect(result.runId).toBe('test-run-id');
+      expect(result.startedAt).toBe('2026-03-11T10:00:00Z');
+      expect(result.expiresAt).toBe('2026-03-11T10:30:00Z');
+      expect(mockStartRun).toHaveBeenCalledWith({
+        playerGuid: 'test-player-guid',
+      });
+    });
+
+    it('startRun() should store run ID for finishRun()', async () => {
+      const session = new KeeperBoardSession({
+        apiKey: 'test-key',
+        leaderboard: 'main',
+      });
+
+      expect(session.hasActiveRun()).toBe(false);
+      expect(session.getCurrentRunId()).toBeNull();
+
+      await session.startRun();
+
+      expect(session.hasActiveRun()).toBe(true);
+      expect(session.getCurrentRunId()).toBe('test-run-id');
+    });
+
+    it('finishRun() should use stored run ID and clear it', async () => {
+      mockPlayerName = 'TestPlayer';
+      const session = new KeeperBoardSession({
+        apiKey: 'test-key',
+        leaderboard: 'main',
+      });
+
+      await session.startRun();
+      const result = await session.finishRun(1500);
+
+      expect(result.scoreId).toBe('test-score-id');
+      expect(result.rank).toBe(1);
+      expect(result.isNewHighScore).toBe(true);
+      expect(mockFinishRun).toHaveBeenCalledWith({
+        runId: 'test-run-id',
+        playerGuid: 'test-player-guid',
+        playerName: 'TestPlayer',
+        score: 1500,
+        metadata: undefined,
+      });
+
+      // Run ID should be cleared after finish
+      expect(session.hasActiveRun()).toBe(false);
+      expect(session.getCurrentRunId()).toBeNull();
+    });
+
+    it('finishRun() should pass metadata', async () => {
+      const session = new KeeperBoardSession({
+        apiKey: 'test-key',
+        leaderboard: 'main',
+      });
+
+      await session.startRun();
+      await session.finishRun(1500, { level: 10, mode: 'hard' });
+
+      expect(mockFinishRun).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: { level: 10, mode: 'hard' },
+        })
+      );
+    });
+
+    it('finishRun() should throw error if no active run', async () => {
+      const session = new KeeperBoardSession({
+        apiKey: 'test-key',
+        leaderboard: 'main',
+      });
+
+      await expect(session.finishRun(1500)).rejects.toThrow(
+        'No active run. Call startRun() first.'
+      );
+    });
+
+    it('finishRun() should invalidate cache', async () => {
+      const session = new KeeperBoardSession({
+        apiKey: 'test-key',
+        leaderboard: 'main',
+        cache: { ttlMs: 5000 },
+      });
+
+      await session.getSnapshot();
+      expect(mockGetLeaderboard).toHaveBeenCalledTimes(1);
+
+      await session.startRun();
+      await session.finishRun(1500);
+      await vi.runAllTimersAsync(); // Let background refresh complete
+
+      // Cache was invalidated, so should have fetched again
+      expect(mockGetLeaderboard).toHaveBeenCalledTimes(2);
     });
   });
 

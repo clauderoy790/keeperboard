@@ -48,6 +48,20 @@ interface ClaimScoreOptions {
     /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
     leaderboard?: string;
 }
+interface StartRunOptions {
+    playerGuid: string;
+    /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
+    leaderboard?: string;
+}
+interface FinishRunOptions {
+    runId: string;
+    playerGuid: string;
+    playerName: string;
+    score: number;
+    /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
+    leaderboard?: string;
+    metadata?: Record<string, unknown>;
+}
 interface ScoreResult {
     id: string;
     playerGuid: string;
@@ -92,6 +106,16 @@ interface HealthResult {
     service: string;
     version: string;
     timestamp: string;
+}
+interface StartRunResult {
+    runId: string;
+    startedAt: string;
+    expiresAt: string;
+}
+interface FinishRunResult {
+    scoreId: string;
+    rank: number;
+    isNewHighScore: boolean;
 }
 type ErrorCode = 'PROFANITY_DETECTED' | 'RATE_LIMITED' | 'INVALID_REQUEST' | 'NOT_FOUND' | 'INTERNAL_ERROR';
 interface SessionConfig {
@@ -288,10 +312,41 @@ declare class KeeperBoardClient {
      * Check if the API is healthy. Does not require an API key.
      */
     healthCheck(): Promise<HealthResult>;
+    /**
+     * Start a game run. Use this when the leaderboard requires run tokens.
+     * Returns a run ID that must be passed to finishRun() when submitting the score.
+     *
+     * @example
+     * const run = await client.startRun({ playerGuid: 'abc-123' });
+     * // ... play game ...
+     * const result = await client.finishRun({
+     *   runId: run.runId,
+     *   playerGuid: 'abc-123',
+     *   playerName: 'ACE',
+     *   score: 1500,
+     * });
+     */
+    startRun(options: StartRunOptions): Promise<StartRunResult>;
+    /**
+     * Finish a game run and submit the score.
+     * The run must have been started with startRun() first.
+     *
+     * @example
+     * const result = await client.finishRun({
+     *   runId: run.runId,
+     *   playerGuid: 'abc-123',
+     *   playerName: 'ACE',
+     *   score: 1500,
+     * });
+     * console.log(result.rank, result.isNewHighScore);
+     */
+    finishRun(options: FinishRunOptions): Promise<FinishRunResult>;
     private mapScoreResponse;
     private mapLeaderboardResponse;
     private mapPlayerResponse;
     private mapClaimResponse;
+    private mapStartRunResponse;
+    private mapFinishRunResponse;
     private request;
 }
 
@@ -312,6 +367,7 @@ declare class KeeperBoardSession {
     private readonly retryQueue;
     private cachedLimit;
     private isSubmitting;
+    private currentRunId;
     constructor(config: SessionConfig);
     /** Get or create a persistent player GUID. */
     getPlayerGuid(): string;
@@ -331,6 +387,31 @@ declare class KeeperBoardSession {
      * Prevents concurrent double-submissions.
      */
     submitScore(score: number, metadata?: Record<string, unknown>): Promise<SessionScoreResult>;
+    /**
+     * Start a game run. Call this when a game session begins.
+     * For leaderboards with `require_run_token` enabled, scores must be submitted via finishRun().
+     *
+     * The run ID is stored internally and used automatically by finishRun().
+     *
+     * @example
+     * await session.startRun();
+     * // ... play game ...
+     * const result = await session.finishRun(1500);
+     */
+    startRun(): Promise<StartRunResult>;
+    /**
+     * Finish a game run and submit the score.
+     * Must be called after startRun(). Uses the stored run ID automatically.
+     *
+     * @example
+     * const result = await session.finishRun(1500);
+     * if (result.isNewHighScore) console.log('New high score!');
+     */
+    finishRun(score: number, metadata?: Record<string, unknown>): Promise<FinishRunResult>;
+    /** Check if there's an active run in progress. */
+    hasActiveRun(): boolean;
+    /** Get the current run ID, or null if no run is active. */
+    getCurrentRunId(): string | null;
     /**
      * Get a combined snapshot: leaderboard entries (with `isCurrentPlayer` flag)
      * plus the current player's rank if they're outside the top N.
@@ -519,4 +600,4 @@ declare class RetryQueue {
     clear(): void;
 }
 
-export { Cache, type ClaimResponse, type ClaimResult, type ClaimScoreOptions, type ErrorCode, type GetLeaderboardOptions, type GetPlayerRankOptions, type HealthResponse, type HealthResult, KeeperBoardClient, type KeeperBoardConfig, KeeperBoardError, KeeperBoardSession, type LeaderboardEntry, type LeaderboardResponse, type LeaderboardResult, type NameValidationOptions, PlayerIdentity, type PlayerIdentityConfig, type PlayerResponse, type PlayerResult, type ResetSchedule, RetryQueue, type ScoreResponse, type ScoreResult, type ScoreSubmission, type SessionConfig, type SessionScoreResult, type SnapshotEntry, type SnapshotResult, type SubmitScoreOptions, type UpdateNameResult, type UpdatePlayerNameOptions, generatePlayerName, validateName };
+export { Cache, type ClaimResponse, type ClaimResult, type ClaimScoreOptions, type ErrorCode, type FinishRunOptions, type FinishRunResult, type GetLeaderboardOptions, type GetPlayerRankOptions, type HealthResponse, type HealthResult, KeeperBoardClient, type KeeperBoardConfig, KeeperBoardError, KeeperBoardSession, type LeaderboardEntry, type LeaderboardResponse, type LeaderboardResult, type NameValidationOptions, PlayerIdentity, type PlayerIdentityConfig, type PlayerResponse, type PlayerResult, type ResetSchedule, RetryQueue, type ScoreResponse, type ScoreResult, type ScoreSubmission, type SessionConfig, type SessionScoreResult, type SnapshotEntry, type SnapshotResult, type StartRunOptions, type StartRunResult, type SubmitScoreOptions, type UpdateNameResult, type UpdatePlayerNameOptions, generatePlayerName, validateName };

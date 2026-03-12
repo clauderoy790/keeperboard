@@ -162,6 +162,64 @@ var _KeeperBoardClient = class _KeeperBoardClient {
     return json.data;
   }
   // ============================================
+  // ANTI-CHEAT: RUN TOKENS
+  // ============================================
+  /**
+   * Start a game run. Use this when the leaderboard requires run tokens.
+   * Returns a run ID that must be passed to finishRun() when submitting the score.
+   *
+   * @example
+   * const run = await client.startRun({ playerGuid: 'abc-123' });
+   * // ... play game ...
+   * const result = await client.finishRun({
+   *   runId: run.runId,
+   *   playerGuid: 'abc-123',
+   *   playerName: 'ACE',
+   *   score: 1500,
+   * });
+   */
+  async startRun(options) {
+    const leaderboard = options.leaderboard ?? this.defaultLeaderboard;
+    const params = new URLSearchParams();
+    if (leaderboard) params.set("leaderboard", leaderboard);
+    const url = `${this.apiUrl}/api/v1/runs/start${params.toString() ? "?" + params.toString() : ""}`;
+    const raw = await this.request(url, {
+      method: "POST",
+      body: JSON.stringify({ player_guid: options.playerGuid })
+    });
+    return this.mapStartRunResponse(raw);
+  }
+  /**
+   * Finish a game run and submit the score.
+   * The run must have been started with startRun() first.
+   *
+   * @example
+   * const result = await client.finishRun({
+   *   runId: run.runId,
+   *   playerGuid: 'abc-123',
+   *   playerName: 'ACE',
+   *   score: 1500,
+   * });
+   * console.log(result.rank, result.isNewHighScore);
+   */
+  async finishRun(options) {
+    const leaderboard = options.leaderboard ?? this.defaultLeaderboard;
+    const params = new URLSearchParams();
+    if (leaderboard) params.set("leaderboard", leaderboard);
+    const url = `${this.apiUrl}/api/v1/runs/finish${params.toString() ? "?" + params.toString() : ""}`;
+    const raw = await this.request(url, {
+      method: "POST",
+      body: JSON.stringify({
+        run_id: options.runId,
+        player_guid: options.playerGuid,
+        player_name: options.playerName,
+        score: options.score,
+        ...options.metadata && { metadata: options.metadata }
+      })
+    });
+    return this.mapFinishRunResponse(raw);
+  }
+  // ============================================
   // RESPONSE MAPPERS (snake_case → camelCase)
   // ============================================
   mapScoreResponse(raw) {
@@ -204,6 +262,20 @@ var _KeeperBoardClient = class _KeeperBoardClient {
       score: raw.score,
       rank: raw.rank,
       playerName: raw.player_name
+    };
+  }
+  mapStartRunResponse(raw) {
+    return {
+      runId: raw.run_id,
+      startedAt: raw.started_at,
+      expiresAt: raw.expires_at
+    };
+  }
+  mapFinishRunResponse(raw) {
+    return {
+      scoreId: raw.score_id,
+      rank: raw.rank,
+      isNewHighScore: raw.is_new_high_score
     };
   }
   // ============================================
@@ -709,6 +781,7 @@ var KeeperBoardSession = class {
     this.cachedLimit = 0;
     // Track the limit used for cached data
     this.isSubmitting = false;
+    this.currentRunId = null;
     this.client = new KeeperBoardClient({
       apiKey: config.apiKey,
       defaultLeaderboard: config.leaderboard,
@@ -791,6 +864,62 @@ var KeeperBoardSession = class {
     } finally {
       this.isSubmitting = false;
     }
+  }
+  // ============================================
+  // ANTI-CHEAT: RUN TOKENS
+  // ============================================
+  /**
+   * Start a game run. Call this when a game session begins.
+   * For leaderboards with `require_run_token` enabled, scores must be submitted via finishRun().
+   *
+   * The run ID is stored internally and used automatically by finishRun().
+   *
+   * @example
+   * await session.startRun();
+   * // ... play game ...
+   * const result = await session.finishRun(1500);
+   */
+  async startRun() {
+    const result = await this.client.startRun({
+      playerGuid: this.getPlayerGuid()
+    });
+    this.currentRunId = result.runId;
+    return result;
+  }
+  /**
+   * Finish a game run and submit the score.
+   * Must be called after startRun(). Uses the stored run ID automatically.
+   *
+   * @example
+   * const result = await session.finishRun(1500);
+   * if (result.isNewHighScore) console.log('New high score!');
+   */
+  async finishRun(score, metadata) {
+    if (!this.currentRunId) {
+      throw new Error("No active run. Call startRun() first.");
+    }
+    const result = await this.client.finishRun({
+      runId: this.currentRunId,
+      playerGuid: this.getPlayerGuid(),
+      playerName: this.getPlayerName(),
+      score,
+      metadata
+    });
+    this.currentRunId = null;
+    if (this.cache) {
+      this.cache.invalidate();
+      this.cachedLimit = 0;
+      this.cache.refreshInBackground(() => this.fetchSnapshot());
+    }
+    return result;
+  }
+  /** Check if there's an active run in progress. */
+  hasActiveRun() {
+    return this.currentRunId !== null;
+  }
+  /** Get the current run ID, or null if no run is active. */
+  getCurrentRunId() {
+    return this.currentRunId;
   }
   /**
    * Get a combined snapshot: leaderboard entries (with `isCurrentPlayer` flag)

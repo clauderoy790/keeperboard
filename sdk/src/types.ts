@@ -63,6 +63,22 @@ export interface ClaimScoreOptions {
   leaderboard?: string;
 }
 
+export interface StartRunOptions {
+  playerGuid: string;
+  /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
+  leaderboard?: string;
+}
+
+export interface FinishRunOptions {
+  runId: string;
+  playerGuid: string;
+  playerName: string;
+  score: number;
+  /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
+  leaderboard?: string;
+  metadata?: Record<string, unknown>;
+}
+
 // =============================================
 // Public Response Types (camelCase)
 // =============================================
@@ -117,6 +133,18 @@ export interface HealthResult {
   service: string;
   version: string;
   timestamp: string;
+}
+
+export interface StartRunResult {
+  runId: string;
+  startedAt: string;
+  expiresAt: string;
+}
+
+export interface FinishRunResult {
+  scoreId: string;
+  rank: number;
+  isNewHighScore: boolean;
 }
 
 // =============================================
@@ -247,6 +275,20 @@ export interface ApiHealthResponse {
   service: string;
   version: string;
   timestamp: string;
+}
+
+/** @internal */
+export interface ApiStartRunResponse {
+  run_id: string;
+  started_at: string;
+  expires_at: string;
+}
+
+/** @internal */
+export interface ApiFinishRunResponse {
+  score_id: string;
+  rank: number;
+  is_new_high_score: boolean;
 }
 
 // ----- API Response Wrapper -----

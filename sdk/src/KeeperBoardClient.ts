@@ -14,18 +14,24 @@ import type {
   ApiPlayerResponse,
   ApiClaimResponse,
   ApiHealthResponse,
+  ApiStartRunResponse,
+  ApiFinishRunResponse,
   ApiResponse,
   SubmitScoreOptions,
   GetLeaderboardOptions,
   GetPlayerRankOptions,
   UpdatePlayerNameOptions,
   ClaimScoreOptions,
+  StartRunOptions,
+  FinishRunOptions,
   ScoreResult,
   LeaderboardResult,
   LeaderboardEntry,
   PlayerResult,
   ClaimResult,
   HealthResult,
+  StartRunResult,
+  FinishRunResult,
 } from './types';
 import { KeeperBoardError } from './types';
 
@@ -219,6 +225,73 @@ export class KeeperBoardClient {
   }
 
   // ============================================
+  // ANTI-CHEAT: RUN TOKENS
+  // ============================================
+
+  /**
+   * Start a game run. Use this when the leaderboard requires run tokens.
+   * Returns a run ID that must be passed to finishRun() when submitting the score.
+   *
+   * @example
+   * const run = await client.startRun({ playerGuid: 'abc-123' });
+   * // ... play game ...
+   * const result = await client.finishRun({
+   *   runId: run.runId,
+   *   playerGuid: 'abc-123',
+   *   playerName: 'ACE',
+   *   score: 1500,
+   * });
+   */
+  async startRun(options: StartRunOptions): Promise<StartRunResult> {
+    const leaderboard = options.leaderboard ?? this.defaultLeaderboard;
+    const params = new URLSearchParams();
+    if (leaderboard) params.set('leaderboard', leaderboard);
+
+    const url = `${this.apiUrl}/api/v1/runs/start${params.toString() ? '?' + params.toString() : ''}`;
+
+    const raw = await this.request<ApiStartRunResponse>(url, {
+      method: 'POST',
+      body: JSON.stringify({ player_guid: options.playerGuid }),
+    });
+
+    return this.mapStartRunResponse(raw);
+  }
+
+  /**
+   * Finish a game run and submit the score.
+   * The run must have been started with startRun() first.
+   *
+   * @example
+   * const result = await client.finishRun({
+   *   runId: run.runId,
+   *   playerGuid: 'abc-123',
+   *   playerName: 'ACE',
+   *   score: 1500,
+   * });
+   * console.log(result.rank, result.isNewHighScore);
+   */
+  async finishRun(options: FinishRunOptions): Promise<FinishRunResult> {
+    const leaderboard = options.leaderboard ?? this.defaultLeaderboard;
+    const params = new URLSearchParams();
+    if (leaderboard) params.set('leaderboard', leaderboard);
+
+    const url = `${this.apiUrl}/api/v1/runs/finish${params.toString() ? '?' + params.toString() : ''}`;
+
+    const raw = await this.request<ApiFinishRunResponse>(url, {
+      method: 'POST',
+      body: JSON.stringify({
+        run_id: options.runId,
+        player_guid: options.playerGuid,
+        player_name: options.playerName,
+        score: options.score,
+        ...(options.metadata && { metadata: options.metadata }),
+      }),
+    });
+
+    return this.mapFinishRunResponse(raw);
+  }
+
+  // ============================================
   // RESPONSE MAPPERS (snake_case → camelCase)
   // ============================================
 
@@ -265,6 +338,22 @@ export class KeeperBoardClient {
       score: raw.score,
       rank: raw.rank,
       playerName: raw.player_name,
+    };
+  }
+
+  private mapStartRunResponse(raw: ApiStartRunResponse): StartRunResult {
+    return {
+      runId: raw.run_id,
+      startedAt: raw.started_at,
+      expiresAt: raw.expires_at,
+    };
+  }
+
+  private mapFinishRunResponse(raw: ApiFinishRunResponse): FinishRunResult {
+    return {
+      scoreId: raw.score_id,
+      rank: raw.rank,
+      isNewHighScore: raw.is_new_high_score,
     };
   }
 

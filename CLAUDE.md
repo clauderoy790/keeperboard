@@ -34,7 +34,7 @@ keeperboard/
 - [x] Phase 2: Run Token Endpoints
 - [x] Phase 3: HMAC Signature Validation (Server)
 - [x] Phase 4: Dashboard - Anti-Cheat Settings & Elapsed Time UI
-- [ ] Phase 5: SDK - Run Token Support
+- [x] Phase 5: SDK - Run Token Support
 - [ ] Phase 6: SDK - Multi-Step HMAC Signing
 - [ ] Phase 7: SDK Build - Obfuscation
 - [ ] Phase 8: Flight747 Integration
