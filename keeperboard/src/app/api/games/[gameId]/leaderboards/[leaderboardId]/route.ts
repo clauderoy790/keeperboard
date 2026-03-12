@@ -36,10 +36,10 @@ export async function GET(
       return NextResponse.json({ error: 'Game not found' }, { status: 404 });
     }
 
-    // Get leaderboard with reset fields
+    // Get leaderboard with reset fields and anti-cheat settings
     const { data: leaderboard, error: leaderboardError } = await supabase
       .from('leaderboards')
-      .select('id, game_id, environment_id, name, sort_order, reset_schedule, reset_hour, current_version, current_period_start, created_at, updated_at')
+      .select('id, game_id, environment_id, name, sort_order, reset_schedule, reset_hour, current_version, current_period_start, score_cap, min_elapsed_seconds, require_run_token, created_at, updated_at')
       .eq('id', leaderboardId)
       .eq('game_id', gameId)
       .single();
@@ -117,7 +117,7 @@ export async function PUT(
 
     // Parse request body
     const body = await request.json();
-    const { name, sort_order, reset_schedule, reset_hour } = body;
+    const { name, sort_order, reset_schedule, reset_hour, score_cap, min_elapsed_seconds, require_run_token } = body;
 
     // Get current leaderboard to check reset_schedule immutability
     const { data: currentLeaderboard } = await supabase
@@ -160,11 +160,40 @@ export async function PUT(
       }
     }
 
+    // Validate anti-cheat fields
+    if (score_cap !== undefined && score_cap !== null) {
+      if (!Number.isInteger(score_cap) || score_cap < 0) {
+        return NextResponse.json(
+          { error: 'Score cap must be a positive integer or null' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (min_elapsed_seconds !== undefined) {
+      if (!Number.isInteger(min_elapsed_seconds) || min_elapsed_seconds < 0) {
+        return NextResponse.json(
+          { error: 'Min elapsed seconds must be a non-negative integer' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (require_run_token !== undefined && typeof require_run_token !== 'boolean') {
+      return NextResponse.json(
+        { error: 'Require run token must be a boolean' },
+        { status: 400 }
+      );
+    }
+
     // Build update object (only include provided fields)
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
     if (sort_order !== undefined) updates.sort_order = sort_order;
     if (reset_hour !== undefined) updates.reset_hour = reset_hour;
+    if (score_cap !== undefined) updates.score_cap = score_cap;
+    if (min_elapsed_seconds !== undefined) updates.min_elapsed_seconds = min_elapsed_seconds;
+    if (require_run_token !== undefined) updates.require_run_token = require_run_token;
 
     // Use admin client to update leaderboard
     const adminClient = createAdminClient();

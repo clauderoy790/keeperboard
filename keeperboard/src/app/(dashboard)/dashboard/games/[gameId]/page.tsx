@@ -9,6 +9,7 @@ import ApiKeysCard from '@/components/dashboard/ApiKeysCard';
 import EnvironmentsCard from '@/components/dashboard/EnvironmentsCard';
 import EnvironmentSwitcher from '@/components/dashboard/EnvironmentSwitcher';
 import LeaderboardsList from '@/components/dashboard/LeaderboardsList';
+import AntiCheatCard from '@/components/dashboard/AntiCheatCard';
 
 interface Game {
   id: string;
@@ -284,6 +285,9 @@ export default function GameDetailPage({ params }: { params: Promise<{ gameId: s
         environments={environments}
         onKeyGenerated={fetchApiKeys}
       />
+
+      {/* Anti-Cheat Settings */}
+      <AntiCheatCard gameId={resolvedParams.gameId} />
 
       {/* Leaderboards Section */}
       <Card

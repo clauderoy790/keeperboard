@@ -86,7 +86,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     // Build query
     let query = supabase
       .from('scores')
-      .select('id, player_guid, player_name, score, version, created_at, updated_at', {
+      .select('id, player_guid, player_name, score, version, run_id, created_at, updated_at', {
         count: 'exact',
       })
       .eq('leaderboard_id', leaderboardId)
@@ -123,6 +123,26 @@ export async function GET(request: Request, { params }: RouteParams) {
       throw error;
     }
 
+    // Get run_ids that have values to fetch elapsed_seconds
+    const runIds = (scores || [])
+      .filter((s) => s.run_id)
+      .map((s) => s.run_id as string);
+
+    // Fetch elapsed_seconds for runs in a single query
+    let elapsedTimeMap: Record<string, number | null> = {};
+    if (runIds.length > 0) {
+      const { data: runs } = await supabase
+        .from('game_runs')
+        .select('id, elapsed_seconds')
+        .in('id', runIds);
+
+      if (runs) {
+        elapsedTimeMap = Object.fromEntries(
+          runs.map((r) => [r.id, r.elapsed_seconds])
+        );
+      }
+    }
+
     // Calculate ranks for each score (within the same version)
     // For DESC (higher = better): count scores higher than current
     // For ASC (lower = better): count scores lower than current
@@ -145,6 +165,7 @@ export async function GET(request: Request, { params }: RouteParams) {
         return {
           ...score,
           rank: (betterCount ?? 0) + 1,
+          elapsed_seconds: score.run_id ? (elapsedTimeMap[score.run_id] ?? null) : null,
         };
       })
     );
