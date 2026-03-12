@@ -184,9 +184,9 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 | [Plan 4](docs/plans/4_sdk-v2.md) | SDK v2.0.0 - Developer Experience | 2026-02-10 | Completed |
 | [Plan 5](docs/plans/5_random-player-names.md) | Auto-Generated Player Names | 2026-02-15 | Completed |
 | [Plan 6](docs/plans/6_profanity-filter.md) | Profanity Filter for Player Names | 2026-03-07 | Completed |
-| [Plan 23](docs/plans/23_anti-cheat-security.md) | Anti-Cheat Security System | 2026-03-11 | Phase 6/9 (Mar 11) |
+| [Plan 23](docs/plans/23_anti-cheat-security.md) | Anti-Cheat Security System | 2026-03-11 | Phase 7/9 (Mar 11) |
 
-**Active:** Plan 23 - Anti-Cheat Security System (Phase 7 next)
+**Active:** Plan 23 - Anti-Cheat Security System (Phase 8 next)
 
 ## License
 
