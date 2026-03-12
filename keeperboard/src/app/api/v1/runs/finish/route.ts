@@ -143,8 +143,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get anti-cheat settings
-    const antiCheat = await getAntiCheatSettings(gameId, leaderboard.id);
+    // Get anti-cheat settings (now all at game level)
+    const antiCheat = await getAntiCheatSettings(gameId);
 
     // Validate signature if signing is enabled
     if (antiCheat.signingEnabled) {

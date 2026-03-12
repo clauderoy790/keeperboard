@@ -62,8 +62,8 @@ export async function POST(request: Request) {
       leaderboardName
     );
 
-    // Check if signing is enabled
-    const antiCheat = await getAntiCheatSettings(gameId, leaderboard.leaderboardId);
+    // Check if anti-cheat is enabled (signing_enabled is the master toggle)
+    const antiCheat = await getAntiCheatSettings(gameId);
 
     if (antiCheat.signingEnabled) {
       // Require timestamp when signing is enabled

@@ -782,6 +782,7 @@ Update keeperboard README and SDK docs with:
 
 ### Success Criteria
 - [x] All attack vectors tested and blocked (automated tests in `sdk/tests/anti-cheat.test.ts`)
+- [x] /api/v1/scores endpoint protected (blocks bypass when signing/run tokens enabled)
 - [ ] Fake scores deleted (manual: use dashboard)
 - [x] Flight747 using secure flow in production
 - [x] Documentation updated

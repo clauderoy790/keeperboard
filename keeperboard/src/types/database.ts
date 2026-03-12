@@ -96,8 +96,10 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          min_elapsed_seconds: number
           name: string
           profanity_filter_enabled: boolean
+          score_cap: number | null
           signing_enabled: boolean
           signing_secret: string | null
           updated_at: string | null
@@ -107,8 +109,10 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          min_elapsed_seconds?: number
           name: string
           profanity_filter_enabled?: boolean
+          score_cap?: number | null
           signing_enabled?: boolean
           signing_secret?: string | null
           updated_at?: string | null
@@ -118,8 +122,10 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          min_elapsed_seconds?: number
           name?: string
           profanity_filter_enabled?: boolean
+          score_cap?: number | null
           signing_enabled?: boolean
           signing_secret?: string | null
           updated_at?: string | null
@@ -187,12 +193,9 @@ export type Database = {
           environment_id: string
           game_id: string
           id: string
-          min_elapsed_seconds: number
           name: string
-          require_run_token: boolean
           reset_hour: number
           reset_schedule: string
-          score_cap: number | null
           sort_order: string
           updated_at: string | null
         }
@@ -203,12 +206,9 @@ export type Database = {
           environment_id: string
           game_id: string
           id?: string
-          min_elapsed_seconds?: number
           name?: string
-          require_run_token?: boolean
           reset_hour?: number
           reset_schedule?: string
-          score_cap?: number | null
           sort_order?: string
           updated_at?: string | null
         }
@@ -219,12 +219,9 @@ export type Database = {
           environment_id?: string
           game_id?: string
           id?: string
-          min_elapsed_seconds?: number
           name?: string
-          require_run_token?: boolean
           reset_hour?: number
           reset_schedule?: string
-          score_cap?: number | null
           sort_order?: string
           updated_at?: string | null
         }

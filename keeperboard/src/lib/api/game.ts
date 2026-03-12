@@ -28,10 +28,11 @@ export async function getGameSettings(gameId: string): Promise<GameSettings> {
 }
 
 /**
- * Anti-cheat settings combining game-level and leaderboard-level config.
+ * Anti-cheat settings at game level.
+ * When signingEnabled is true, both HMAC signing AND run tokens are required.
  */
 export interface AntiCheatSettings {
-  /** Whether HMAC signing is required for this game */
+  /** Master anti-cheat toggle. When true: requires HMAC signatures AND run tokens. */
   signingEnabled: boolean;
   /** The HMAC signing secret (null if not generated yet) */
   signingSecret: string | null;
@@ -39,50 +40,35 @@ export interface AntiCheatSettings {
   scoreCap: number | null;
   /** Minimum game duration in seconds */
   minElapsedSeconds: number;
-  /** Whether run tokens are required for score submission */
-  requireRunToken: boolean;
 }
 
 /**
- * Fetch anti-cheat settings for a game/leaderboard combination.
- * Combines game-level signing settings with leaderboard-level validation settings.
+ * Fetch anti-cheat settings for a game.
+ * All anti-cheat settings are now at game level for simplicity.
  */
-export async function getAntiCheatSettings(
-  gameId: string,
-  leaderboardId: string
-): Promise<AntiCheatSettings> {
+export async function getAntiCheatSettings(gameId: string): Promise<AntiCheatSettings> {
   const supabase = createAdminClient();
 
-  // Fetch game signing settings
-  const { data: gameData, error: gameError } = await supabase
+  const { data, error } = await supabase
     .from('games')
-    .select('signing_enabled, signing_secret')
+    .select('signing_enabled, signing_secret, score_cap, min_elapsed_seconds')
     .eq('id', gameId)
     .single();
 
-  // Fetch leaderboard validation settings
-  const { data: lbData, error: lbError } = await supabase
-    .from('leaderboards')
-    .select('score_cap, min_elapsed_seconds, require_run_token')
-    .eq('id', leaderboardId)
-    .single();
-
-  // Return safe defaults if queries fail
-  if (gameError || !gameData || lbError || !lbData) {
+  // Return safe defaults if query fails
+  if (error || !data) {
     return {
       signingEnabled: false,
       signingSecret: null,
       scoreCap: null,
       minElapsedSeconds: 5,
-      requireRunToken: false,
     };
   }
 
   return {
-    signingEnabled: gameData.signing_enabled,
-    signingSecret: gameData.signing_secret,
-    scoreCap: lbData.score_cap,
-    minElapsedSeconds: lbData.min_elapsed_seconds,
-    requireRunToken: lbData.require_run_token,
+    signingEnabled: data.signing_enabled,
+    signingSecret: data.signing_secret,
+    scoreCap: data.score_cap,
+    minElapsedSeconds: data.min_elapsed_seconds,
   };
 }

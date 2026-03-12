@@ -4,7 +4,7 @@ import { corsHeaders } from '@/lib/utils/cors';
 import { validateApiKey } from '@/lib/api/auth';
 import { resolveLeaderboard } from '@/lib/api/leaderboard';
 import { resolveCurrentVersion } from '@/lib/api/version';
-import { getGameSettings } from '@/lib/api/game';
+import { getGameSettings, getAntiCheatSettings } from '@/lib/api/game';
 import { containsProfanity } from '@/lib/profanity';
 
 interface ScoreSubmission {
@@ -55,6 +55,20 @@ export async function POST(request: Request) {
       environmentId,
       leaderboardName
     );
+
+    // Check anti-cheat settings (now all at game level)
+    const antiCheat = await getAntiCheatSettings(gameId);
+
+    // If anti-cheat is enabled, reject direct score submission
+    // (signing_enabled is the master toggle that requires run tokens)
+    if (antiCheat.signingEnabled) {
+      return errorResponse(
+        'This game has anti-cheat enabled. Use /runs/start and /runs/finish instead.',
+        'ANTI_CHEAT_ENABLED',
+        400,
+        corsHeaders
+      );
+    }
 
     // Resolve current version (lazy reset)
     const { version: currentVersion } = await resolveCurrentVersion({

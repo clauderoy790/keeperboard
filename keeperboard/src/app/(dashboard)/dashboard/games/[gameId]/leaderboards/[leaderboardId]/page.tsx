@@ -4,7 +4,6 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Input from '@/components/ui/Input';
 import LeaderboardForm from '@/components/forms/LeaderboardForm';
 import ScoresTable from '@/components/dashboard/ScoresTable';
 import { calculateNextReset, calculatePeriodStartForVersion } from '@/lib/api/version';
@@ -20,9 +19,6 @@ interface Leaderboard {
   current_version: number;
   current_period_start: string;
   score_count: number;
-  score_cap: number | null;
-  min_elapsed_seconds: number;
-  require_run_token: boolean;
   created_at: string;
 }
 
@@ -40,11 +36,6 @@ export default function LeaderboardDetailPage({
   const [deleting, setDeleting] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [liveScoreCount, setLiveScoreCount] = useState<number | null>(null);
-  const [editingAntiCheat, setEditingAntiCheat] = useState(false);
-  const [updatingAntiCheat, setUpdatingAntiCheat] = useState(false);
-  const [scoreCap, setScoreCap] = useState<string>('');
-  const [minElapsedSeconds, setMinElapsedSeconds] = useState<string>('5');
-  const [requireRunToken, setRequireRunToken] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
   const [oldestVersion, setOldestVersion] = useState(1);
   const [nextResetTime, setNextResetTime] = useState<Date | null>(null);
@@ -92,10 +83,6 @@ export default function LeaderboardDetailPage({
 
       setLeaderboard(data.leaderboard);
       setLiveScoreCount(data.leaderboard.score_count);
-      // Initialize anti-cheat form state
-      setScoreCap(data.leaderboard.score_cap?.toString() || '');
-      setMinElapsedSeconds(data.leaderboard.min_elapsed_seconds?.toString() || '5');
-      setRequireRunToken(data.leaderboard.require_run_token || false);
     } catch (error) {
       console.error('Failed to fetch leaderboard:', error);
       router.push(`/dashboard/games/${resolvedParams.gameId}`);
@@ -133,38 +120,6 @@ export default function LeaderboardDetailPage({
       throw error;
     } finally {
       setUpdating(false);
-    }
-  };
-
-  const handleUpdateAntiCheat = async () => {
-    setUpdatingAntiCheat(true);
-    try {
-      const response = await fetch(
-        `/api/games/${resolvedParams.gameId}/leaderboards/${resolvedParams.leaderboardId}`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            score_cap: scoreCap ? parseInt(scoreCap, 10) : null,
-            min_elapsed_seconds: parseInt(minElapsedSeconds, 10) || 5,
-            require_run_token: requireRunToken,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update anti-cheat settings');
-      }
-
-      setLeaderboard(data.leaderboard);
-      setEditingAntiCheat(false);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update';
-      alert(errorMessage);
-    } finally {
-      setUpdatingAntiCheat(false);
     }
   };
 
@@ -461,117 +416,6 @@ export default function LeaderboardDetailPage({
                 </div>
               </>
             )}
-          </div>
-        )}
-      </Card>
-
-      {/* Anti-Cheat Settings */}
-      <Card
-        title="Anti-Cheat Settings"
-        description="Configure score validation rules for this leaderboard"
-        footer={
-          !editingAntiCheat && (
-            <Button
-              variant="secondary"
-              onClick={() => setEditingAntiCheat(true)}
-              className="w-full"
-            >
-              Edit Anti-Cheat Settings
-            </Button>
-          )
-        }
-      >
-        {editingAntiCheat ? (
-          <div className="space-y-4">
-            <Input
-              label="Score Cap (Optional)"
-              type="number"
-              value={scoreCap}
-              onChange={(e) => setScoreCap(e.target.value)}
-              placeholder="No limit"
-              helperText="Maximum allowed score. Leave empty for no limit."
-            />
-
-            <Input
-              label="Min Elapsed Seconds"
-              type="number"
-              value={minElapsedSeconds}
-              onChange={(e) => setMinElapsedSeconds(e.target.value)}
-              placeholder="5"
-              helperText="Minimum game duration required for valid submission"
-            />
-
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={requireRunToken}
-                  onChange={(e) => setRequireRunToken(e.target.checked)}
-                  className="w-5 h-5 accent-cyan-500 cursor-pointer"
-                />
-                <span className="text-cyan-400 text-sm font-mono uppercase tracking-wider group-hover:text-cyan-300 transition-colors">
-                  Require Run Token
-                </span>
-              </label>
-              <p className="text-neutral-500 text-xs font-mono pl-8">
-                Require game to call /runs/start before submitting scores
-              </p>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <Button
-                variant="primary"
-                onClick={handleUpdateAntiCheat}
-                loading={updatingAntiCheat}
-                className="flex-1"
-              >
-                Save Settings
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setEditingAntiCheat(false);
-                  // Reset to current values
-                  setScoreCap(leaderboard.score_cap?.toString() || '');
-                  setMinElapsedSeconds(leaderboard.min_elapsed_seconds?.toString() || '5');
-                  setRequireRunToken(leaderboard.require_run_token || false);
-                }}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
-                Score Cap
-              </label>
-              <p className="text-sm font-mono text-neutral-400 mt-1">
-                {leaderboard.score_cap !== null ? leaderboard.score_cap.toLocaleString() : 'No limit'}
-              </p>
-            </div>
-            <div>
-              <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
-                Min Elapsed Seconds
-              </label>
-              <p className="text-sm font-mono text-neutral-400 mt-1">
-                {leaderboard.min_elapsed_seconds || 5} seconds
-              </p>
-            </div>
-            <div>
-              <label className="text-xs font-mono text-neutral-500 uppercase tracking-wider">
-                Run Token Required
-              </label>
-              <p className="text-sm font-mono text-neutral-400 mt-1">
-                {leaderboard.require_run_token ? (
-                  <span className="text-green-400">Enabled</span>
-                ) : (
-                  <span className="text-neutral-500">Disabled</span>
-                )}
-              </p>
-            </div>
           </div>
         )}
       </Card>

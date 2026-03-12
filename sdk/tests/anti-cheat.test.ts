@@ -95,7 +95,7 @@ async function createAntiCheatFixtures(): Promise<AntiCheatFixtures> {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
-  // 2. Create test game with signing enabled
+  // 2. Create test game with anti-cheat enabled (all settings at game level now)
   const signingSecret = randomBytes(32).toString('base64');
 
   const { data: game, error: gameError } = await supabase
@@ -105,6 +105,8 @@ async function createAntiCheatFixtures(): Promise<AntiCheatFixtures> {
       name: testGameName,
       signing_secret: signingSecret,
       signing_enabled: true,
+      score_cap: SCORE_CAP,
+      min_elapsed_seconds: MIN_ELAPSED_SECONDS,
     })
     .select()
     .single();
@@ -134,7 +136,7 @@ async function createAntiCheatFixtures(): Promise<AntiCheatFixtures> {
 
   if (keyError) throw new Error(`Failed to create API key: ${keyError.message}`);
 
-  // 5. Create test leaderboard with anti-cheat settings
+  // 5. Create test leaderboard (anti-cheat settings are now at game level)
   const { data: leaderboard, error: lbError } = await supabase
     .from('leaderboards')
     .insert({
@@ -146,10 +148,6 @@ async function createAntiCheatFixtures(): Promise<AntiCheatFixtures> {
       reset_hour: 0,
       current_version: 1,
       current_period_start: new Date().toISOString(),
-      // Anti-cheat settings
-      score_cap: SCORE_CAP,
-      min_elapsed_seconds: MIN_ELAPSED_SECONDS,
-      require_run_token: true,
     })
     .select()
     .single();
