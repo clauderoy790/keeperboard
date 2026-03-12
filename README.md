@@ -13,6 +13,7 @@ https://keeperboard.vercel.app/
 - **Multi-game support** — One deployment handles unlimited games
 - **Environment separation** — Separate API keys for dev, staging, prod
 - **Time-based leaderboards** — Daily, weekly, monthly resets with version history
+- **Anti-cheat protection** — HMAC signing, run tokens, elapsed time validation
 - **TypeScript SDK** — Simple client for browser-based games
 - **Admin dashboard** — Web UI for managing games, leaderboards, and scores
 - **CSV/JSON import** — Migrate scores from any source
@@ -165,10 +166,26 @@ All endpoints require an API key via `X-API-Key` header (except health check).
 
 ## Documentation
 
-- [SDK Reference](sdk/README.md) — Full TypeScript SDK docs
+- [SDK Reference](sdk/README.md) — Full TypeScript SDK docs (includes anti-cheat guide)
 - [Deployment Guide](docs/DEPLOYMENT.md) — Production setup
 - [Security](docs/SECURITY.md) — Security architecture
 - [API Collection](KeeperBoard_API.postman_collection.json) — Postman collection
+
+## Anti-Cheat Protection
+
+KeeperBoard includes optional anti-cheat measures to prevent casual leaderboard hacking:
+
+| Layer | Protection | Stops |
+|-------|------------|-------|
+| **HMAC Signing** | Cryptographic request signing | Request tampering, score modification |
+| **Run Tokens** | Server-issued session tokens | Replay attacks, fake scores |
+| **Elapsed Time** | Minimum game duration | Instant score submissions |
+| **Score Cap** | Maximum allowed score | Impossibly high scores |
+| **Obfuscation** | Client-side code obfuscation | Casual reverse-engineering |
+
+Enable in the dashboard under **Game Settings > Anti-Cheat**. See [SDK docs](sdk/README.md#anti-cheat-protection) for integration guide.
+
+**Security Model:** These measures stop casual cheaters (DevTools, simple replays). Determined attackers with reverse-engineering skills may still find ways around them — this is an acceptable tradeoff for most indie games.
 
 ## Contributing
 
@@ -184,9 +201,7 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 | [Plan 4](docs/plans/4_sdk-v2.md) | SDK v2.0.0 - Developer Experience | 2026-02-10 | Completed |
 | [Plan 5](docs/plans/5_random-player-names.md) | Auto-Generated Player Names | 2026-02-15 | Completed |
 | [Plan 6](docs/plans/6_profanity-filter.md) | Profanity Filter for Player Names | 2026-03-07 | Completed |
-| [Plan 23](docs/plans/23_anti-cheat-security.md) | Anti-Cheat Security System | 2026-03-11 | Phase 7/9 (Mar 11) |
-
-**Active:** Plan 23 - Anti-Cheat Security System (Phase 8 next)
+| [Plan 23](docs/plans/23_anti-cheat-security.md) | Anti-Cheat Security System | 2026-03-11 | Completed |
 
 ## License
 

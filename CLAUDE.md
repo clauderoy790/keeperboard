@@ -37,8 +37,8 @@ keeperboard/
 - [x] Phase 5: SDK - Run Token Support
 - [x] Phase 6: SDK - Multi-Step HMAC Signing
 - [x] Phase 7: SDK Build - Obfuscation
-- [ ] Phase 8: Flight747 Integration
-- [ ] Phase 9: Security Testing & Cleanup
+- [x] Phase 8: Flight747 Integration
+- [x] Phase 9: Security Testing & Cleanup
 
 ## Completed Plans
 

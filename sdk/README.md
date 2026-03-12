@@ -233,6 +233,81 @@ try {
 
 ---
 
+## Anti-Cheat Protection
+
+KeeperBoard provides optional anti-cheat measures to prevent casual leaderboard hacking:
+
+### 1. HMAC Signing
+
+When enabled, all requests are cryptographically signed to prevent tampering.
+
+```typescript
+const session = new KeeperBoardSession({
+  apiKey: 'kb_prod_xxx',
+  leaderboard: 'main',
+  signingSecret: process.env.KEEPERBOARD_SIGNING_SECRET, // From dashboard
+});
+```
+
+**Setup:**
+1. Enable "HMAC Signing" in KeeperBoard dashboard
+2. Copy the signing secret
+3. Add to your game's environment variables
+4. Pass to SDK constructor
+
+### 2. Run Tokens
+
+For stronger protection, use run tokens to bind scores to game sessions:
+
+```typescript
+// When game starts
+await session.startRun();
+
+// ... player plays the game ...
+
+// When game ends (instead of submitScore)
+const result = await session.finishRun(score);
+if (result.isNewHighScore) {
+  console.log('New high score!');
+}
+```
+
+**Server validates:**
+- Run token exists and hasn't been used
+- Minimum elapsed time passed (e.g., 5+ seconds)
+- Score is within cap (if configured)
+- Signature is valid (if signing enabled)
+
+### 3. Build Obfuscation
+
+For browser games, obfuscate your production build to make reverse-engineering harder:
+
+```javascript
+// vite.config.js
+import obfuscatorPlugin from 'vite-plugin-javascript-obfuscator';
+
+export default {
+  plugins: [
+    obfuscatorPlugin({
+      include: ['src/**/*.ts'],
+      apply: 'build',
+      options: {
+        compact: true,
+        controlFlowFlattening: true,
+        stringArray: true,
+        stringArrayEncoding: ['base64'],
+      },
+    }),
+  ],
+};
+```
+
+### Security Model
+
+These measures stop **casual cheaters** (DevTools interception, simple replay attacks). Determined reverse-engineers with time and skill may still find ways around them. This is an acceptable tradeoff for most indie games.
+
+---
+
 ## Phaser.js Integration
 
 ```typescript
@@ -242,6 +317,7 @@ import { KeeperBoardSession } from 'keeperboard';
 const leaderboard = new KeeperBoardSession({
   apiKey: import.meta.env.VITE_KEEPERBOARD_API_KEY,
   leaderboard: 'main',
+  signingSecret: import.meta.env.VITE_KEEPERBOARD_SIGNING_SECRET, // Optional
   cache: { ttlMs: 30000 },
   retry: { maxAgeMs: 86400000 },
 });
@@ -255,11 +331,20 @@ class BootScene extends Phaser.Scene {
   }
 }
 
-// In GameOverScene
+// In GameScene - start run for anti-cheat
+class GameScene extends Phaser.Scene {
+  async create() {
+    await leaderboard.startRun(); // Optional: enables run token validation
+    // ... game logic ...
+  }
+}
+
+// In GameOverScene - use finishRun if run was started
 class GameOverScene extends Phaser.Scene {
   async create() {
-    const result = await leaderboard.submitScore(this.score);
-    if (result.success) {
+    // finishRun() uses run token if active, falls back to submitScore()
+    const result = await leaderboard.finishRun(this.score);
+    if (result.isNewHighScore) {
       this.showRank(result.rank, result.isNewHighScore);
     }
 

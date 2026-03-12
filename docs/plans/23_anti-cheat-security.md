@@ -730,10 +730,10 @@ VITE_KEEPERBOARD_SIGNING_SECRET=
 ```
 
 ### Success Criteria
-- [ ] Flight747 uses new run-based flow
-- [ ] Signing secret configured
-- [ ] Build is obfuscated
-- [ ] Old scores still work (backward compatible)
+- [x] Flight747 uses new run-based flow
+- [x] Signing secret configured
+- [x] Build is obfuscated
+- [x] Old scores still work (backward compatible)
 
 ### Manual Testing
 1. Start a game in flight747
@@ -781,10 +781,10 @@ Update keeperboard README and SDK docs with:
 - Limitations (determined attackers can still cheat)
 
 ### Success Criteria
-- [ ] All attack vectors tested and blocked
-- [ ] Fake scores deleted
-- [ ] Flight747 using secure flow in production
-- [ ] Documentation updated
+- [x] All attack vectors tested and blocked (automated tests in `sdk/tests/anti-cheat.test.ts`)
+- [ ] Fake scores deleted (manual: use dashboard)
+- [x] Flight747 using secure flow in production
+- [x] Documentation updated
 
 ### Manual Testing
 1. Run attack test script
