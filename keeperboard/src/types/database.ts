@@ -98,6 +98,8 @@ export type Database = {
           id: string
           name: string
           profanity_filter_enabled: boolean
+          signing_enabled: boolean
+          signing_secret: string | null
           updated_at: string | null
           user_id: string
         }
@@ -107,6 +109,8 @@ export type Database = {
           id?: string
           name: string
           profanity_filter_enabled?: boolean
+          signing_enabled?: boolean
+          signing_secret?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -116,6 +120,8 @@ export type Database = {
           id?: string
           name?: string
           profanity_filter_enabled?: boolean
+          signing_enabled?: boolean
+          signing_secret?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -129,6 +135,50 @@ export type Database = {
           },
         ]
       }
+      game_runs: {
+        Row: {
+          id: string
+          leaderboard_id: string
+          player_guid: string
+          started_at: string
+          finished_at: string | null
+          score: number | null
+          elapsed_seconds: number | null
+          used: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          leaderboard_id: string
+          player_guid: string
+          started_at?: string
+          finished_at?: string | null
+          score?: number | null
+          elapsed_seconds?: number | null
+          used?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          leaderboard_id?: string
+          player_guid?: string
+          started_at?: string
+          finished_at?: string | null
+          score?: number | null
+          elapsed_seconds?: number | null
+          used?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_runs_leaderboard_id_fkey"
+            columns: ["leaderboard_id"]
+            isOneToOne: false
+            referencedRelation: "leaderboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leaderboards: {
         Row: {
           created_at: string | null
@@ -137,9 +187,12 @@ export type Database = {
           environment_id: string
           game_id: string
           id: string
+          min_elapsed_seconds: number
           name: string
+          require_run_token: boolean
           reset_hour: number
           reset_schedule: string
+          score_cap: number | null
           sort_order: string
           updated_at: string | null
         }
@@ -150,9 +203,12 @@ export type Database = {
           environment_id: string
           game_id: string
           id?: string
+          min_elapsed_seconds?: number
           name?: string
+          require_run_token?: boolean
           reset_hour?: number
           reset_schedule?: string
+          score_cap?: number | null
           sort_order?: string
           updated_at?: string | null
         }
@@ -163,9 +219,12 @@ export type Database = {
           environment_id?: string
           game_id?: string
           id?: string
+          min_elapsed_seconds?: number
           name?: string
+          require_run_token?: boolean
           reset_hour?: number
           reset_schedule?: string
+          score_cap?: number | null
           sort_order?: string
           updated_at?: string | null
         }
@@ -196,6 +255,7 @@ export type Database = {
           migrated_from: string | null
           player_guid: string | null
           player_name: string
+          run_id: string | null
           score: number
           updated_at: string | null
           version: number
@@ -209,6 +269,7 @@ export type Database = {
           migrated_from?: string | null
           player_guid?: string | null
           player_name: string
+          run_id?: string | null
           score: number
           updated_at?: string | null
           version?: number
@@ -222,6 +283,7 @@ export type Database = {
           migrated_from?: string | null
           player_guid?: string | null
           player_name?: string
+          run_id?: string | null
           score?: number
           updated_at?: string | null
           version?: number
