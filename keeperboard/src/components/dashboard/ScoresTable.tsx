@@ -11,6 +11,7 @@ interface Score {
   player_name: string;
   score: number;
   rank: number;
+  elapsed_seconds: number | null;
   created_at: string;
   updated_at: string | null;
 }
@@ -169,6 +170,19 @@ export default function ScoresTable({
     });
   };
 
+  const formatElapsedTime = (seconds: number | null): string => {
+    if (seconds === null) return '-';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (minutes > 0) {
+      return `${minutes}m ${remainingSeconds}s`;
+    }
+    return `${remainingSeconds}s`;
+  };
+
+  // Check if any score has elapsed time (to conditionally show the column)
+  const hasElapsedTime = scores.some((s) => s.elapsed_seconds !== null);
+
   if (loading && scores.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -238,6 +252,11 @@ export default function ScoresTable({
                 <th className="text-right py-3 px-4 text-xs font-mono font-semibold text-cyan-400 uppercase tracking-wider">
                   Score
                 </th>
+                {hasElapsedTime && (
+                  <th className="text-right py-3 px-4 text-xs font-mono font-semibold text-cyan-400 uppercase tracking-wider hidden md:table-cell">
+                    Time
+                  </th>
+                )}
                 <th className="text-left py-3 px-4 text-xs font-mono font-semibold text-cyan-400 uppercase tracking-wider hidden lg:table-cell">
                   Date
                 </th>
@@ -264,6 +283,11 @@ export default function ScoresTable({
                   <td className="py-3 px-4 text-sm font-mono text-cyan-400 font-bold text-right">
                     {score.score.toLocaleString()}
                   </td>
+                  {hasElapsedTime && (
+                    <td className="py-3 px-4 text-xs font-mono text-neutral-400 text-right hidden md:table-cell">
+                      {formatElapsedTime(score.elapsed_seconds)}
+                    </td>
+                  )}
                   <td className="py-3 px-4 text-xs font-mono text-neutral-500 hidden lg:table-cell">
                     {formatDate(score.created_at)}
                   </td>

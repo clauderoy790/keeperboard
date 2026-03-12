@@ -15,6 +15,8 @@ export interface KeeperBoardConfig {
   apiKey: string;
   /** Default leaderboard name — used when no leaderboard is specified in method calls */
   defaultLeaderboard?: string;
+  /** Signing secret for HMAC request signing (get from dashboard when signing is enabled) */
+  signingSecret?: string;
   /** @internal Base URL override for testing. Do not use in production. */
   apiUrl?: string;
 }
@@ -61,6 +63,22 @@ export interface ClaimScoreOptions {
   playerName: string;
   /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
   leaderboard?: string;
+}
+
+export interface StartRunOptions {
+  playerGuid: string;
+  /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
+  leaderboard?: string;
+}
+
+export interface FinishRunOptions {
+  runId: string;
+  playerGuid: string;
+  playerName: string;
+  score: number;
+  /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
+  leaderboard?: string;
+  metadata?: Record<string, unknown>;
 }
 
 // =============================================
@@ -119,6 +137,18 @@ export interface HealthResult {
   timestamp: string;
 }
 
+export interface StartRunResult {
+  runId: string;
+  startedAt: string;
+  expiresAt: string;
+}
+
+export interface FinishRunResult {
+  scoreId: string;
+  rank: number;
+  isNewHighScore: boolean;
+}
+
 // =============================================
 // Error Codes
 // =============================================
@@ -145,6 +175,8 @@ export interface SessionConfig {
   cache?: { ttlMs: number };
   /** Retry queue configuration for failed score submissions */
   retry?: { maxAgeMs?: number };
+  /** Signing secret for HMAC request signing (get from dashboard when signing is enabled) */
+  signingSecret?: string;
   /** @internal Base URL override for testing. */
   apiUrl?: string;
 }
@@ -247,6 +279,20 @@ export interface ApiHealthResponse {
   service: string;
   version: string;
   timestamp: string;
+}
+
+/** @internal */
+export interface ApiStartRunResponse {
+  run_id: string;
+  started_at: string;
+  expires_at: string;
+}
+
+/** @internal */
+export interface ApiFinishRunResponse {
+  score_id: string;
+  rank: number;
+  is_new_high_score: boolean;
 }
 
 // ----- API Response Wrapper -----

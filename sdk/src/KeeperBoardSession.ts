@@ -21,6 +21,8 @@ import type {
   PlayerResult,
   NameValidationOptions,
   ErrorCode,
+  StartRunResult,
+  FinishRunResult,
 } from './types';
 import { KeeperBoardError } from './types';
 
@@ -32,11 +34,13 @@ export class KeeperBoardSession {
   private readonly retryQueue: RetryQueue | null;
   private cachedLimit = 0; // Track the limit used for cached data
   private isSubmitting = false;
+  private currentRunId: string | null = null;
 
   constructor(config: SessionConfig) {
     this.client = new KeeperBoardClient({
       apiKey: config.apiKey,
       defaultLeaderboard: config.leaderboard,
+      signingSecret: config.signingSecret,
       apiUrl: config.apiUrl,
     });
 
@@ -148,6 +152,76 @@ export class KeeperBoardSession {
     } finally {
       this.isSubmitting = false;
     }
+  }
+
+  // ============================================
+  // ANTI-CHEAT: RUN TOKENS
+  // ============================================
+
+  /**
+   * Start a game run. Call this when a game session begins.
+   * For leaderboards with `require_run_token` enabled, scores must be submitted via finishRun().
+   *
+   * The run ID is stored internally and used automatically by finishRun().
+   *
+   * @example
+   * await session.startRun();
+   * // ... play game ...
+   * const result = await session.finishRun(1500);
+   */
+  async startRun(): Promise<StartRunResult> {
+    const result = await this.client.startRun({
+      playerGuid: this.getPlayerGuid(),
+    });
+    this.currentRunId = result.runId;
+    return result;
+  }
+
+  /**
+   * Finish a game run and submit the score.
+   * Must be called after startRun(). Uses the stored run ID automatically.
+   *
+   * @example
+   * const result = await session.finishRun(1500);
+   * if (result.isNewHighScore) console.log('New high score!');
+   */
+  async finishRun(
+    score: number,
+    metadata?: Record<string, unknown>
+  ): Promise<FinishRunResult> {
+    if (!this.currentRunId) {
+      throw new Error('No active run. Call startRun() first.');
+    }
+
+    const result = await this.client.finishRun({
+      runId: this.currentRunId,
+      playerGuid: this.getPlayerGuid(),
+      playerName: this.getPlayerName(),
+      score,
+      metadata,
+    });
+
+    // Clear the run ID after successful submission
+    this.currentRunId = null;
+
+    // Invalidate cache + background refresh
+    if (this.cache) {
+      this.cache.invalidate();
+      this.cachedLimit = 0;
+      this.cache.refreshInBackground(() => this.fetchSnapshot());
+    }
+
+    return result;
+  }
+
+  /** Check if there's an active run in progress. */
+  hasActiveRun(): boolean {
+    return this.currentRunId !== null;
+  }
+
+  /** Get the current run ID, or null if no run is active. */
+  getCurrentRunId(): string | null {
+    return this.currentRunId;
   }
 
   /**

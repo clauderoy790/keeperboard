@@ -28,7 +28,21 @@ keeperboard/
 
 ## Active Plan
 
-**Plan 6:** [Profanity Filter for Player Names](docs/plans/6_profanity-filter.md)
+**Plan 23:** [Anti-Cheat Security System](docs/plans/23_anti-cheat-security.md)
+
+- [x] Phase 1: Database Schema & Game Settings
+- [x] Phase 2: Run Token Endpoints
+- [x] Phase 3: HMAC Signature Validation (Server)
+- [x] Phase 4: Dashboard - Anti-Cheat Settings & Elapsed Time UI
+- [x] Phase 5: SDK - Run Token Support
+- [x] Phase 6: SDK - Multi-Step HMAC Signing
+- [x] Phase 7: SDK Build - Obfuscation
+- [ ] Phase 8: Flight747 Integration
+- [ ] Phase 9: Security Testing & Cleanup
+
+## Completed Plans
+
+**Plan 6:** [Profanity Filter for Player Names](docs/plans/6_profanity-filter.md) — ✅ Completed
 
 - [x] Phase 1: Database Migration
 - [x] Phase 2: Profanity Filter Utility
@@ -37,8 +51,6 @@ keeperboard/
 - [x] Phase 5: Unit Tests
 - [x] Phase 6: SDK Update
 - [x] Phase 7: Game Integration (flight747)
-
-## Completed Plans
 
 **Plan 5:** [Auto-Generated Random Player Names](docs/plans/5_random-player-names.md) — ✅ Completed
 

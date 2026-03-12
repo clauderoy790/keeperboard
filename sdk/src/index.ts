@@ -56,6 +56,8 @@ export type {
   GetPlayerRankOptions,
   UpdatePlayerNameOptions,
   ClaimScoreOptions,
+  StartRunOptions,
+  FinishRunOptions,
 
   // Response types (camelCase)
   ScoreResult,
@@ -64,6 +66,8 @@ export type {
   PlayerResult,
   ClaimResult,
   HealthResult,
+  StartRunResult,
+  FinishRunResult,
 
   // Session types
   SessionScoreResult,
