@@ -15,6 +15,8 @@ export interface KeeperBoardConfig {
   apiKey: string;
   /** Default leaderboard name — used when no leaderboard is specified in method calls */
   defaultLeaderboard?: string;
+  /** Signing secret for HMAC request signing (get from dashboard when signing is enabled) */
+  signingSecret?: string;
   /** @internal Base URL override for testing. Do not use in production. */
   apiUrl?: string;
 }
@@ -173,6 +175,8 @@ export interface SessionConfig {
   cache?: { ttlMs: number };
   /** Retry queue configuration for failed score submissions */
   retry?: { maxAgeMs?: number };
+  /** Signing secret for HMAC request signing (get from dashboard when signing is enabled) */
+  signingSecret?: string;
   /** @internal Base URL override for testing. */
   apiUrl?: string;
 }

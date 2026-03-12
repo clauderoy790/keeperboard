@@ -40,6 +40,7 @@ export class KeeperBoardSession {
     this.client = new KeeperBoardClient({
       apiKey: config.apiKey,
       defaultLeaderboard: config.leaderboard,
+      signingSecret: config.signingSecret,
       apiUrl: config.apiUrl,
     });
 

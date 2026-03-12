@@ -34,6 +34,7 @@ import type {
   FinishRunResult,
 } from './types';
 import { KeeperBoardError } from './types';
+import { signRequest } from './signing';
 
 export class KeeperBoardClient {
   private static readonly DEFAULT_API_URL = 'https://keeperboard.vercel.app';
@@ -41,12 +42,14 @@ export class KeeperBoardClient {
   private readonly apiUrl: string;
   private readonly apiKey: string;
   private readonly defaultLeaderboard?: string;
+  private readonly signingSecret?: string;
 
   constructor(config: KeeperBoardConfig) {
     const url = config.apiUrl ?? KeeperBoardClient.DEFAULT_API_URL;
     this.apiUrl = url.replace(/\/$/, '');
     this.apiKey = config.apiKey;
     this.defaultLeaderboard = config.defaultLeaderboard;
+    this.signingSecret = config.signingSecret;
   }
 
   // ============================================
@@ -249,9 +252,25 @@ export class KeeperBoardClient {
 
     const url = `${this.apiUrl}/api/v1/runs/start${params.toString() ? '?' + params.toString() : ''}`;
 
+    const timestamp = Date.now();
+    const body: Record<string, unknown> = {
+      player_guid: options.playerGuid,
+      timestamp,
+    };
+
+    const headers: Record<string, string> = {};
+    if (this.signingSecret) {
+      const signature = await signRequest(
+        { playerGuid: options.playerGuid, timestamp },
+        this.signingSecret
+      );
+      headers['X-Signature'] = signature;
+    }
+
     const raw = await this.request<ApiStartRunResponse>(url, {
       method: 'POST',
-      body: JSON.stringify({ player_guid: options.playerGuid }),
+      body: JSON.stringify(body),
+      headers,
     });
 
     return this.mapStartRunResponse(raw);
@@ -277,15 +296,34 @@ export class KeeperBoardClient {
 
     const url = `${this.apiUrl}/api/v1/runs/finish${params.toString() ? '?' + params.toString() : ''}`;
 
+    const timestamp = Date.now();
+    const body: Record<string, unknown> = {
+      run_id: options.runId,
+      player_guid: options.playerGuid,
+      player_name: options.playerName,
+      score: options.score,
+      timestamp,
+      ...(options.metadata && { metadata: options.metadata }),
+    };
+
+    const headers: Record<string, string> = {};
+    if (this.signingSecret) {
+      const signature = await signRequest(
+        {
+          playerGuid: options.playerGuid,
+          timestamp,
+          score: options.score,
+          runId: options.runId,
+        },
+        this.signingSecret
+      );
+      headers['X-Signature'] = signature;
+    }
+
     const raw = await this.request<ApiFinishRunResponse>(url, {
       method: 'POST',
-      body: JSON.stringify({
-        run_id: options.runId,
-        player_guid: options.playerGuid,
-        player_name: options.playerName,
-        score: options.score,
-        ...(options.metadata && { metadata: options.metadata }),
-      }),
+      body: JSON.stringify(body),
+      headers,
     });
 
     return this.mapFinishRunResponse(raw);

@@ -8,6 +8,52 @@ var KeeperBoardError = class extends Error {
   }
 };
 
+// src/signing.ts
+async function signRequest(params, secret) {
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const derivedKeyData = await crypto.subtle.sign(
+    "HMAC",
+    keyMaterial,
+    encoder.encode(params.playerGuid.slice(0, 8))
+  );
+  const derivedKey = await crypto.subtle.importKey(
+    "raw",
+    derivedKeyData,
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const parts = [params.playerGuid];
+  if (params.runId) {
+    parts.push(params.runId.split("").reverse().join(""));
+  }
+  if (params.score !== void 0) {
+    parts.push(String(params.score ^ 48879));
+  }
+  parts.push(String(params.timestamp ^ 57005));
+  const payload = parts.join("::");
+  const hmacResult = await crypto.subtle.sign(
+    "HMAC",
+    derivedKey,
+    encoder.encode(payload)
+  );
+  const hmacHex = Array.from(new Uint8Array(hmacResult)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  const tsStr = String(params.timestamp);
+  const xored = hmacHex.split("").map((c, i) => {
+    const tsChar = tsStr[i % tsStr.length];
+    return String.fromCharCode(c.charCodeAt(0) ^ tsChar.charCodeAt(0));
+  }).join("");
+  const signature = btoa(xored).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+  return signature;
+}
+
 // src/KeeperBoardClient.ts
 var _KeeperBoardClient = class _KeeperBoardClient {
   constructor(config) {
@@ -15,6 +61,7 @@ var _KeeperBoardClient = class _KeeperBoardClient {
     this.apiUrl = url.replace(/\/$/, "");
     this.apiKey = config.apiKey;
     this.defaultLeaderboard = config.defaultLeaderboard;
+    this.signingSecret = config.signingSecret;
   }
   // ============================================
   // SCORE SUBMISSION
@@ -183,9 +230,23 @@ var _KeeperBoardClient = class _KeeperBoardClient {
     const params = new URLSearchParams();
     if (leaderboard) params.set("leaderboard", leaderboard);
     const url = `${this.apiUrl}/api/v1/runs/start${params.toString() ? "?" + params.toString() : ""}`;
+    const timestamp = Date.now();
+    const body = {
+      player_guid: options.playerGuid,
+      timestamp
+    };
+    const headers = {};
+    if (this.signingSecret) {
+      const signature = await signRequest(
+        { playerGuid: options.playerGuid, timestamp },
+        this.signingSecret
+      );
+      headers["X-Signature"] = signature;
+    }
     const raw = await this.request(url, {
       method: "POST",
-      body: JSON.stringify({ player_guid: options.playerGuid })
+      body: JSON.stringify(body),
+      headers
     });
     return this.mapStartRunResponse(raw);
   }
@@ -207,15 +268,32 @@ var _KeeperBoardClient = class _KeeperBoardClient {
     const params = new URLSearchParams();
     if (leaderboard) params.set("leaderboard", leaderboard);
     const url = `${this.apiUrl}/api/v1/runs/finish${params.toString() ? "?" + params.toString() : ""}`;
+    const timestamp = Date.now();
+    const body = {
+      run_id: options.runId,
+      player_guid: options.playerGuid,
+      player_name: options.playerName,
+      score: options.score,
+      timestamp,
+      ...options.metadata && { metadata: options.metadata }
+    };
+    const headers = {};
+    if (this.signingSecret) {
+      const signature = await signRequest(
+        {
+          playerGuid: options.playerGuid,
+          timestamp,
+          score: options.score,
+          runId: options.runId
+        },
+        this.signingSecret
+      );
+      headers["X-Signature"] = signature;
+    }
     const raw = await this.request(url, {
       method: "POST",
-      body: JSON.stringify({
-        run_id: options.runId,
-        player_guid: options.playerGuid,
-        player_name: options.playerName,
-        score: options.score,
-        ...options.metadata && { metadata: options.metadata }
-      })
+      body: JSON.stringify(body),
+      headers
     });
     return this.mapFinishRunResponse(raw);
   }
@@ -785,6 +863,7 @@ var KeeperBoardSession = class {
     this.client = new KeeperBoardClient({
       apiKey: config.apiKey,
       defaultLeaderboard: config.leaderboard,
+      signingSecret: config.signingSecret,
       apiUrl: config.apiUrl
     });
     this.identity = new PlayerIdentity(config.identity);
