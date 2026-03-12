@@ -158,6 +158,8 @@ All endpoints require an API key via `X-API-Key` header (except health check).
 | `/api/v1/player/:guid` | GET    | Get player's score and rank | `leaderboard_slug` |
 | `/api/v1/player/:guid` | PUT    | Update player name          | `leaderboard_slug` |
 | `/api/v1/claim`        | POST   | Claim imported score        | — |
+| `/api/v1/runs/start`   | POST   | Start a game run (anti-cheat) | `leaderboard` |
+| `/api/v1/runs/finish`  | POST   | Finish run and submit score | — |
 
 **Time-based leaderboards:** Pass `?version=N` to query historical versions. Omit for current version.
 
@@ -182,9 +184,9 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 | [Plan 4](docs/plans/4_sdk-v2.md) | SDK v2.0.0 - Developer Experience | 2026-02-10 | Completed |
 | [Plan 5](docs/plans/5_random-player-names.md) | Auto-Generated Player Names | 2026-02-15 | Completed |
 | [Plan 6](docs/plans/6_profanity-filter.md) | Profanity Filter for Player Names | 2026-03-07 | Completed |
-| [Plan 23](docs/plans/23_anti-cheat-security.md) | Anti-Cheat Security System | 2026-03-11 | Phase 1/9 (Mar 11) |
+| [Plan 23](docs/plans/23_anti-cheat-security.md) | Anti-Cheat Security System | 2026-03-11 | Phase 2/9 (Mar 11) |
 
-**Active:** Plan 23 - Anti-Cheat Security System (Phase 2 next)
+**Active:** Plan 23 - Anti-Cheat Security System (Phase 3 next)
 
 ## License
 

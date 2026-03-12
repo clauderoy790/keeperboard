@@ -9,6 +9,7 @@ export default defineConfig({
   },
   test: {
     include: ['src/**/*.test.ts'],
+    exclude: ['src/lib/api/version.test.ts'], // Manual test file, run with npx tsx
     environment: 'node',
   },
 });
