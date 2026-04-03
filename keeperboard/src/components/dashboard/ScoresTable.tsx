@@ -289,7 +289,7 @@ export default function ScoresTable({
                     </td>
                   )}
                   <td className="py-3 px-4 text-xs font-mono text-neutral-500 hidden lg:table-cell">
-                    {formatDate(score.created_at)}
+                    {formatDate(score.updated_at ?? score.created_at)}
                   </td>
                   <td className="py-3 px-4 text-right">
                     {!isReadOnly ? (
