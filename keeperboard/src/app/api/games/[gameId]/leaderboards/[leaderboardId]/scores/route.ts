@@ -105,6 +105,9 @@ export async function GET(request: Request, { params }: RouteParams) {
       case 'player_name':
         query = query.order('player_name', { ascending });
         break;
+      case 'date':
+        query = query.order('updated_at', { ascending, nullsFirst: false });
+        break;
       case 'created_at':
         query = query.order('created_at', { ascending });
         break;

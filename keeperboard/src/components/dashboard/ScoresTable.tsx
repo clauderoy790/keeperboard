@@ -46,6 +46,8 @@ export default function ScoresTable({
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [searchDebounced, setSearchDebounced] = useState('');
+  const [sortBy, setSortBy] = useState<'score' | 'date'>('score');
+  const [dateSortOrder, setDateSortOrder] = useState<'desc' | 'asc'>('desc');
   const [editingScore, setEditingScore] = useState<Score | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -70,6 +72,10 @@ export default function ScoresTable({
       if (searchDebounced) {
         params.set('search', searchDebounced);
       }
+      if (sortBy !== 'score') {
+        params.set('sortBy', sortBy);
+        params.set('sortOrder', dateSortOrder);
+      }
       if (version !== undefined) {
         params.set('version', version.toString());
       }
@@ -91,7 +97,7 @@ export default function ScoresTable({
     } finally {
       setLoading(false);
     }
-  }, [gameId, leaderboardId, pagination.page, pagination.pageSize, searchDebounced, version, onScoreCountChange]);
+  }, [gameId, leaderboardId, pagination.page, pagination.pageSize, searchDebounced, sortBy, dateSortOrder, version, onScoreCountChange]);
 
   useEffect(() => {
     fetchScores();
@@ -108,6 +114,20 @@ export default function ScoresTable({
 
   const handlePageSizeChange = (newSize: number) => {
     setPagination((prev) => ({ ...prev, pageSize: newSize, page: 1 }));
+  };
+
+  const handleDateSort = () => {
+    if (sortBy === 'date') {
+      if (dateSortOrder === 'desc') {
+        setDateSortOrder('asc');
+      } else {
+        setSortBy('score');
+      }
+    } else {
+      setSortBy('date');
+      setDateSortOrder('desc');
+    }
+    setPagination((prev) => ({ ...prev, page: 1 }));
   };
 
   const handleEditSave = async (
@@ -257,8 +277,13 @@ export default function ScoresTable({
                     Time
                   </th>
                 )}
-                <th className="text-left py-3 px-4 text-xs font-mono font-semibold text-cyan-400 uppercase tracking-wider hidden lg:table-cell">
-                  Date
+                <th
+                  className="text-left py-3 px-4 text-xs font-mono font-semibold uppercase tracking-wider hidden lg:table-cell cursor-pointer select-none hover:text-cyan-300 transition-colors"
+                  onClick={handleDateSort}
+                >
+                  <span className={sortBy === 'date' ? 'text-cyan-300' : 'text-cyan-400'}>
+                    Date {sortBy === 'date' ? (dateSortOrder === 'desc' ? '▼' : '▲') : ''}
+                  </span>
                 </th>
                 <th className="text-right py-3 px-4 text-xs font-mono font-semibold text-cyan-400 uppercase tracking-wider">
                   Actions
