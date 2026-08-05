@@ -19,6 +19,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { createHash, randomBytes } from 'crypto';
+import { KeeperBoardClient } from '../src';
 
 const API_URL = process.env.KEEPERBOARD_API_URL || 'http://localhost:3099';
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -421,6 +422,69 @@ describe('Plan 24 Phase 2 — platform & analytics dimensions', () => {
       expect(res.status).toBe(200);
       const score = await getScore(player);
       expect(score?.platform).toBeNull();
+    });
+  });
+
+  describe('SDK sends platform (Phase 3)', () => {
+    it('submitScore carries the platform from config', async () => {
+      const player = nextPlayer();
+      const client = new KeeperBoardClient({
+        apiUrl: API_URL,
+        apiKey: fx.apiKey,
+        platform: 'ios',
+        defaultLeaderboard: LEADERBOARD_NAME,
+      });
+
+      await client.submitScore({
+        playerGuid: player,
+        playerName: 'SdkPlatform',
+        score: 4321,
+      });
+
+      const score = await getScore(player);
+      expect(score?.platform).toBe('ios');
+    });
+
+    it('startRun carries platform, gameVersion and source', async () => {
+      const player = nextPlayer();
+      const client = new KeeperBoardClient({
+        apiUrl: API_URL,
+        apiKey: fx.apiKey,
+        platform: 'android',
+        gameVersion: '9.9.9',
+        defaultLeaderboard: LEADERBOARD_NAME,
+      });
+
+      const run = await client.startRun({
+        playerGuid: player,
+        source: 'sdk-test-source',
+      });
+
+      const stored = await getRun(run.runId);
+      expect(stored?.platform).toBe('android');
+      expect(stored?.game_version).toBe('9.9.9');
+      expect(stored?.source).toBe('sdk-test-source');
+    });
+
+    it('finishRun carries the platform onto the score', async () => {
+      const player = nextPlayer();
+      const client = new KeeperBoardClient({
+        apiUrl: API_URL,
+        apiKey: fx.apiKey,
+        platform: 'macos',
+        defaultLeaderboard: LEADERBOARD_NAME,
+      });
+
+      const run = await client.startRun({ playerGuid: player });
+      await client.finishRun({
+        runId: run.runId,
+        playerGuid: player,
+        playerName: 'SdkFinish',
+        score: 8888,
+      });
+
+      const score = await getScore(player);
+      expect(score?.platform).toBe('macos');
     });
   });
 

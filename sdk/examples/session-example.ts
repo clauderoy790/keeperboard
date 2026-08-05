@@ -32,6 +32,14 @@ const session = new KeeperBoardSession({
   apiKey: process.env.KEEPERBOARD_API_KEY || 'kb_dev_your_api_key_here',
   leaderboard: 'main',
 
+  // Required: which build this is — 'web' | 'ios' | 'android' | 'windows' | 'macos' | 'linux'.
+  // Describes the build you shipped, not the device: a web build opened in Safari on an
+  // iPhone is 'web'. Only the native iOS app is 'ios'.
+  platform: 'web',
+
+  // Optional: lets the dashboard compare retention between releases
+  gameVersion: '1.0.0',
+
   // Optional: caching
   cache: {
     ttlMs: 30_000, // 30 seconds - cached snapshots refresh after this
@@ -79,11 +87,11 @@ function identityExamples(): void {
     console.log('Invalid name');
   }
 
-  // Custom validation options
+  // Custom validation options. Case is always preserved; pass `allowedPattern` to
+  // change which characters survive sanitization.
   const custom = session.validateName('abc', {
     minLength: 2,
     maxLength: 8,
-    uppercase: false, // Keep original case
   });
   console.log('Custom validated:', custom); // "abc"
 }

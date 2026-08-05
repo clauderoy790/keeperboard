@@ -1,0 +1,20 @@
+{
+  // Typechecks the code the main tsconfig deliberately leaves out.
+  //
+  // tsconfig.json scopes itself to src/** because it drives the build (rootDir, declaration
+  // output). That means tests and examples were never typechecked — so a breaking change to
+  // a public config type could ship with every example still showing the old shape, and
+  // nothing would fail. Examples are copy-pasted by users, so that is a real defect.
+  //
+  // Run via `npm run typecheck` alongside the build typecheck.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["vitest/globals", "node"]
+  },
+  "include": ["src/**/*", "tests/**/*", "examples/**/*", "scripts/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

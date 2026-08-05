@@ -16,6 +16,7 @@ import { KeeperBoardSession } from 'keeperboard';
 const session = new KeeperBoardSession({
   apiKey: 'kb_dev_your_api_key',
   leaderboard: 'main',
+  platform: 'web',          // Required: which build this is
   cache: { ttlMs: 30000 },  // Optional: 30s cache
   retry: { maxAgeMs: 86400000 },  // Optional: 24h retry queue
 });
@@ -52,11 +53,76 @@ Most browser games should use `KeeperBoardSession`. Use `KeeperBoardClient` for 
 const session = new KeeperBoardSession({
   apiKey: 'kb_dev_xxx',           // Required
   leaderboard: 'main',            // Required - session is bound to one board
+  platform: 'web',                // Required - which build this is
+  gameVersion: '1.4.2',           // Optional - enables retention-by-version
   identity: { keyPrefix: 'app_' }, // Optional localStorage prefix
   cache: { ttlMs: 30000 },        // Optional TTL cache for getSnapshot()
   retry: { maxAgeMs: 86400000 },  // Optional retry queue for failed submissions
 });
 ```
+
+### Platform (required)
+
+`platform` tells the dashboard which build a score came from, so you can compare traffic and
+retention across web, iOS and Android.
+
+```typescript
+type Platform = 'web' | 'ios' | 'android' | 'windows' | 'macos' | 'linux';
+```
+
+It describes **the build you shipped, not the device it runs on.** A web build opened in
+Safari on an iPhone is `'web'` — only your native iOS app is `'ios'`. That is the distinction
+that tells you which store or channel a player came through.
+
+The SDK cannot detect this for you. From inside the page, a native app's webview and a mobile
+browser are indistinguishable, so you have to say which one you built.
+
+**Map your framework's value — don't pass it straight through.** `Capacitor.getPlatform()`
+and Electron's `process.platform` both return values outside the union:
+
+```typescript
+import { Capacitor } from '@capacitor/core';
+import type { Platform } from 'keeperboard';
+
+function resolvePlatform(): Platform {
+  switch (Capacitor.getPlatform()) {
+    case 'ios':     return 'ios';
+    case 'android': return 'android';
+    default:        return 'web';
+  }
+}
+```
+
+An unrecognized value is rejected with `400 INVALID_PLATFORM`, so a typo surfaces on your
+first test submission rather than silently producing empty analytics.
+
+### Acquisition tracking (`?ref=`)
+
+Add a `?ref=` tag to links you post and the SDK records where each player came from:
+
+```
+https://yourgame.com/?ref=reddit-webgames
+```
+
+Captured on the player's **first** visit, stored alongside their GUID, and attached to every
+run they play afterwards — including when they later return by typing the URL directly. It is
+never overwritten, so a player stays credited to the link that originally brought them in.
+
+```typescript
+session.getSource();  // 'reddit-webgames' | null
+```
+
+Tags are lowercased and stripped to `[a-z0-9._-]`, so `Reddit WebGames!` and
+`reddit-webgames` cannot fragment into separate rows.
+
+Two limits worth knowing:
+
+- **Only `?ref=` is used, not `document.referrer`.** Reddit marks user-submitted links
+  `rel="noreferrer"`, Facebook routes through a redirector, and links opened from mobile apps
+  usually drop the referrer — so precisely the traffic you most want to measure is what the
+  referrer cannot see. Untagged arrivals are reported as "direct" rather than guessed at.
+- **Web only.** An app launched from the App Store or Play Store has no URL to read. Those
+  players report no source; the stores' own acquisition reports cover that side.
 
 ### Identity (auto-managed)
 
@@ -70,7 +136,8 @@ session.hasExplicitPlayerName(); // true if player chose their name
 
 // Validate a name (pure function)
 const validated = session.validateName('  Ace Pilot! ');
-// Returns 'ACEPILOT' or null if invalid
+// Returns 'Ace Pilot' or null if invalid — case and single spaces are preserved,
+// disallowed characters are stripped
 ```
 
 ### Core Methods
@@ -130,6 +197,7 @@ Low-level client with options-object methods and camelCase responses.
 ```typescript
 const client = new KeeperBoardClient({
   apiKey: 'kb_dev_xxx',
+  platform: 'web',             // Required - which build this is
   defaultLeaderboard: 'main',  // Optional - used when leaderboard not specified
 });
 ```
@@ -190,16 +258,16 @@ Standalone function for validating player names:
 ```typescript
 import { validateName } from 'keeperboard';
 
-validateName('  Ace Pilot! ');        // 'ACEPILOT'
+validateName('  Ace Pilot! ');        // 'Ace Pilot' (trimmed, '!' stripped)
 validateName('x');                     // null (too short)
-validateName('verylongname123456');   // 'VERYLONGNAME' (truncated to 12)
+validateName('verylongname123456');   // 'verylongname' (truncated to 12)
 
-// Custom options
+// Custom options. Case is always preserved — use `allowedPattern` to control
+// which characters survive.
 validateName('hello', {
   minLength: 3,
   maxLength: 8,
-  uppercase: false,
-  allowedPattern: /[^a-z]/g,
+  allowedPattern: /[^a-z]/g,  // Strips anything that isn't a lowercase letter
 });
 ```
 
@@ -245,6 +313,7 @@ When enabled, all requests are cryptographically signed to prevent tampering.
 const session = new KeeperBoardSession({
   apiKey: 'kb_prod_xxx',
   leaderboard: 'main',
+  platform: 'web',
   signingSecret: process.env.KEEPERBOARD_SIGNING_SECRET, // From dashboard
 });
 ```
@@ -317,6 +386,7 @@ import { KeeperBoardSession } from 'keeperboard';
 const leaderboard = new KeeperBoardSession({
   apiKey: import.meta.env.VITE_KEEPERBOARD_API_KEY,
   leaderboard: 'main',
+  platform: 'web',
   signingSecret: import.meta.env.VITE_KEEPERBOARD_SIGNING_SECRET, // Optional
   cache: { ttlMs: 30000 },
   retry: { maxAgeMs: 86400000 },

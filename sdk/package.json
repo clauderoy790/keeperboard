@@ -18,7 +18,7 @@
   "scripts": {
     "build": "NODE_ENV=production tsup",
     "build:dev": "tsup",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "clean": "rm -rf dist",
     "test": "vitest run",
     "test:unit": "KEEPERBOARD_SKIP_SERVER=1 vitest run --exclude \"**/*.integration.test.ts\"",

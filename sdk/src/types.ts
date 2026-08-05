@@ -10,11 +10,40 @@
 // Configuration
 // =============================================
 
+/**
+ * Platforms a score can be submitted from.
+ *
+ * This describes the *build* you shipped, not the device it happens to run on — a web
+ * build played in Safari on an iPhone is `'web'`, and only the native iOS app is `'ios'`.
+ * The distinction matters because it is what tells you which store or channel a player
+ * came through.
+ */
+export const PLATFORMS = [
+  'web',
+  'ios',
+  'android',
+  'windows',
+  'macos',
+  'linux',
+] as const;
+
+export type Platform = (typeof PLATFORMS)[number];
+
 export interface KeeperBoardConfig {
   /** API key from the KeeperBoard dashboard (e.g., "kb_dev_abc123...") */
   apiKey: string;
+  /**
+   * Which build this is. Required — the SDK cannot detect it, because a native app
+   * running in a webview and a mobile browser are indistinguishable from inside the page.
+   *
+   * Map your framework's value rather than passing it through: `Capacitor.getPlatform()`
+   * and Electron's `process.platform` both return values outside this union.
+   */
+  platform: Platform;
   /** Default leaderboard name — used when no leaderboard is specified in method calls */
   defaultLeaderboard?: string;
+  /** Build identifier, e.g. "1.4.2". Enables retention-by-version in the dashboard. */
+  gameVersion?: string;
   /** Signing secret for HMAC request signing (get from dashboard when signing is enabled) */
   signingSecret?: string;
   /** @internal Base URL override for testing. Do not use in production. */
@@ -69,6 +98,11 @@ export interface StartRunOptions {
   playerGuid: string;
   /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
   leaderboard?: string;
+  /**
+   * First-touch acquisition tag. `KeeperBoardSession` supplies this automatically from
+   * the `?ref=` parameter; pass it explicitly only when using the low-level client.
+   */
+  source?: string;
 }
 
 export interface FinishRunOptions {
@@ -169,6 +203,19 @@ export interface SessionConfig {
   apiKey: string;
   /** Leaderboard name (required — the session is bound to one board) */
   leaderboard: string;
+  /**
+   * Which build this is. Required — see {@link KeeperBoardConfig.platform}.
+   *
+   * @example
+   * import { Capacitor } from '@capacitor/core';
+   *
+   * const platform =
+   *   Capacitor.getPlatform() === 'ios' ? 'ios' :
+   *   Capacitor.getPlatform() === 'android' ? 'android' : 'web';
+   */
+  platform: Platform;
+  /** Build identifier, e.g. "1.4.2". Enables retention-by-version in the dashboard. */
+  gameVersion?: string;
   /** PlayerIdentity config for localStorage key prefix */
   identity?: { keyPrefix?: string };
   /** TTL cache configuration for getSnapshot() */
@@ -227,6 +274,7 @@ export interface ScoreSubmission {
   player_name: string;
   score: number;
   metadata?: Record<string, unknown>;
+  platform?: Platform;
 }
 
 /** @internal */

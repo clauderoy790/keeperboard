@@ -139,6 +139,7 @@ async function createTestFixtures(): Promise<TestFixtures> {
   // 6. Create SDK client with defaultLeaderboard
   const client = new KeeperBoardClient({
     apiUrl: API_URL,
+    platform: 'web',
     apiKey: apiKeyRaw,
     defaultLeaderboard: testLeaderboardName,
   });
@@ -385,6 +386,7 @@ describe('KeeperBoard SDK Integration Tests', () => {
     it('should throw KeeperBoardError with invalid API key', async () => {
       const badClient = new KeeperBoardClient({
         apiUrl: API_URL,
+        platform: 'web',
         apiKey: 'kb_invalid_key',
       });
 

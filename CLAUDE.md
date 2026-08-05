@@ -32,7 +32,7 @@ keeperboard/
 
 - [x] Phase 1: Database Migration
 - [x] Phase 2: API — Accept & Validate
-- [ ] Phase 3: SDK 2.3.0
+- [x] Phase 3: SDK 2.3.0
 - [ ] Phase 4: Publish SDK 2.3.0
 - [ ] Phase 5: Flight747 Integration
 - [ ] Phase 6: Analytics API
