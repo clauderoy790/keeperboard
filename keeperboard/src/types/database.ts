@@ -152,6 +152,10 @@ export type Database = {
           elapsed_seconds: number | null
           used: boolean
           created_at: string
+          platform: string | null
+          country: string | null
+          game_version: string | null
+          source: string | null
         }
         Insert: {
           id?: string
@@ -163,6 +167,10 @@ export type Database = {
           elapsed_seconds?: number | null
           used?: boolean
           created_at?: string
+          platform?: string | null
+          country?: string | null
+          game_version?: string | null
+          source?: string | null
         }
         Update: {
           id?: string
@@ -174,6 +182,10 @@ export type Database = {
           elapsed_seconds?: number | null
           used?: boolean
           created_at?: string
+          platform?: string | null
+          country?: string | null
+          game_version?: string | null
+          source?: string | null
         }
         Relationships: [
           {
@@ -250,6 +262,7 @@ export type Database = {
           leaderboard_id: string
           metadata: Json | null
           migrated_from: string | null
+          platform: string | null
           player_guid: string | null
           player_name: string
           run_id: string | null
@@ -264,6 +277,7 @@ export type Database = {
           leaderboard_id: string
           metadata?: Json | null
           migrated_from?: string | null
+          platform?: string | null
           player_guid?: string | null
           player_name: string
           run_id?: string | null
@@ -278,6 +292,7 @@ export type Database = {
           leaderboard_id?: string
           metadata?: Json | null
           migrated_from?: string | null
+          platform?: string | null
           player_guid?: string | null
           player_name?: string
           run_id?: string | null
