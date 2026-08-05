@@ -411,15 +411,70 @@ const pending = queue.get(); // { score: 1500, metadata: {...} } or null
 # Install dependencies
 npm install
 
-# Run tests (requires local KeeperBoard server + Supabase)
-npm test
-
 # Type check
 npm run typecheck
 
 # Build
 npm run build
 ```
+
+### Testing
+
+Tests split into two kinds, distinguished by filename:
+
+| Command | Runs | Needs | Speed |
+|---------|------|-------|-------|
+| `npm run test:unit` | `tests/*.test.ts` | Nothing | < 1s |
+| `npm run test:integration` | `tests/*.integration.test.ts` | Supabase credentials | ~30s |
+| `npm test` | Everything | Supabase credentials | ~30s |
+
+**Unit tests** are pure logic — cache, retry queue, validation, name generation, session
+behavior. No network, no database. Run these constantly while developing.
+
+**Integration tests** exercise the real REST API against a real database. Each file creates
+its own throwaway user, game, environment, leaderboard and API key with a random per-run
+suffix, then deletes them in `afterAll` — which runs even when assertions fail, so a broken
+test cannot leave rows behind. Every delete is keyed to an ID that run created; nothing
+matches on name patterns, so existing data is never at risk.
+
+The dev server starts automatically on port 3099 (or an already-running server is reused),
+and is stopped on teardown. Credentials come from `sdk/.env`:
+
+```bash
+cp .env.example .env    # then fill in SUPABASE_URL and SUPABASE_SERVICE_KEY
+npm run test:integration
+```
+
+Run a single file while iterating:
+
+```bash
+npx vitest run tests/platform.integration.test.ts
+```
+
+> **Naming convention:** any test that touches the database or the API must be named
+> `*.integration.test.ts`. That suffix is what keeps it out of `test:unit`, so a
+> misnamed integration test will fail confusingly when run without credentials.
+
+#### Orphaned fixtures
+
+`afterAll` covers assertion failures, but not a process that dies before it runs — Ctrl-C,
+a crashed dev server, a killed CI job. That leaves a throwaway game stranded in the database.
+
+Every integration run therefore begins with a sweep that deletes fixtures left by *earlier*
+runs, so an interrupted run heals itself next time instead of accumulating. Run it on its
+own with:
+
+```bash
+npm run test:clean
+```
+
+The sweep only removes games whose name starts with a known fixture prefix
+(`SDK Test Game `, `Anti-Cheat Test Game `, `Platform Test Game `) **and** that are more
+than an hour old, so a concurrent run is never disturbed. Deletes are keyed to a resolved
+game id, never to a name pattern.
+
+**When adding a new integration suite,** add its game-name prefix to `FIXTURE_PREFIXES` in
+`tests/sweepStaleFixtures.ts` — otherwise its orphans will not be collected.
 
 See [MIGRATION.md](./MIGRATION.md) for upgrading from v1.x.
 

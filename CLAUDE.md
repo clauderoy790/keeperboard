@@ -31,7 +31,7 @@ keeperboard/
 **Plan 24:** [Platform Tracking & Analytics](docs/plans/24_platform-tracking-analytics.md)
 
 - [x] Phase 1: Database Migration
-- [ ] Phase 2: API — Accept & Validate
+- [x] Phase 2: API — Accept & Validate
 - [ ] Phase 3: SDK 2.3.0
 - [ ] Phase 4: Publish SDK 2.3.0
 - [ ] Phase 5: Flight747 Integration

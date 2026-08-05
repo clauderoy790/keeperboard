@@ -6,6 +6,7 @@ import { getAntiCheatSettings, getGameSettings } from '@/lib/api/game';
 import { resolveCurrentVersion } from '@/lib/api/version';
 import { containsProfanity } from '@/lib/profanity';
 import { validateSignature, validateTimestamp } from '@/lib/api/signature';
+import { normalizePlatform, InvalidPlatformError } from '@/lib/api/platform';
 import type { Json } from '@/types/database';
 
 interface FinishRunRequest {
@@ -15,6 +16,7 @@ interface FinishRunRequest {
   score: number;
   timestamp?: number;
   metadata?: Json;
+  platform?: string;
 }
 
 // Run expiration time in milliseconds (1 hour)
@@ -61,6 +63,17 @@ export async function POST(request: Request) {
         400,
         corsHeaders
       );
+    }
+
+    // Validate before any writes, so a bad platform never leaves a run marked used
+    let platform: string | null;
+    try {
+      platform = normalizePlatform(body.platform);
+    } catch (error) {
+      if (error instanceof InvalidPlatformError) {
+        return errorResponse(error.message, 'INVALID_PLATFORM', 400, corsHeaders);
+      }
+      throw error;
     }
 
     const supabase = createAdminClient();
@@ -284,6 +297,7 @@ export async function POST(request: Request) {
             player_name,
             run_id,
             metadata: metadata || null,
+            platform,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingScore.id)
@@ -312,6 +326,7 @@ export async function POST(request: Request) {
           run_id,
           version: currentVersion,
           metadata: metadata || null,
+          platform,
         })
         .select('id')
         .single();

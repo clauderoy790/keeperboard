@@ -5,10 +5,20 @@ import { validateApiKey } from '@/lib/api/auth';
 import { resolveLeaderboard } from '@/lib/api/leaderboard';
 import { getAntiCheatSettings } from '@/lib/api/game';
 import { validateSignature, validateTimestamp } from '@/lib/api/signature';
+import {
+  normalizePlatform,
+  normalizeGameVersion,
+  normalizeSource,
+  resolveCountry,
+  InvalidPlatformError,
+} from '@/lib/api/platform';
 
 interface StartRunRequest {
   player_guid: string;
   timestamp?: number;
+  platform?: string;
+  game_version?: string;
+  source?: string;
 }
 
 /**
@@ -50,6 +60,22 @@ export async function POST(request: Request) {
         corsHeaders
       );
     }
+
+    // Analytics dimensions. Absent is fine (SDK <= 2.2.2 sends none); present-but-invalid
+    // platform is a developer bug and fails loudly.
+    let platform: string | null;
+    try {
+      platform = normalizePlatform(body.platform);
+    } catch (error) {
+      if (error instanceof InvalidPlatformError) {
+        return errorResponse(error.message, 'INVALID_PLATFORM', 400, corsHeaders);
+      }
+      throw error;
+    }
+
+    const gameVersion = normalizeGameVersion(body.game_version);
+    const source = normalizeSource(body.source);
+    const country = resolveCountry(request);
 
     // Get leaderboard name from query params (optional)
     const { searchParams } = new URL(request.url);
@@ -131,6 +157,10 @@ export async function POST(request: Request) {
         leaderboard_id: leaderboard.leaderboardId,
         player_guid,
         started_at: startedAt.toISOString(),
+        platform,
+        country,
+        game_version: gameVersion,
+        source,
       })
       .select('id, started_at')
       .single();
