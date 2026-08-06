@@ -521,6 +521,18 @@ Run a single file while iterating:
 npx vitest run tests/platform.integration.test.ts
 ```
 
+**If you already have `npm run dev` running**, point the tests at it instead of letting them
+spawn a second server:
+
+```bash
+KEEPERBOARD_API_URL=http://localhost:3000 npm run test:integration
+```
+
+Two `next dev` processes on the same project contend over the `.next` directory, so the
+spawned one never finishes building and the run fails with "Server did not start within 60s".
+The harness skips spawning entirely when a server is already reachable at
+`KEEPERBOARD_API_URL`.
+
 > **Naming convention:** any test that touches the database or the API must be named
 > `*.integration.test.ts`. That suffix is what keeps it out of `test:unit`, so a
 > misnamed integration test will fail confusingly when run without credentials.

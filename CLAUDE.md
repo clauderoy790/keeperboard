@@ -34,10 +34,10 @@ keeperboard/
 - [x] Phase 2: API — Accept & Validate
 - [x] Phase 3: SDK 2.3.0
 - [x] Phase 4: Publish SDK 2.3.0
-- [ ] Phase 5: Flight747 Integration
-- [ ] Phase 6: Analytics API
-- [ ] Phase 7: Analytics Dashboard (Layout B)
-- [ ] Phase 8: Scores Table Platform Column
+- [x] Phase 5: Flight747 Integration
+- [x] Phase 6: Analytics API
+- [x] Phase 7: Analytics Dashboard (Layout B)
+- [x] Phase 8: Scores Table Platform Column
 - [ ] Phase 9: Store Releases
 - [ ] Phase 10: Acquisition Rollout
 

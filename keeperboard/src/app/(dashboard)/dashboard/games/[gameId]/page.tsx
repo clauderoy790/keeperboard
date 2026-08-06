@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import GameForm from '@/components/forms/GameForm';
@@ -265,6 +266,19 @@ export default function GameDetailPage({ params }: { params: Promise<{ gameId: s
             </div>
           </div>
         )}
+      </Card>
+
+      {/* Analytics */}
+      <Card
+        title="Analytics"
+        description="Players, retention, platforms and acquisition for this game"
+      >
+        <Link
+          href={`/dashboard/games/${resolvedParams.gameId}/analytics`}
+          className="inline-block border-2 border-cyan-500/30 bg-neutral-800 px-5 py-2.5 font-mono text-sm font-semibold tracking-wider text-cyan-400 transition-colors duration-200 hover:border-cyan-500/60 hover:bg-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900"
+        >
+          View Analytics →
+        </Link>
       </Card>
 
       {/* Environments */}

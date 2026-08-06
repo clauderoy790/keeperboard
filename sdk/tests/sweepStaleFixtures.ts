@@ -25,6 +25,7 @@ const FIXTURE_PREFIXES = [
   'SDK Test Game ',
   'Anti-Cheat Test Game ',
   'Platform Test Game ',
+  'Analytics Test Game ',
 ] as const;
 
 /** Only sweep fixtures older than this, so in-flight runs are never disturbed. */
