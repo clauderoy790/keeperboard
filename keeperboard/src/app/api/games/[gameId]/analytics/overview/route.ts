@@ -10,6 +10,7 @@ import {
   firstSeenByPlayer,
   type RunRow,
 } from '@/lib/api/analytics';
+import type { OverviewResponse } from '@/types/analytics';
 
 /**
  * GET /api/games/[gameId]/analytics/overview
@@ -38,7 +39,9 @@ export async function GET(
       return at >= scope.from.getTime() && at <= scope.to.getTime();
     });
 
-    return Response.json({
+    // Typed so a shape change here is a compile error in the dashboard rather than an
+    // `undefined` that only shows up on screen.
+    const payload: OverviewResponse = {
       range: { from: scope.from.toISOString(), to: scope.to.toISOString() },
       truncated,
       totals: {
@@ -52,16 +55,32 @@ export async function GET(
       platforms: platformBreakdown(windowRuns),
       engagement: engagement(windowRuns),
       scoreHistogram: scoreHistogram(windowRuns),
-    });
+    };
+
+    return Response.json(payload);
   } catch (error) {
     return analyticsErrorResponse(error);
   }
 }
 
-/** DAU / WAU / MAU measured backwards from the end of the window. */
+/**
+ * DAU / WAU / MAU.
+ *
+ * DAU is the **last fully elapsed UTC day**, not a rolling 24 hours. A rolling window
+ * always includes a partial today, so early in the day DAU collapses toward zero — and
+ * because stickiness is DAU ÷ MAU, it drags that down with it. A game averaging 30 players
+ * a day would report 2.7% stickiness at breakfast and 20% by midnight, which is worse than
+ * useless for a number you'd benchmark against.
+ *
+ * WAU and MAU stay as rolling windows ending at `to`; one partial day out of 7 or 30
+ * barely moves them.
+ */
 function activeCounts(runs: RunRow[], to: Date) {
-  const windowed = (days: number) => {
-    const cutoff = to.getTime() - days * 24 * 60 * 60 * 1000;
+  const startOfToDay = new Date(`${dayKey(to)}T00:00:00.000Z`).getTime();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  const rolling = (days: number) => {
+    const cutoff = to.getTime() - days * dayMs;
     return uniquePlayers(
       runs.filter((run) => {
         const at = new Date(run.started_at).getTime();
@@ -70,14 +89,20 @@ function activeCounts(runs: RunRow[], to: Date) {
     );
   };
 
-  const dau = windowed(1);
-  const mau = windowed(30);
+  const dau = uniquePlayers(
+    runs.filter((run) => {
+      const at = new Date(run.started_at).getTime();
+      return at >= startOfToDay - dayMs && at < startOfToDay;
+    })
+  );
+
+  const mau = rolling(30);
 
   return {
     dau,
-    wau: windowed(7),
+    wau: rolling(7),
     mau,
-    // Share of monthly players who showed up today. ~20% is strong for a casual game.
+    // Share of monthly players active on a typical day. ~20% is strong for a casual game.
     stickiness: mau > 0 ? Math.round((dau / mau) * 1000) / 10 : 0,
   };
 }
@@ -134,8 +159,14 @@ function engagement(runs: RunRow[]) {
     .map((run) => run.elapsed_seconds)
     .filter((seconds): seconds is number => seconds !== null);
 
-  const players = uniquePlayers(runs);
-  const days = new Set(runs.map((run) => dayKey(run.started_at))).size;
+  // Divided by distinct player-days, not by every player × every day in the range.
+  // Players don't play daily, so dividing by the calendar would average across all the
+  // days each player wasn't there and drive the figure toward zero — it would read as
+  // "0.1 runs per player per day" for a game people actually play several times a sitting.
+  // This answers the useful question instead: when someone does play, how many runs?
+  const playerDays = new Set(
+    runs.map((run) => `${run.player_guid}|${dayKey(run.started_at)}`)
+  ).size;
 
   return {
     medianRunSeconds: median(durations),
@@ -146,10 +177,8 @@ function engagement(runs: RunRow[]) {
       runs.length > 0
         ? Math.round(((runs.length - finished.length) / runs.length) * 1000) / 10
         : 0,
-    runsPerPlayerPerDay:
-      players > 0 && days > 0
-        ? Math.round((runs.length / players / days) * 10) / 10
-        : 0,
+    runsPerActiveDay:
+      playerDays > 0 ? Math.round((runs.length / playerDays) * 10) / 10 : 0,
   };
 }
 

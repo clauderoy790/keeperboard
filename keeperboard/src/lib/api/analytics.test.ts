@@ -9,6 +9,7 @@ import {
   firstSeenByPlayer,
   runDayOffsets,
   retentionAtDay,
+  retainedAtDay,
   weekKey,
   type RunRow,
 } from './analytics';
@@ -125,16 +126,56 @@ describe('retention', () => {
     expect(retentionAtDay(['a'], offsets, 1, '2026-08-01', now)).toBe(100);
   });
 
-  it('is day-N exact, not rolling — returning on day 2 is not D1 retention', () => {
+  it('is rolling — a return on day 3 counts toward D1 and D3, but not D7', () => {
     const runs = [
       run({ player_guid: 'a', started_at: '2026-08-01T10:00:00Z' }),
-      run({ player_guid: 'a', started_at: '2026-08-03T10:00:00Z' }),
+      run({ player_guid: 'a', started_at: '2026-08-04T10:00:00Z' }),
     ];
     const firstSeen = firstSeenByPlayer(runs);
     const offsets = runDayOffsets(runs, firstSeen);
 
-    expect(retentionAtDay(['a'], offsets, 1, '2026-08-01', now)).toBe(0);
-    expect(retentionAtDay(['a'], offsets, 2, '2026-08-01', now)).toBe(100);
+    // "Still active on day N or later" — day 3 satisfies D1 and D3, not D7
+    expect(retentionAtDay(['a'], offsets, 1, '2026-08-01', now)).toBe(100);
+    expect(retentionAtDay(['a'], offsets, 3, '2026-08-01', now)).toBe(100);
+    expect(retentionAtDay(['a'], offsets, 7, '2026-08-01', now)).toBe(0);
+  });
+
+  it('counts a player once no matter how many times they return', () => {
+    const runs = [
+      run({ player_guid: 'a', started_at: '2026-08-01T10:00:00Z' }),
+      run({ player_guid: 'a', started_at: '2026-08-02T10:00:00Z' }),
+      run({ player_guid: 'a', started_at: '2026-08-05T10:00:00Z' }),
+    ];
+    const firstSeen = firstSeenByPlayer(runs);
+    const offsets = runDayOffsets(runs, firstSeen);
+
+    expect(retentionAtDay(['a'], offsets, 1, '2026-08-01', now)).toBe(100);
+  });
+
+  it('decreases with N, the shape every retention table is read against', () => {
+    // Guards both rejected definitions: exact-day gave D30 = 0% while D7 was non-zero,
+    // and cumulative made the curve rise, which reads as a bug.
+    const runs = [
+      run({ player_guid: 'a', started_at: '2026-08-01T10:00:00Z' }),
+      run({ player_guid: 'a', started_at: '2026-08-03T10:00:00Z' }),
+      run({ player_guid: 'b', started_at: '2026-08-01T10:00:00Z' }),
+      run({ player_guid: 'b', started_at: '2026-09-05T10:00:00Z' }),
+      run({ player_guid: 'c', started_at: '2026-08-01T10:00:00Z' }),
+    ];
+    const firstSeen = firstSeenByPlayer(runs);
+    const offsets = runDayOffsets(runs, firstSeen);
+    const cohort = ['a', 'b', 'c'];
+
+    const d1 = retentionAtDay(cohort, offsets, 1, '2026-08-01', now)!;
+    const d7 = retentionAtDay(cohort, offsets, 7, '2026-08-01', now)!;
+    const d30 = retentionAtDay(cohort, offsets, 30, '2026-08-01', now)!;
+
+    expect(d1).toBeGreaterThanOrEqual(d7);
+    expect(d7).toBeGreaterThanOrEqual(d30);
+
+    // a and b both returned at some point; only b was still around past day 30
+    expect(d1).toBeCloseTo(66.7, 0);
+    expect(d30).toBeCloseTo(33.3, 0);
   });
 
   it('reports a mixed cohort as a percentage', () => {
@@ -175,6 +216,97 @@ describe('retention', () => {
     const offsets = runDayOffsets(runs, firstSeen);
 
     expect(retentionAtDay(['a'], offsets, 1, '2026-08-01', now)).toBe(0);
+  });
+});
+
+describe('retainedAtDay', () => {
+  it('is true when the player was active on that day or later', () => {
+    expect(retainedAtDay(new Set([0, 12]), 7)).toBe(true);
+    expect(retainedAtDay(new Set([0, 7]), 7)).toBe(true);
+  });
+
+  it('is false when they never made it that far', () => {
+    expect(retainedAtDay(new Set([0, 3]), 7)).toBe(false);
+    expect(retainedAtDay(new Set([0]), 1)).toBe(false);
+  });
+
+  it('handles a player with no recorded offsets', () => {
+    expect(retainedAtDay(undefined, 1)).toBe(false);
+  });
+});
+
+describe('engagement rate denominators', () => {
+  /**
+   * Mirrors the runsPerActiveDay calculation in the overview route. Guards the bug where
+   * dividing by every player × every calendar day drove the figure to ~0.1 for a game
+   * people play several times a sitting.
+   */
+  function runsPerActiveDay(runs: RunRow[]): number {
+    const playerDays = new Set(
+      runs.map((r) => `${r.player_guid}|${dayKey(r.started_at)}`)
+    ).size;
+    return playerDays > 0 ? Math.round((runs.length / playerDays) * 10) / 10 : 0;
+  }
+
+  it('averages over days played, not the whole calendar', () => {
+    // One player, 6 runs, all on a single day inside a long range
+    const runs = Array.from({ length: 6 }, (_, i) =>
+      run({ player_guid: 'a', started_at: `2026-08-01T1${i}:00:00Z` })
+    );
+
+    // 6 runs ÷ 1 player-day = 6, not 6 ÷ 1 player ÷ 30 calendar days = 0.2
+    expect(runsPerActiveDay(runs)).toBe(6);
+  });
+
+  it('counts each player-day once across multiple players', () => {
+    const runs = [
+      run({ player_guid: 'a', started_at: '2026-08-01T10:00:00Z' }),
+      run({ player_guid: 'a', started_at: '2026-08-01T11:00:00Z' }),
+      run({ player_guid: 'b', started_at: '2026-08-02T10:00:00Z' }),
+      run({ player_guid: 'b', started_at: '2026-08-02T11:00:00Z' }),
+    ];
+    // 4 runs over 2 player-days
+    expect(runsPerActiveDay(runs)).toBe(2);
+  });
+
+  it('returns 0 with no runs rather than dividing by zero', () => {
+    expect(runsPerActiveDay([])).toBe(0);
+  });
+});
+
+describe('daily active window', () => {
+  /** Mirrors the DAU calculation: the last fully elapsed UTC day, never a partial today. */
+  function dau(runs: RunRow[], to: Date): number {
+    const startOfToDay = new Date(`${dayKey(to)}T00:00:00.000Z`).getTime();
+    const dayMs = 24 * 60 * 60 * 1000;
+    return uniquePlayers(
+      runs.filter((r) => {
+        const at = new Date(r.started_at).getTime();
+        return at >= startOfToDay - dayMs && at < startOfToDay;
+      })
+    );
+  }
+
+  it('measures yesterday, so a quiet morning does not read as a collapse', () => {
+    const runs = [
+      // Yesterday: three players
+      run({ player_guid: 'a', started_at: '2026-08-05T10:00:00Z' }),
+      run({ player_guid: 'b', started_at: '2026-08-05T18:00:00Z' }),
+      run({ player_guid: 'c', started_at: '2026-08-05T23:00:00Z' }),
+      // Today, barely started: one player
+      run({ player_guid: 'd', started_at: '2026-08-06T00:30:00Z' }),
+    ];
+
+    // 08:00 on the 6th — a rolling 24h window would report 1
+    expect(dau(runs, new Date('2026-08-06T08:00:00Z'))).toBe(3);
+  });
+
+  it('excludes today entirely, however late in the day', () => {
+    const runs = [
+      run({ player_guid: 'a', started_at: '2026-08-05T10:00:00Z' }),
+      run({ player_guid: 'b', started_at: '2026-08-06T23:00:00Z' }),
+    ];
+    expect(dau(runs, new Date('2026-08-06T23:59:00Z'))).toBe(1);
   });
 });
 

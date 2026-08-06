@@ -7,8 +7,10 @@ import {
   median,
   firstSeenByPlayer,
   runDayOffsets,
+  retainedAtDay,
   type RunRow,
 } from '@/lib/api/analytics';
+import type { AudienceResponse } from '@/types/analytics';
 
 /**
  * GET /api/games/[gameId]/analytics/audience
@@ -30,13 +32,15 @@ export async function GET(
       return at >= scope.from.getTime() && at <= scope.to.getTime();
     });
 
-    return Response.json({
+    const payload: AudienceResponse = {
       range: { from: scope.from.toISOString(), to: scope.to.toISOString() },
       truncated,
       heatmap: activityHeatmap(windowRuns),
       countries: countryBreakdown(windowRuns),
       versions: versionBreakdown(allRuns, scope.to),
-    });
+    };
+
+    return Response.json(payload);
   } catch (error) {
     return analyticsErrorResponse(error);
   }
@@ -128,7 +132,7 @@ function versionBreakdown(runs: RunRow[], now: Date) {
         return first ? daysBetween(first, now) >= 7 : false;
       });
 
-      const returned = eligible.filter((guid) => offsets.get(guid)?.has(7)).length;
+      const returned = eligible.filter((guid) => retainedAtDay(offsets.get(guid), 7)).length;
 
       const durations = versionRuns
         .map((run) => run.elapsed_seconds)

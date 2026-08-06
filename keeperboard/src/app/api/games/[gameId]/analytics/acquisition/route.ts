@@ -5,8 +5,10 @@ import {
   median,
   firstSeenByPlayer,
   runDayOffsets,
+  retainedAtDay,
   type RunRow,
 } from '@/lib/api/analytics';
+import type { AcquisitionResponse } from '@/types/analytics';
 
 /**
  * GET /api/games/[gameId]/analytics/acquisition
@@ -39,14 +41,16 @@ export async function GET(
 
     const sources = sourceBreakdown(runs, firstSeen, offsets, scope.to);
 
-    return Response.json({
+    const payload: AcquisitionResponse = {
       range: { from: scope.from.toISOString(), to: scope.to.toISOString() },
       truncated,
       sources,
       // Share of web players who arrived through a tagged link. When this is low, the
       // rest of this page is describing a small slice — tag more links.
       taggedCoverage: taggedCoverage(sources),
-    });
+    };
+
+    return Response.json(payload);
   } catch (error) {
     return analyticsErrorResponse(error);
   }
@@ -94,7 +98,7 @@ function sourceBreakdown(
         const first = firstSeen.get(guid);
         return first ? daysBetween(first, now) >= 7 : false;
       });
-      const returned = eligible.filter((guid) => offsets.get(guid)?.has(7)).length;
+      const returned = eligible.filter((guid) => retainedAtDay(offsets.get(guid), 7)).length;
 
       const durations = players
         .flatMap((guid) => runsByPlayer.get(guid) ?? [])
@@ -123,16 +127,23 @@ function isAppPlatform(platform: string): boolean {
   return platform === 'ios' || platform === 'android';
 }
 
+/**
+ * What share of reachable players arrived through a tagged link.
+ *
+ * The denominator is everything except known app installs — which means it includes
+ * unknown-platform players from before SDK 2.3.0. Calling those "web" would assert
+ * something we cannot know; they may well have been app installs.
+ */
 function taggedCoverage(sources: ReturnType<typeof sourceBreakdown>) {
-  const web = sources.filter((entry) => entry.attributable);
-  const total = web.reduce((sum, entry) => sum + entry.players, 0);
-  const tagged = web
+  const reachable = sources.filter((entry) => entry.attributable);
+  const total = reachable.reduce((sum, entry) => sum + entry.players, 0);
+  const tagged = reachable
     .filter((entry) => entry.source !== 'direct')
     .reduce((sum, entry) => sum + entry.players, 0);
 
   return {
     taggedPlayers: tagged,
-    webPlayers: total,
+    attributablePlayers: total,
     percent: total > 0 ? Math.round((tagged / total) * 1000) / 10 : 0,
   };
 }

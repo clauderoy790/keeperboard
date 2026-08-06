@@ -266,8 +266,36 @@ export function firstSeenByPlayer(runs: RunRow[]): Map<string, string> {
 }
 
 /**
- * Classic day-N retention: of players first seen on a day, the share with a run exactly N
- * days later. Not rolling retention — "came back on day 7", not "came back by day 7".
+ * Was this player still active on day `day` **or any day after**?
+ *
+ * This is rolling (a.k.a. unbounded) retention, the definition that produces the familiar
+ * decreasing curve. Two alternatives were measured against real flight747 data and
+ * rejected:
+ *
+ * - **Exact day-N** ("played on precisely day 30") is standard for games with a daily
+ *   habit loop, but 76% of these players play on a single calendar day, so it read
+ *   0.0% at D30 for every cohort — technically true, entirely uninformative.
+ * - **Cumulative** ("played at any point in days 1–N") *increases* with N, which is
+ *   arithmetically fine but inverts the shape every analytics tool renders, so it reads
+ *   as a bug to anyone who has seen a retention table.
+ *
+ * Rolling gives 24.4% / 9.9% / 3.8% at D1/D7/D30 here — squarely in the published range
+ * for casual games, and directly comparable to any benchmark you'd look up.
+ *
+ * Day 0 is excluded by construction: `day` is always >= 1, so the first session never
+ * counts as a return.
+ */
+export function retainedAtDay(offsets: Set<number> | undefined, day: number): boolean {
+  if (!offsets) return false;
+
+  for (const offset of offsets) {
+    if (offset >= day) return true;
+  }
+  return false;
+}
+
+/**
+ * Share of a cohort still active on day `day` or later.
  *
  * @returns null when the window hasn't fully elapsed for this cohort yet, so a young
  *   cohort reads as "not measurable" rather than as 0%.
@@ -283,7 +311,7 @@ export function retentionAtDay(
   if (dayOffset(cohortStart, now) < day) return null;
 
   const returned = cohortPlayers.filter((guid) =>
-    runDaysByPlayer.get(guid)?.has(day)
+    retainedAtDay(runDaysByPlayer.get(guid), day)
   ).length;
 
   return Math.round((returned / cohortPlayers.length) * 1000) / 10;

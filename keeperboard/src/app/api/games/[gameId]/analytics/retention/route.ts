@@ -5,10 +5,12 @@ import {
   firstSeenByPlayer,
   runDayOffsets,
   retentionAtDay,
+  retainedAtDay,
   weekKey,
   groupBy,
   type RunRow,
 } from '@/lib/api/analytics';
+import type { RetentionResponse } from '@/types/analytics';
 
 /**
  * GET /api/games/[gameId]/analytics/retention
@@ -35,19 +37,20 @@ export async function GET(
     const offsets = runDayOffsets(runs, firstSeen);
     const now = scope.to;
 
-    return Response.json({
+    const payload: RetentionResponse = {
       range: { from: scope.from.toISOString(), to: scope.to.toISOString() },
       truncated,
       overall: overallRetention(firstSeen, offsets, now),
       cohorts: weeklyCohorts(firstSeen, offsets, now),
       byPlatform: platformCurves(runs, firstSeen, offsets, now),
-    });
+    };
+
+    return Response.json(payload);
   } catch (error) {
     return analyticsErrorResponse(error);
   }
 }
 
-const MILESTONES = [1, 7, 30] as const;
 const CURVE_DAYS = [0, 1, 3, 7, 14, 30] as const;
 
 /**
@@ -59,24 +62,20 @@ function overallRetention(
   firstSeen: Map<string, string>,
   offsets: Map<string, Set<number>>,
   now: Date
-) {
-  const result: Record<string, number | null> = {};
-
-  for (const day of MILESTONES) {
+): RetentionResponse['overall'] {
+  // Named explicitly rather than built from a loop: the dashboard's type guarantees
+  // d1/d7/d30 exist, and dynamically-keyed results would let that silently drift.
+  const at = (day: number) => {
     const eligible = [...firstSeen.entries()].filter(
       ([, first]) => daysBetween(first, now) >= day
     );
+    if (eligible.length === 0) return null;
 
-    if (eligible.length === 0) {
-      result[`d${day}`] = null;
-      continue;
-    }
+    const returned = eligible.filter(([guid]) => retainedAtDay(offsets.get(guid), day)).length;
+    return Math.round((returned / eligible.length) * 1000) / 10;
+  };
 
-    const returned = eligible.filter(([guid]) => offsets.get(guid)?.has(day)).length;
-    result[`d${day}`] = Math.round((returned / eligible.length) * 1000) / 10;
-  }
-
-  return result;
+  return { d1: at(1), d7: at(7), d30: at(30) };
 }
 
 function weeklyCohorts(
@@ -161,7 +160,7 @@ function retentionAtDayForPlayers(
   );
   if (eligible.length === 0) return null;
 
-  const returned = eligible.filter((guid) => offsets.get(guid)?.has(day)).length;
+  const returned = eligible.filter((guid) => retainedAtDay(offsets.get(guid), day)).length;
   return Math.round((returned / eligible.length) * 1000) / 10;
 }
 

@@ -238,9 +238,9 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 | [Plan 5](docs/plans/5_random-player-names.md) | Auto-Generated Player Names | 2026-02-15 | Completed |
 | [Plan 6](docs/plans/6_profanity-filter.md) | Profanity Filter for Player Names | 2026-03-07 | Completed |
 | [Plan 23](docs/plans/23_anti-cheat-security.md) | Anti-Cheat Security System | 2026-03-11 | Completed |
-| [Plan 24](docs/plans/24_platform-tracking-analytics.md) | Platform Tracking & Analytics | 2026-08-04 | Phase 6/10 (Aug 6) |
+| [Plan 24](docs/plans/24_platform-tracking-analytics.md) | Platform Tracking & Analytics | 2026-08-04 | Phase 7/10 (Aug 6) |
 
-**Active:** Plan 24 - Platform Tracking & Analytics (Phase 7 next)
+**Active:** Plan 24 - Platform Tracking & Analytics (Phase 8 next)
 
 ## License
 
