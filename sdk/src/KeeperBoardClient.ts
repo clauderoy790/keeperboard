@@ -32,6 +32,7 @@ import type {
   HealthResult,
   StartRunResult,
   FinishRunResult,
+  Platform,
 } from './types';
 import { KeeperBoardError } from './types';
 import { signRequest } from './signing';
@@ -43,6 +44,8 @@ export class KeeperBoardClient {
   private readonly apiKey: string;
   private readonly defaultLeaderboard?: string;
   private readonly signingSecret?: string;
+  private readonly platform: Platform;
+  private readonly gameVersion?: string;
 
   constructor(config: KeeperBoardConfig) {
     const url = config.apiUrl ?? KeeperBoardClient.DEFAULT_API_URL;
@@ -50,6 +53,8 @@ export class KeeperBoardClient {
     this.apiKey = config.apiKey;
     this.defaultLeaderboard = config.defaultLeaderboard;
     this.signingSecret = config.signingSecret;
+    this.platform = config.platform;
+    this.gameVersion = config.gameVersion;
   }
 
   // ============================================
@@ -78,6 +83,7 @@ export class KeeperBoardClient {
       player_guid: options.playerGuid,
       player_name: options.playerName,
       score: options.score,
+      platform: this.platform,
       ...(options.metadata && { metadata: options.metadata }),
     };
 
@@ -253,9 +259,16 @@ export class KeeperBoardClient {
     const url = `${this.apiUrl}/api/v1/runs/start${params.toString() ? '?' + params.toString() : ''}`;
 
     const timestamp = Date.now();
+    // Analytics dimensions ride on the run record — one row per session, which is what
+    // the dashboard aggregates. They are outside the signature by design: they are
+    // reporting data, not scoring data, and including them would break signature
+    // compatibility with every already-published SDK version for no security gain.
     const body: Record<string, unknown> = {
       player_guid: options.playerGuid,
       timestamp,
+      platform: this.platform,
+      ...(this.gameVersion && { game_version: this.gameVersion }),
+      ...(options.source && { source: options.source }),
     };
 
     const headers: Record<string, string> = {};
@@ -303,6 +316,7 @@ export class KeeperBoardClient {
       player_name: options.playerName,
       score: options.score,
       timestamp,
+      platform: this.platform,
       ...(options.metadata && { metadata: options.metadata }),
     };
 

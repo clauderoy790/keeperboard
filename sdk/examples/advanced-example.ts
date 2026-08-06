@@ -24,6 +24,7 @@ import {
 
 const client = new KeeperBoardClient({
   apiKey: 'kb_dev_your_api_key_here',
+  platform: 'web',            // Which build this is — see session-example.ts
   defaultLeaderboard: 'main', // Used when leaderboard not specified
 });
 

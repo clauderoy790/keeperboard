@@ -31,7 +31,9 @@ describe('generatePlayerName()', () => {
   it('should pass validateName() validation (100 iterations)', () => {
     for (let i = 0; i < 100; i++) {
       const name = generatePlayerName();
-      const validated = validateName(name, { uppercase: false });
+      // No options needed: validateName preserves case, and generated names are at most
+      // 12 chars (MAX_BASE_LENGTH 10 + numeric suffix), matching the default maxLength.
+      const validated = validateName(name);
       expect(validated).not.toBeNull();
       expect(validated).toBe(name);
     }

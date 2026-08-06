@@ -5,11 +5,31 @@
  * snake_case shapes returned by the KeeperBoard REST API and are used only
  * for deserialization inside the client.
  */
+/**
+ * Platforms a score can be submitted from.
+ *
+ * This describes the *build* you shipped, not the device it happens to run on — a web
+ * build played in Safari on an iPhone is `'web'`, and only the native iOS app is `'ios'`.
+ * The distinction matters because it is what tells you which store or channel a player
+ * came through.
+ */
+declare const PLATFORMS: readonly ["web", "ios", "android", "windows", "macos", "linux"];
+type Platform = (typeof PLATFORMS)[number];
 interface KeeperBoardConfig {
     /** API key from the KeeperBoard dashboard (e.g., "kb_dev_abc123...") */
     apiKey: string;
+    /**
+     * Which build this is. Required — the SDK cannot detect it, because a native app
+     * running in a webview and a mobile browser are indistinguishable from inside the page.
+     *
+     * Map your framework's value rather than passing it through: `Capacitor.getPlatform()`
+     * and Electron's `process.platform` both return values outside this union.
+     */
+    platform: Platform;
     /** Default leaderboard name — used when no leaderboard is specified in method calls */
     defaultLeaderboard?: string;
+    /** Build identifier, e.g. "1.4.2". Enables retention-by-version in the dashboard. */
+    gameVersion?: string;
     /** Signing secret for HMAC request signing (get from dashboard when signing is enabled) */
     signingSecret?: string;
     /** @internal Base URL override for testing. Do not use in production. */
@@ -54,6 +74,11 @@ interface StartRunOptions {
     playerGuid: string;
     /** Leaderboard name. Falls back to `defaultLeaderboard` from config. */
     leaderboard?: string;
+    /**
+     * First-touch acquisition tag. `KeeperBoardSession` supplies this automatically from
+     * the `?ref=` parameter; pass it explicitly only when using the low-level client.
+     */
+    source?: string;
 }
 interface FinishRunOptions {
     runId: string;
@@ -125,6 +150,19 @@ interface SessionConfig {
     apiKey: string;
     /** Leaderboard name (required — the session is bound to one board) */
     leaderboard: string;
+    /**
+     * Which build this is. Required — see {@link KeeperBoardConfig.platform}.
+     *
+     * @example
+     * import { Capacitor } from '@capacitor/core';
+     *
+     * const platform =
+     *   Capacitor.getPlatform() === 'ios' ? 'ios' :
+     *   Capacitor.getPlatform() === 'android' ? 'android' : 'web';
+     */
+    platform: Platform;
+    /** Build identifier, e.g. "1.4.2". Enables retention-by-version in the dashboard. */
+    gameVersion?: string;
     /** PlayerIdentity config for localStorage key prefix */
     identity?: {
         keyPrefix?: string;
@@ -185,6 +223,7 @@ interface ScoreSubmission {
     player_name: string;
     score: number;
     metadata?: Record<string, unknown>;
+    platform?: Platform;
 }
 /** @internal */
 interface ApiScoreResponse {
@@ -262,6 +301,8 @@ declare class KeeperBoardClient {
     private readonly apiKey;
     private readonly defaultLeaderboard?;
     private readonly signingSecret?;
+    private readonly platform;
+    private readonly gameVersion?;
     constructor(config: KeeperBoardConfig);
     /**
      * Submit a score. Only updates if the new score is higher than the existing one.
@@ -370,6 +411,7 @@ declare class KeeperBoardSession {
     private readonly leaderboard;
     private readonly cache;
     private readonly retryQueue;
+    private readonly source;
     private cachedLimit;
     private isSubmitting;
     private currentRunId;
@@ -413,6 +455,11 @@ declare class KeeperBoardSession {
      * if (result.isNewHighScore) console.log('New high score!');
      */
     finishRun(score: number, metadata?: Record<string, unknown>): Promise<FinishRunResult>;
+    /**
+     * The player's first-touch acquisition source, or null if they arrived untagged.
+     * Captured from `?ref=` on first visit and never overwritten.
+     */
+    getSource(): string | null;
     /** Check if there's an active run in progress. */
     hasActiveRun(): boolean;
     /** Get the current run ID, or null if no run is active. */
@@ -605,4 +652,41 @@ declare class RetryQueue {
     clear(): void;
 }
 
-export { Cache, type ClaimResponse, type ClaimResult, type ClaimScoreOptions, type ErrorCode, type FinishRunOptions, type FinishRunResult, type GetLeaderboardOptions, type GetPlayerRankOptions, type HealthResponse, type HealthResult, KeeperBoardClient, type KeeperBoardConfig, KeeperBoardError, KeeperBoardSession, type LeaderboardEntry, type LeaderboardResponse, type LeaderboardResult, type NameValidationOptions, PlayerIdentity, type PlayerIdentityConfig, type PlayerResponse, type PlayerResult, type ResetSchedule, RetryQueue, type ScoreResponse, type ScoreResult, type ScoreSubmission, type SessionConfig, type SessionScoreResult, type SnapshotEntry, type SnapshotResult, type StartRunOptions, type StartRunResult, type SubmitScoreOptions, type UpdateNameResult, type UpdatePlayerNameOptions, generatePlayerName, validateName };
+/**
+ * First-touch acquisition tracking.
+ *
+ * Reads a `?ref=` tag off the URL the first time a player arrives and stores it next to
+ * their GUID, so every run they ever play is attributed to the link that brought them in.
+ *
+ * @example
+ * // You post this link on Reddit:
+ * //   https://yourgame.com/?ref=reddit-webgames
+ * // Every run that player submits from then on carries source="reddit-webgames",
+ * // including when they return later by typing the URL directly.
+ *
+ * **Why only `?ref=` and not `document.referrer`:** Reddit marks user-submitted links
+ * `rel="noreferrer"`, Facebook routes through a redirector, and links opened from mobile
+ * apps usually drop the referrer entirely — so exactly the traffic you most want to
+ * measure is the traffic the referrer cannot see. A tag you control is the reliable
+ * signal; anything untagged is reported as "direct" rather than guessed at.
+ *
+ * **Web only.** An app installed from the App Store or Play Store launches with no URL,
+ * so there is nothing to read. Those players report no source, and the stores' own
+ * acquisition reports cover that side.
+ */
+/**
+ * Returns the player's stored acquisition source, capturing it from the URL on first sight.
+ *
+ * First-touch: once a value is stored it is never overwritten, so a player who arrives via
+ * Reddit and returns later through a different link stays credited to Reddit. A player who
+ * first arrives untagged stays unattributed until they happen to arrive through a tagged
+ * link — recording the first source we actually learn beats recording none at all.
+ *
+ * @param keyPrefix localStorage prefix, matching the one PlayerIdentity uses.
+ * @returns the stored source, or null when none is known.
+ */
+declare function captureSource(keyPrefix: string): string | null;
+/** Clears the stored source. Intended for tests and debugging. */
+declare function clearSource(keyPrefix: string): void;
+
+export { Cache, type ClaimResponse, type ClaimResult, type ClaimScoreOptions, type ErrorCode, type FinishRunOptions, type FinishRunResult, type GetLeaderboardOptions, type GetPlayerRankOptions, type HealthResponse, type HealthResult, KeeperBoardClient, type KeeperBoardConfig, KeeperBoardError, KeeperBoardSession, type LeaderboardEntry, type LeaderboardResponse, type LeaderboardResult, type NameValidationOptions, PLATFORMS, type Platform, PlayerIdentity, type PlayerIdentityConfig, type PlayerResponse, type PlayerResult, type ResetSchedule, RetryQueue, type ScoreResponse, type ScoreResult, type ScoreSubmission, type SessionConfig, type SessionScoreResult, type SnapshotEntry, type SnapshotResult, type StartRunOptions, type StartRunResult, type SubmitScoreOptions, type UpdateNameResult, type UpdatePlayerNameOptions, captureSource, clearSource, generatePlayerName, validateName };

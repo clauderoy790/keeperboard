@@ -269,6 +269,82 @@ await session.retryPendingScore();
 session.prefetch();
 ```
 
+---
+
+# Migration: v2.2.x → v2.3.0
+
+One required field. Everything else is additive.
+
+## Add `platform` to your config
+
+```diff
+  const session = new KeeperBoardSession({
+    apiKey: 'kb_dev_your_api_key',
+    leaderboard: 'main',
++   platform: 'web',
+  });
+```
+
+Accepted values: `'web' | 'ios' | 'android' | 'windows' | 'macos' | 'linux'`.
+
+This is a **compile-time** break — TypeScript fails until you add it. Existing published
+builds keep working, because the API treats an absent platform as `null`.
+
+`platform` describes the build you shipped, not the device it runs on. A web build opened in
+Safari on an iPhone is `'web'`; only your native iOS app is `'ios'`. The SDK cannot detect
+this, because a native webview and a mobile browser look identical from inside the page.
+
+### Capacitor, Cordova and Electron
+
+Map the value — these frameworks return strings outside the union (`Capacitor.getPlatform()`
+can return `'electron'`, and `process.platform` returns `'darwin'`):
+
+```typescript
+import { Capacitor } from '@capacitor/core';
+import type { Platform } from 'keeperboard';
+
+function resolvePlatform(): Platform {
+  switch (Capacitor.getPlatform()) {
+    case 'ios':     return 'ios';
+    case 'android': return 'android';
+    default:        return 'web';
+  }
+}
+```
+
+## Optional: `gameVersion`
+
+```diff
+  const session = new KeeperBoardSession({
+    apiKey: 'kb_dev_your_api_key',
+    leaderboard: 'main',
+    platform: 'web',
++   gameVersion: '1.4.2',
+  });
+```
+
+Lets the dashboard compare retention between releases. Worth adding if you ship to app
+stores, where players update on their own schedule and several versions are live at once.
+
+## Optional: acquisition tracking
+
+Nothing to configure. Post links with a `?ref=` tag and the SDK records where each player
+came from:
+
+```
+https://yourgame.com/?ref=reddit-webgames
+```
+
+Captured on first visit, never overwritten, attached to every run afterwards. Read it with
+`session.getSource()`. Web only — app installs cannot carry a tag through the store.
+
+## Also in 2.3.0
+
+`validateName()` behavior is unchanged, but its documentation was wrong: it does **not**
+uppercase and does **not** strip spaces. `validateName('  Ace Pilot! ')` returns
+`'Ace Pilot'`. If you relied on the documented `uppercase` option, it never existed — apply
+`.toUpperCase()` yourself, or pass `allowedPattern`.
+
 ## Need Help?
 
 If you encounter issues migrating, please [open an issue](https://github.com/clauderoy790/keeperboard/issues).

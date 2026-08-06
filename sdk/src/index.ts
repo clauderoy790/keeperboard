@@ -44,11 +44,18 @@ export { RetryQueue } from './RetryQueue';
 // Error class (value export)
 export { KeeperBoardError } from './types';
 
+// Platform values (value export — useful for validating at your own boundary)
+export { PLATFORMS } from './types';
+
+// Acquisition source capture
+export { captureSource, clearSource } from './source';
+
 // Public types
 export type {
   // Config
   KeeperBoardConfig,
   SessionConfig,
+  Platform,
 
   // Options objects
   SubmitScoreOptions,

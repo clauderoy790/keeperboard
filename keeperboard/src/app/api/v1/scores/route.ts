@@ -6,12 +6,14 @@ import { resolveLeaderboard } from '@/lib/api/leaderboard';
 import { resolveCurrentVersion } from '@/lib/api/version';
 import { getGameSettings, getAntiCheatSettings } from '@/lib/api/game';
 import { containsProfanity } from '@/lib/profanity';
+import { normalizePlatform, InvalidPlatformError } from '@/lib/api/platform';
 
 interface ScoreSubmission {
   player_guid: string;
   player_name: string;
   score: number;
   metadata?: Record<string, unknown>;
+  platform?: string;
 }
 
 export async function POST(request: Request) {
@@ -32,6 +34,16 @@ export async function POST(request: Request) {
         400,
         corsHeaders
       );
+    }
+
+    let platform: string | null;
+    try {
+      platform = normalizePlatform(body.platform);
+    } catch (error) {
+      if (error instanceof InvalidPlatformError) {
+        return errorResponse(error.message, 'INVALID_PLATFORM', 400, corsHeaders);
+      }
+      throw error;
     }
 
     // Check profanity if enabled for this game
@@ -103,6 +115,7 @@ export async function POST(request: Request) {
             score,
             player_name,
             metadata: (metadata as any) || null,
+            platform,
             updated_at: new Date().toISOString(),
           })
           .eq('id', existingScore.id)
@@ -131,6 +144,7 @@ export async function POST(request: Request) {
           score,
           version: currentVersion,
           metadata: (metadata as any) || null,
+          platform,
         })
         .select('id')
         .single();

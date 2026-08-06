@@ -21,6 +21,7 @@ import { KeeperBoardSession, KeeperBoardError } from '../src/index';
 const leaderboard = new KeeperBoardSession({
   apiKey: 'kb_dev_your_api_key_here', // Replace with your API key
   leaderboard: 'main',
+  platform: 'web',                   // Which build this is — see session-example.ts
   cache: { ttlMs: 30000 },           // 30s cache for getSnapshot()
   retry: { maxAgeMs: 86400000 },     // 24h retry queue for failed submissions
 });
@@ -92,11 +93,16 @@ async function onNameChange(newName: string): Promise<boolean> {
   const validated = leaderboard.validateName(newName);
   if (!validated) return false;
 
-  const success = await leaderboard.updatePlayerName(validated);
-  if (success) {
-    console.log('Name updated on server to:', validated);
+  // updatePlayerName returns a discriminated union, not a boolean — check `.success`.
+  // Testing the object directly would always be truthy, including on failure.
+  const result = await leaderboard.updatePlayerName(validated);
+  if (!result.success) {
+    console.error('Name update failed:', result.error);
+    return false;
   }
-  return success;
+
+  console.log('Name updated on server to:', validated);
+  return true;
 }
 
 // ============================================================================

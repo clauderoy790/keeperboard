@@ -2,6 +2,52 @@
 
 All notable changes to the KeeperBoard SDK are documented here.
 
+## [2.3.0] - 2026-08-05
+
+### Added
+
+- **`platform` (required)** in `SessionConfig` and `KeeperBoardConfig` — identifies which build
+  a score came from. `'web' | 'ios' | 'android' | 'windows' | 'macos' | 'linux'`, exported as the
+  `Platform` type and the `PLATFORMS` array.
+- **`gameVersion`** (optional) in both configs — enables retention-by-version in the dashboard.
+- **Acquisition tracking** — the SDK captures a `?ref=` tag from the URL on a player's first
+  visit, stores it alongside their GUID, and attaches it to every run afterwards. First-touch:
+  never overwritten. Exposed via `session.getSource()` and the `captureSource` / `clearSource`
+  helpers.
+- `platform` is now sent on `submitScore()`, `startRun()` and `finishRun()`; `gameVersion` and
+  `source` are sent on `startRun()`.
+
+### Changed
+
+- **Breaking:** `platform` is required. TypeScript builds fail until it is added:
+
+  ```typescript
+  const session = new KeeperBoardSession({
+    apiKey: 'kb_...',
+    leaderboard: 'main',
+    platform: 'web',   // add this
+  });
+  ```
+
+  Released as a minor because the SDK has a single known consumer, updated in the same change.
+  Existing published versions keep working — the API treats an absent platform as `null`.
+
+### Fixed
+
+- Corrected `validateName()` documentation, which described uppercasing and space-stripping that
+  the function does not do (`'  Ace Pilot! '` returns `'Ace Pilot'`, not `'ACEPILOT'`), and
+  removed a documented `uppercase` option that does not exist.
+- Fixed `phaser-example.ts` treating `updatePlayerName()`'s result as a boolean. Since
+  `{ success: false }` is truthy, the example reported success on failure.
+
+### Internal
+
+- `npm run typecheck` now covers `tests/` and `examples/` via `tsconfig.test.json`. They were
+  previously excluded, which is how the two documentation bugs above went unnoticed.
+- Split test commands: `test:unit` (no database, <1s), `test:integration`, `test:clean`.
+
+---
+
 ## [2.1.0] - 2026-03-07
 
 ### Added

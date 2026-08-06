@@ -12,6 +12,7 @@ import { PlayerIdentity } from './PlayerIdentity';
 import { Cache } from './Cache';
 import { RetryQueue } from './RetryQueue';
 import { validateName } from './validation';
+import { captureSource } from './source';
 import type {
   SessionConfig,
   SessionScoreResult,
@@ -32,6 +33,7 @@ export class KeeperBoardSession {
   private readonly leaderboard: string;
   private readonly cache: Cache<SnapshotResult> | null;
   private readonly retryQueue: RetryQueue | null;
+  private readonly source: string | null;
   private cachedLimit = 0; // Track the limit used for cached data
   private isSubmitting = false;
   private currentRunId: string | null = null;
@@ -39,6 +41,8 @@ export class KeeperBoardSession {
   constructor(config: SessionConfig) {
     this.client = new KeeperBoardClient({
       apiKey: config.apiKey,
+      platform: config.platform,
+      gameVersion: config.gameVersion,
       defaultLeaderboard: config.leaderboard,
       signingSecret: config.signingSecret,
       apiUrl: config.apiUrl,
@@ -46,6 +50,10 @@ export class KeeperBoardSession {
 
     this.identity = new PlayerIdentity(config.identity);
     this.leaderboard = config.leaderboard;
+
+    // Captured once at construction, from `?ref=` on the current URL. Shares the identity
+    // key prefix so a player's source lives and dies with their GUID.
+    this.source = captureSource(config.identity?.keyPrefix ?? 'keeperboard_');
 
     // Cache layer (opt-in)
     this.cache = config.cache
@@ -172,6 +180,7 @@ export class KeeperBoardSession {
   async startRun(): Promise<StartRunResult> {
     const result = await this.client.startRun({
       playerGuid: this.getPlayerGuid(),
+      ...(this.source && { source: this.source }),
     });
     this.currentRunId = result.runId;
     return result;
@@ -212,6 +221,14 @@ export class KeeperBoardSession {
     }
 
     return result;
+  }
+
+  /**
+   * The player's first-touch acquisition source, or null if they arrived untagged.
+   * Captured from `?ref=` on first visit and never overwritten.
+   */
+  getSource(): string | null {
+    return this.source;
   }
 
   /** Check if there's an active run in progress. */

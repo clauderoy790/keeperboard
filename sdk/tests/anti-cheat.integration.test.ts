@@ -157,12 +157,14 @@ async function createAntiCheatFixtures(): Promise<AntiCheatFixtures> {
   // 6. Create SDK clients
   const client = new KeeperBoardClient({
     apiUrl: API_URL,
+    platform: 'web',
     apiKey: apiKeyRaw,
     defaultLeaderboard: testLeaderboardName,
   });
 
   const clientWithSigning = new KeeperBoardClient({
     apiUrl: API_URL,
+    platform: 'web',
     apiKey: apiKeyRaw,
     defaultLeaderboard: testLeaderboardName,
     signingSecret: signingSecret,
@@ -355,6 +357,7 @@ describe('Anti-Cheat Security Tests', () => {
       // Create a client with wrong signing secret
       const badClient = new KeeperBoardClient({
         apiUrl: API_URL,
+        platform: 'web',
         apiKey: fixtures.apiKey,
         defaultLeaderboard: fixtures.leaderboardName,
         signingSecret: 'wrong-secret-here',
@@ -376,6 +379,7 @@ describe('Anti-Cheat Security Tests', () => {
       // Create a client without signing secret
       const noSignClient = new KeeperBoardClient({
         apiUrl: API_URL,
+        platform: 'web',
         apiKey: fixtures.apiKey,
         defaultLeaderboard: fixtures.leaderboardName,
         // No signingSecret

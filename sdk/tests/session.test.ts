@@ -126,6 +126,7 @@ describe('KeeperBoardSession', () => {
     it('should delegate to PlayerIdentity for GUID', () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -138,6 +139,7 @@ describe('KeeperBoardSession', () => {
       mockPlayerName = null;
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -149,6 +151,7 @@ describe('KeeperBoardSession', () => {
     it('should set and get player name via identity', () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -160,6 +163,7 @@ describe('KeeperBoardSession', () => {
     it('should validate names using validateName()', () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -174,6 +178,7 @@ describe('KeeperBoardSession', () => {
 
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -183,6 +188,7 @@ describe('KeeperBoardSession', () => {
     it('hasExplicitPlayerName() should return true after setPlayerName() is called', () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -199,6 +205,7 @@ describe('KeeperBoardSession', () => {
 
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -215,6 +222,7 @@ describe('KeeperBoardSession', () => {
       mockPlayerName = 'TestPlayer';
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -238,6 +246,7 @@ describe('KeeperBoardSession', () => {
       mockPlayerName = null; // No name stored
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -254,6 +263,7 @@ describe('KeeperBoardSession', () => {
     it('should pass metadata to submitScore', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -271,6 +281,7 @@ describe('KeeperBoardSession', () => {
 
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -290,6 +301,7 @@ describe('KeeperBoardSession', () => {
 
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -322,6 +334,7 @@ describe('KeeperBoardSession', () => {
     it('startRun() should call client with auto-injected identity', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -338,6 +351,7 @@ describe('KeeperBoardSession', () => {
     it('startRun() should store run ID for finishRun()', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -354,6 +368,7 @@ describe('KeeperBoardSession', () => {
       mockPlayerName = 'TestPlayer';
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -379,6 +394,7 @@ describe('KeeperBoardSession', () => {
     it('finishRun() should pass metadata', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -395,6 +411,7 @@ describe('KeeperBoardSession', () => {
     it('finishRun() should throw error if no active run', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -406,6 +423,7 @@ describe('KeeperBoardSession', () => {
     it('finishRun() should invalidate cache', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
         cache: { ttlMs: 5000 },
       });
@@ -447,6 +465,7 @@ describe('KeeperBoardSession', () => {
 
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
         retry: { maxAgeMs: 60000 },
       });
@@ -459,6 +478,7 @@ describe('KeeperBoardSession', () => {
     it('should clear retry queue on success', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
         retry: { maxAgeMs: 60000 },
       });
@@ -481,6 +501,7 @@ describe('KeeperBoardSession', () => {
     it('should return null when no pending score', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
         retry: { maxAgeMs: 60000 },
       });
@@ -498,6 +519,7 @@ describe('KeeperBoardSession', () => {
     it('should cache getSnapshot results', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
         cache: { ttlMs: 5000 },
       });
@@ -513,6 +535,7 @@ describe('KeeperBoardSession', () => {
     it('should re-fetch after TTL expires', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
         cache: { ttlMs: 5000 },
       });
@@ -527,6 +550,7 @@ describe('KeeperBoardSession', () => {
     it('should re-fetch when larger limit is requested', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
         cache: { ttlMs: 5000 },
       });
@@ -548,6 +572,7 @@ describe('KeeperBoardSession', () => {
     it('should invalidate cache after submitScore', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
         cache: { ttlMs: 5000 },
       });
@@ -565,6 +590,7 @@ describe('KeeperBoardSession', () => {
     it('should invalidate cache after updatePlayerName', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
         cache: { ttlMs: 5000 },
       });
@@ -586,6 +612,7 @@ describe('KeeperBoardSession', () => {
     it('should mark current player in entries', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -606,6 +633,7 @@ describe('KeeperBoardSession', () => {
     it('should include playerRank when player is outside entries', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -633,6 +661,7 @@ describe('KeeperBoardSession', () => {
     it('should NOT include playerRank when player is in entries', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -666,6 +695,7 @@ describe('KeeperBoardSession', () => {
     it('should update name on server and locally', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -685,6 +715,7 @@ describe('KeeperBoardSession', () => {
 
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 
@@ -707,6 +738,7 @@ describe('KeeperBoardSession', () => {
     it('should trigger background fetch', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
         cache: { ttlMs: 5000 },
       });
@@ -720,6 +752,7 @@ describe('KeeperBoardSession', () => {
     it('should be no-op when cache is disabled', () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
         // No cache config
       });
@@ -732,6 +765,7 @@ describe('KeeperBoardSession', () => {
     it('should be no-op when cache is fresh', async () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
         cache: { ttlMs: 5000 },
       });
@@ -751,6 +785,7 @@ describe('KeeperBoardSession', () => {
     it('should return underlying client', () => {
       const session = new KeeperBoardSession({
         apiKey: 'test-key',
+        platform: 'web',
         leaderboard: 'main',
       });
 

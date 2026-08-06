@@ -28,7 +28,22 @@ keeperboard/
 
 ## Active Plan
 
-**Plan 23:** [Anti-Cheat Security System](docs/plans/23_anti-cheat-security.md)
+**Plan 24:** [Platform Tracking & Analytics](docs/plans/24_platform-tracking-analytics.md)
+
+- [x] Phase 1: Database Migration
+- [x] Phase 2: API — Accept & Validate
+- [x] Phase 3: SDK 2.3.0
+- [ ] Phase 4: Publish SDK 2.3.0
+- [ ] Phase 5: Flight747 Integration
+- [ ] Phase 6: Analytics API
+- [ ] Phase 7: Analytics Dashboard (Layout B)
+- [ ] Phase 8: Scores Table Platform Column
+- [ ] Phase 9: Store Releases
+- [ ] Phase 10: Acquisition Rollout
+
+## Completed Plans
+
+**Plan 23:** [Anti-Cheat Security System](docs/plans/23_anti-cheat-security.md) — ✅ Completed
 
 - [x] Phase 1: Database Schema & Game Settings
 - [x] Phase 2: Run Token Endpoints
@@ -39,8 +54,6 @@ keeperboard/
 - [x] Phase 7: SDK Build - Obfuscation
 - [x] Phase 8: Flight747 Integration
 - [x] Phase 9: Security Testing & Cleanup
-
-## Completed Plans
 
 **Plan 6:** [Profanity Filter for Player Names](docs/plans/6_profanity-filter.md) — ✅ Completed
 

@@ -187,6 +187,42 @@ Enable in the dashboard under **Game Settings > Anti-Cheat**. See [SDK docs](sdk
 
 **Security Model:** These measures stop casual cheaters (DevTools, simple replays). Determined attackers with reverse-engineering skills may still find ways around them — this is an acceptable tradeoff for most indie games.
 
+## Testing
+
+| Where | Command | What it covers |
+|-------|---------|----------------|
+| `keeperboard/` | `npm run test:run` | API route logic, signature validation, profanity filter, platform normalization. No database. |
+| `sdk/` | `npm run test:unit` | SDK logic — cache, retry queue, validation, session. No database. |
+| `sdk/` | `npm run test:integration` | **End-to-end against the real REST API and database.** |
+
+### Integration tests
+
+These are the ones that prove the whole stack works. Each file creates its own isolated
+game, environment, leaderboard and API key with a random per-run suffix, exercises the API,
+then deletes everything it made in `afterAll` — which runs even on failure, so a broken test
+cannot orphan rows. Deletes are keyed to IDs created by that run, never to name patterns, so
+existing leaderboards are never at risk.
+
+```bash
+cd sdk
+cp .env.example .env      # fill in SUPABASE_URL + SUPABASE_SERVICE_KEY
+npm run test:integration
+```
+
+A dev server starts automatically on port 3099 and stops on teardown. Any test that touches
+the database must be named `*.integration.test.ts` — that suffix is what separates it from
+the unit suite.
+
+Current integration coverage:
+
+- `api.integration.test.ts` — score submission, leaderboards, player rank, name updates
+- `anti-cheat.integration.test.ts` — run token replay, elapsed time, score caps, signatures
+- `platform.integration.test.ts` — platform/country/version/source validation and storage
+
+`afterAll` cannot run if the process is killed outright, so every integration run starts by
+sweeping fixtures orphaned by earlier runs. Run it standalone with `npm run test:clean` from
+`sdk/`. See [sdk/README.md](sdk/README.md#orphaned-fixtures) for the safety rules.
+
 ## Contributing
 
 Contributions are welcome! Please open an issue first to discuss what you'd like to change.
@@ -202,6 +238,9 @@ Contributions are welcome! Please open an issue first to discuss what you'd like
 | [Plan 5](docs/plans/5_random-player-names.md) | Auto-Generated Player Names | 2026-02-15 | Completed |
 | [Plan 6](docs/plans/6_profanity-filter.md) | Profanity Filter for Player Names | 2026-03-07 | Completed |
 | [Plan 23](docs/plans/23_anti-cheat-security.md) | Anti-Cheat Security System | 2026-03-11 | Completed |
+| [Plan 24](docs/plans/24_platform-tracking-analytics.md) | Platform Tracking & Analytics | 2026-08-04 | Phase 3/10 (Aug 5) |
+
+**Active:** Plan 24 - Platform Tracking & Analytics (Phase 4 next)
 
 ## License
 

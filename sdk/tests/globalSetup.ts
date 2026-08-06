@@ -9,6 +9,7 @@
 
 import { spawn, type ChildProcess } from 'child_process';
 import { resolve } from 'path';
+import { sweepStaleFixtures } from './sweepStaleFixtures';
 
 const TEST_PORT = 3099;
 const API_URL = process.env.KEEPERBOARD_API_URL || `http://localhost:${TEST_PORT}`;
@@ -38,6 +39,20 @@ async function waitForServer(): Promise<void> {
 }
 
 export async function setup() {
+  // Unit tests don't touch the API, so `npm run test:unit` sets this to skip the
+  // ~20s dev server spin-up entirely.
+  if (process.env.KEEPERBOARD_SKIP_SERVER === '1') {
+    return;
+  }
+
+  // Heal any fixtures orphaned by a previous run that died before teardown
+  const swept = await sweepStaleFixtures();
+  if (swept.removed.length > 0) {
+    console.log(
+      `[test setup] Removed ${swept.removed.length} orphaned test fixture(s): ${swept.removed.join(', ')}`
+    );
+  }
+
   if (await isKeeperBoardRunning()) {
     console.log('[test setup] Using existing KeeperBoard server at', API_URL);
     return;
