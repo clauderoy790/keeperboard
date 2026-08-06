@@ -37,7 +37,7 @@ keeperboard/
 - [x] Phase 5: Flight747 Integration
 - [x] Phase 6: Analytics API
 - [x] Phase 7: Analytics Dashboard (Layout B)
-- [ ] Phase 8: Scores Table Platform Column
+- [x] Phase 8: Scores Table Platform Column
 - [ ] Phase 9: Store Releases
 - [ ] Phase 10: Acquisition Rollout
 

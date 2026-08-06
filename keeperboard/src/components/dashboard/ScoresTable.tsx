@@ -12,9 +12,34 @@ interface Score {
   score: number;
   rank: number;
   elapsed_seconds: number | null;
+  /** Null for scores submitted before SDK 2.3.0 — displayed as "unknown". */
+  platform: string | null;
   created_at: string;
   updated_at: string | null;
 }
+
+/**
+ * Per-platform accents, matching the analytics dashboard so a platform reads the same
+ * colour everywhere in the app.
+ */
+const PLATFORM_COLORS: Record<string, string> = {
+  web: '#22d3ee',
+  ios: '#a78bfa',
+  android: '#4ade80',
+  windows: '#60a5fa',
+  macos: '#f472b6',
+  linux: '#fbbf24',
+};
+
+const PLATFORM_FILTERS = [
+  'web',
+  'ios',
+  'android',
+  'windows',
+  'macos',
+  'linux',
+  'unknown',
+] as const;
 
 interface Pagination {
   page: number;
@@ -50,6 +75,7 @@ export default function ScoresTable({
   const [dateSortOrder, setDateSortOrder] = useState<'desc' | 'asc'>('desc');
   const [editingScore, setEditingScore] = useState<Score | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [platformFilter, setPlatformFilter] = useState<string>('');
 
   // Check if viewing a historical version (read-only mode)
   const isReadOnly = version !== undefined;
@@ -79,6 +105,9 @@ export default function ScoresTable({
       if (version !== undefined) {
         params.set('version', version.toString());
       }
+      if (platformFilter) {
+        params.set('platform', platformFilter);
+      }
 
       const response = await fetch(
         `/api/games/${gameId}/leaderboards/${leaderboardId}/scores?${params}`
@@ -97,7 +126,7 @@ export default function ScoresTable({
     } finally {
       setLoading(false);
     }
-  }, [gameId, leaderboardId, pagination.page, pagination.pageSize, searchDebounced, sortBy, dateSortOrder, version, onScoreCountChange]);
+  }, [gameId, leaderboardId, pagination.page, pagination.pageSize, searchDebounced, sortBy, dateSortOrder, version, platformFilter, onScoreCountChange]);
 
   useEffect(() => {
     fetchScores();
@@ -203,6 +232,18 @@ export default function ScoresTable({
   // Check if any score has elapsed time (to conditionally show the column)
   const hasElapsedTime = scores.some((s) => s.elapsed_seconds !== null);
 
+  /**
+   * Platform column and filter appear only once there is platform data — every score
+   * predating SDK 2.3.0 has none, and a column reading "unknown" all the way down is
+   * noise. Same approach the Time column above already takes.
+   *
+   * The `platformFilter` term matters: without it, filtering to a platform with no
+   * matches would hide the control that set the filter, stranding the user on an empty
+   * table with no way back.
+   */
+  const showPlatform =
+    scores.some((s) => s.platform !== null) || platformFilter !== '';
+
   if (loading && scores.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -215,12 +256,41 @@ export default function ScoresTable({
     <div className="space-y-4">
       {/* Search and Controls */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="w-full sm:w-64">
-          <Input
-            placeholder="Search by name or GUID..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+          <div className="w-full sm:w-64">
+            <Input
+              placeholder="Search by name or GUID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          {showPlatform ? (
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="platform-filter"
+                className="text-xs font-mono font-semibold text-cyan-400 uppercase tracking-wider"
+              >
+                Platform
+              </label>
+              <select
+                id="platform-filter"
+                value={platformFilter}
+                onChange={(e) => {
+                  setPlatformFilter(e.target.value);
+                  // A narrower result set may have fewer pages than the current one
+                  setPagination((prev) => ({ ...prev, page: 1 }));
+                }}
+                className="px-3 py-2 bg-neutral-900 border-2 border-cyan-500/20 text-neutral-100 font-mono text-sm cursor-pointer appearance-none focus:border-cyan-500/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40 transition-colors duration-200"
+              >
+                <option value="">All</option>
+                {PLATFORM_FILTERS.map((platform) => (
+                  <option key={platform} value={platform}>
+                    {platform}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
         </div>
         <div className="flex items-center gap-2 text-sm font-mono text-neutral-500">
           <span>Show:</span>
@@ -277,6 +347,11 @@ export default function ScoresTable({
                     Time
                   </th>
                 )}
+                {showPlatform ? (
+                  <th className="text-left py-3 px-4 text-xs font-mono font-semibold text-cyan-400 uppercase tracking-wider hidden md:table-cell">
+                    Platform
+                  </th>
+                ) : null}
                 <th
                   className="text-left py-3 px-4 text-xs font-mono font-semibold uppercase tracking-wider hidden lg:table-cell cursor-pointer select-none hover:text-cyan-300 transition-colors"
                   onClick={handleDateSort}
@@ -313,6 +388,25 @@ export default function ScoresTable({
                       {formatElapsedTime(score.elapsed_seconds)}
                     </td>
                   )}
+                  {showPlatform ? (
+                    <td className="py-3 px-4 hidden md:table-cell">
+                      {score.platform ? (
+                        <span
+                          className="inline-block border px-2 py-0.5 text-[11px] font-mono tracking-wide"
+                          style={{
+                            color: PLATFORM_COLORS[score.platform] ?? '#a3a3a3',
+                            borderColor: PLATFORM_COLORS[score.platform] ?? '#a3a3a3',
+                          }}
+                        >
+                          {score.platform}
+                        </span>
+                      ) : (
+                        <span className="inline-block border border-neutral-700 px-2 py-0.5 text-[11px] font-mono tracking-wide text-neutral-600">
+                          unknown
+                        </span>
+                      )}
+                    </td>
+                  ) : null}
                   <td className="py-3 px-4 text-xs font-mono text-neutral-500 hidden lg:table-cell">
                     {formatDate(score.updated_at ?? score.created_at)}
                   </td>

@@ -61,6 +61,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     const sortBy = searchParams.get('sortBy') || 'score';
     const sortOrder = searchParams.get('sortOrder') || leaderboard.sort_order;
     const versionParam = searchParams.get('version');
+    const platformFilter = searchParams.get('platform');
 
     const offset = (page - 1) * pageSize;
 
@@ -86,9 +87,10 @@ export async function GET(request: Request, { params }: RouteParams) {
     // Build query
     let query = supabase
       .from('scores')
-      .select('id, player_guid, player_name, score, version, run_id, created_at, updated_at', {
-        count: 'exact',
-      })
+      .select(
+        'id, player_guid, player_name, score, version, run_id, platform, created_at, updated_at',
+        { count: 'exact' }
+      )
       .eq('leaderboard_id', leaderboardId)
       .eq('version', targetVersion);
 
@@ -97,6 +99,15 @@ export async function GET(request: Request, { params }: RouteParams) {
       query = query.or(
         `player_name.ilike.%${search}%,player_guid.ilike.%${search}%`
       );
+    }
+
+    // Platform filter. "unknown" selects rows with no platform — scores submitted before
+    // SDK 2.3.0, which are a real group worth isolating rather than an error state.
+    if (platformFilter) {
+      query =
+        platformFilter === 'unknown'
+          ? query.is('platform', null)
+          : query.eq('platform', platformFilter);
     }
 
     // Apply sorting
